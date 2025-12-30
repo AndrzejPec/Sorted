@@ -121,12 +121,70 @@ local function getDishCategory(item)
   return nil
 end
 
-local function getFoodCategory(item)
-  if item and item.getItemType and item:getItemType() == ItemType.FOOD then
-    return isPerishable(item) and "FoodP" or "FoodN"
+
+local function isFoodBox(item)
+  if not item then return false end
+
+  if item:getDoubleClickRecipe() ~= "OpenBoxOfCannedFood" then
+      return false
   end
-  return nil
+
+  local icon = item:getIcon()
+  if icon and string.find(icon, "CannedWater", 1, true) then
+      return false
+  end
+
+  return true
 end
+
+local function getFoodCategory(item)
+  if not item or not item.getItemType then
+      return nil
+  end
+
+  if item:getItemType() ~= ItemType.FOOD then
+      return nil
+  end
+
+  if isFoodBox(item) then
+      return "FoodN"
+  end
+
+  if isPerishable(item) then
+      return "FoodP"
+  end
+
+  return "FoodN"
+end
+
+function Sorted.printAllFoodBoxes()
+  local player = getPlayer()
+  if not player then
+    Sorted:log("ERROR: No player found", 3)
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("ERROR: No inventory found", 3)
+    return
+  end
+
+  local count = 0
+  local items = inventory:getItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local fullType = item and item.getFullType and item:getFullType() or "?"
+    if isFoodBox(item) then
+      Sorted:log("Item: " .. fullType .. " is a foodbox.", 3)
+      count = count + 1
+    else
+      Sorted:log("Item: " .. fullType .. " is not a foodbox.", 3)
+    end
+  end
+  Sorted:log("A total of " .. count .. " foodboxes were found.", 3)
+end
+
 
 local function getLiteratureCategory(item)
   if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
