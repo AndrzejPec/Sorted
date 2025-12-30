@@ -30,8 +30,8 @@ local function getDynamicFluidCategory(fluidContainer, item)
     return "Fuel"
   end
 
-  local primary = fluidContainer.getPrimaryFluid and fluidContainer:getPrimaryFluid()
-  local name = primary and string.lower(primary:getFluidTypeString())
+  local primary = fluidContainer and fluidContainer.getPrimaryFluid and fluidContainer:getPrimaryFluid()
+  local name = primary and primary.getFluidTypeString and string.lower(primary:getFluidTypeString())
   if (name and string.find(name, "milk", 1, true))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.AnimalMilk))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.SheepMilk))
@@ -43,7 +43,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
     return "FoodA"
   end
 
-  if fluidContainer:isAllCategory(FluidCategory.Water) then
+  if fluidContainer and fluidContainer.isAllCategory and fluidContainer:isAllCategory(FluidCategory.Water) then
     return "FoodW"
   end
 
@@ -64,7 +64,7 @@ function BetterSorting.ApplyFluidCategory(item)
     return
   end
 
-  local fullType = item:getFullType()
+  local fullType = item and item.getFullType and item:getFullType()
   local userCategory = nil
   if Sorted and Sorted.getSavedCategory then
     userCategory = Sorted.getSavedCategory(fullType)
@@ -73,13 +73,19 @@ function BetterSorting.ApplyFluidCategory(item)
   local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
 
   if dynamicCategory then
-    item:setDisplayCategory(dynamicCategory)
+    if item and item.setDisplayCategory then
+      item:setDisplayCategory(dynamicCategory)
+    end
   elseif userCategory and userCategory ~= "none" then
-    item:setDisplayCategory(userCategory)
+    if item and item.setDisplayCategory then
+      item:setDisplayCategory(userCategory)
+    end
   else
-    local amount = fluidContainer.getAmount and fluidContainer:getAmount() or 0
+    local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
     if amount <= 0 then
-      item:setDisplayCategory("Container")
+      if item and item.setDisplayCategory then
+        item:setDisplayCategory("Container")
+      end
     end
   end
 end

@@ -9,14 +9,14 @@ end
 
 
 local function isPerishable(item)
-  if item.getDaysTotallyRotten then
+  if item and item.getDaysTotallyRotten then
     local days = item:getDaysTotallyRotten()
     if days and days > 0 and days < 1000000000 then
       return true
     end
   end
 
-  if item.getRottenTime then
+  if item and item.getRottenTime then
     local time = item:getRottenTime()
     if time and time > 0 and time < 1000000000 then
       return true
@@ -73,7 +73,7 @@ local function keepProtectiveGear(item)
 end
 
 local function getBeverageCategory(item)
-  if item:getDisplayCategory() == "Water" then
+  if item and item.getDisplayCategory and item:getDisplayCategory() == "Water" then
     return "FoodB"
   end
   return nil
@@ -98,8 +98,8 @@ local function getDishCategory(item)
   if not item then return nil end
 
 
-  local eatType = item.getEatType and item:getEatType()
-  if item:getItemType() == ItemType.FOOD then
+  local eatType = item and item.getEatType and item:getEatType()
+  if item and item.getItemType and item:getItemType() == ItemType.FOOD then
     local cookwareTypes = {"Pot", "Plate", "2handbowl", "Saucepan"}
     for _, cType in ipairs(cookwareTypes) do
       if eatType == cType then
@@ -111,14 +111,14 @@ local function getDishCategory(item)
 end
 
 local function getFoodCategory(item)
-  if item:getItemType() == ItemType.FOOD then
+  if item and item.getItemType and item:getItemType() == ItemType.FOOD then
     return isPerishable(item) and "FoodP" or "FoodN"
   end
   return nil
 end
 
 local function getLiteratureCategory(item)
-  if item:getItemType() ~= ItemType.LITERATURE then
+  if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
     return nil
   end
 
@@ -127,7 +127,7 @@ local function getLiteratureCategory(item)
     return "LitC"
   end
 
-  local recipe = item:getLearnedRecipes()
+  local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
   if recipe and recipe.size and recipe:size() > 0 then
     return "LitR"
   end
@@ -148,7 +148,7 @@ local function getLiteratureCategory(item)
 end
 
 local function getThrowableWeaponCategory(item)
-  if item:getItemType() ~= ItemType.WEAPON then
+  if not item or not item.getItemType or item:getItemType() ~= ItemType.WEAPON then
     return nil
   end
 
@@ -159,7 +159,7 @@ local function getThrowableWeaponCategory(item)
 end
 
 local function getPlushieCategory(item)
-  if item.getIcon then
+  if item and item.getIcon then
     local icon = item:getIcon()
     if icon then
       icon = string.lower(icon)
@@ -172,10 +172,10 @@ local function getPlushieCategory(item)
 end
 
 local function getMementoClothingCategory(item)
-  if item:getDisplayCategory() ~= "Memento" then
+  if not item or not item.getDisplayCategory or item:getDisplayCategory() ~= "Memento" then
     return nil
   end
-  if item:getItemType() ~= ItemType.CLOTHING then
+  if not item.getItemType or item:getItemType() ~= ItemType.CLOTHING then
     return nil
   end
 
@@ -332,16 +332,16 @@ local BODYLOCATION_MAP = {
 }
 
 local function isClothing(item)
-  if item:getItemType() == ItemType.CLOTHING then
+  if item and item.getItemType and item:getItemType() == ItemType.CLOTHING then
     return true
   end
 
-  local bodyLoc = item.getBodyLocation and item:getBodyLocation()
+  local bodyLoc = item and item.getBodyLocation and item:getBodyLocation()
   if bodyLoc and bodyLoc ~= "" then
     return true
   end
 
-  local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
+  local bloodLoc = item and item.getBloodBodyPartType and item:getBloodBodyPartType()
   if bloodLoc and bloodLoc ~= "" then
     return true
   end
@@ -413,7 +413,7 @@ function Sorted.DebugDumpGlasses()
 
   for i = 0, items:size() - 1 do
     local item = items:get(i)
-    local bodyLoc = item.getBodyLocation and item:getBodyLocation()
+    local bodyLoc = item and item.getBodyLocation and item:getBodyLocation()
     if bodyLoc and bodyLoc ~= "" then
       local bodyLocStr = tostring(bodyLoc)
       if bodyLocStr then
@@ -422,7 +422,7 @@ function Sorted.DebugDumpGlasses()
       end
 
       if bodyLocStr == "EYES" or bodyLocStr == "LEFTEYE" or bodyLocStr == "RIGHTEYE" then
-        local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
+        local displayCategory = item and item.getDisplayCategory and item:getDisplayCategory()
         Sorted:log("GLASSES? " .. item:getFullName()
           .. " bodyLoc=" .. tostring(bodyLocStr)
           .. " display=" .. tostring(displayCategory), 3)
@@ -433,7 +433,7 @@ end
 
 local function dumpOneToOther(displayCategory, target)
   return function(item)
-    if item:getDisplayCategory() == displayCategory then
+    if item and item.getDisplayCategory and item:getDisplayCategory() == displayCategory then
       return target
     end
     return nil

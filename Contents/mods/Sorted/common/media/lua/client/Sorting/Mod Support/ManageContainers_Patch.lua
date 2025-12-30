@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 
 if not getActivatedMods():contains("ManageContainers") then
   return

@@ -1,3 +1,4 @@
+---@diagnostic disable: inject-field
 
 
 require "ISUI/ISPanel"
@@ -254,9 +255,9 @@ function Sorted.Manager:loadAllItems()
 
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        if not item:getObsolete() and not item:isHidden() then
-            local rawCategory = item:getDisplayCategory() or ""
-            local fullType = item:getFullName()
+        if item and not item:getObsolete() and not item:isHidden() then
+            local rawCategory = item and item.getDisplayCategory and item:getDisplayCategory() or ""
+            local fullType = item and item.getFullName and item:getFullName()
             local savedRaw = self.savedCategories[fullType] or "none"
             local defaultRaw = Sorted.defaultCategories and Sorted.defaultCategories[fullType] or "none"
             local currentRaw = savedRaw ~= "none" and savedRaw or rawCategory
@@ -267,7 +268,7 @@ function Sorted.Manager:loadAllItems()
 
             table.insert(self.fullList, {
                 fullType = fullType,
-                displayName = item:getDisplayName() or fullType,
+                displayName = item and item.getDisplayName and item:getDisplayName() or fullType,
                 category = rawCategory,
                 categoryLabel = currentLabel,
                 savedCategory = savedRaw,
@@ -358,8 +359,8 @@ function Sorted.Manager.doDrawLeftItem(self, y, item, alt)
     local sortingText = itemData.defaultCategoryLabel or "-"
 
     local textManager = getTextManager()
-    local sortingWidth = textManager:MeasureStringX(UIFont.Small, sortingText)
-    local shiftingWidth = textManager:MeasureStringX(UIFont.Small, shiftingText)
+    local sortingWidth = textManager and textManager.MeasureStringX and textManager:MeasureStringX(UIFont.Small, sortingText) or 0
+    local shiftingWidth = textManager and textManager.MeasureStringX and textManager:MeasureStringX(UIFont.Small, shiftingText) or 0
 
     local colWidth = (manager and manager.colWidth) or 110
     local colSortingX = (manager and manager.colSortingX) or (self.width - colWidth - 15)
@@ -648,10 +649,12 @@ function Sorted.Manager:onResetAllConfirm(button)
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
-        local fullType = scriptItem:getFullName()
+        local fullType = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
         local defaultCategory = Sorted.defaultCategories[fullType]
         if defaultCategory and defaultCategory ~= "none" then
-            scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
+            if scriptItem and scriptItem.DoParam then
+                scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
+            end
             Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
         end
     end
@@ -673,7 +676,8 @@ function Sorted.Manager:render()
 
     if self.bucketCountLabelX and self.bucketCountLabelY then
         local text = "(" .. tostring(self.bucketCount or 0) .. ")"
-        local textWidth = getTextManager():MeasureStringX(UIFont.Small, text)
+        local tm = getTextManager()
+        local textWidth = tm and tm.MeasureStringX and tm:MeasureStringX(UIFont.Small, text) or 0
         self:drawRect(self.bucketCountLabelX - 2, self.bucketCountLabelY, textWidth + 4, 20, 0.35, 0, 0, 0)
         self:drawText(text, self.bucketCountLabelX, self.bucketCountLabelY + 2, 1, 1, 0.9, 1, UIFont.Small)
     end
@@ -710,12 +714,12 @@ function Sorted.Manager.toggle()
 end
 
 
-function wtjOpenManager()
+function Sorted.openManager()
     Sorted.Manager.toggle()
 end
 
 if Sorted and Sorted.log then
-    Sorted:log("[Sorted.Manager] Loaded! Use wtjOpenManager() or right-click menu to open.", 3)
+    Sorted:log("[Sorted.Manager] Loaded! Use Sorted.openManager() or right-click menu to open.", 3)
 else
     print("[Sorted.Manager] Loaded!")
 end

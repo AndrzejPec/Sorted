@@ -92,13 +92,15 @@ function Sorted.Tracker.applyShiftingCategoriesToInventories()
     local items = playerInv:getItems()
     for i = 0, items:size() - 1 do
       local item = items:get(i)
-      local fullType = item:getFullType()
+      local fullType = item and item.getFullType and item:getFullType()
       local savedCategory = categories[fullType]
 
       if savedCategory then
-        local currentCategory = item:getDisplayCategory()
+        local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
         if currentCategory ~= savedCategory then
-          item:setDisplayCategory(savedCategory)
+          if item and item.setDisplayCategory then
+            item:setDisplayCategory(savedCategory)
+          end
         end
       end
     end
@@ -132,23 +134,23 @@ else
   end
 end
 
-function wtjTrackerToggle()
+function Sorted.trackerToggle()
     Sorted.Tracker.Config.enabled = not Sorted.Tracker.Config.enabled
     Sorted:log("[Sorted.Tracker] " .. (Sorted.Tracker.Config.enabled and "ENABLED" or "DISABLED"), 3)
 end
 
-function wtjTrackerDebug()
+function Sorted.trackerDebug()
     Sorted.Tracker.Config.debug = not Sorted.Tracker.Config.debug
     Sorted:log("[Sorted.Tracker] Debug: " .. (Sorted.Tracker.Config.debug and "ON" or "OFF"), 3)
 end
 
-function wtjTrackerRadius(r)
+function Sorted.trackerRadius(r)
     r = tonumber(r) or 10
     Sorted.Tracker.Config.radius = r
     Sorted:log("[Sorted.Tracker] Radius set to " .. r, 3)
 end
 
-function wtjTrackerForceUpdate()
+function Sorted.trackerForceUpdate()
     Sorted.Tracker.clearAllCache()
     Sorted:log("[Sorted.Tracker] Cache cleared - categories will reload on next inventory open", 3)
 end
@@ -158,7 +160,7 @@ function Sorted.Tracker.update()
     Sorted:log("[Sorted.Tracker] Update called (cache refreshed)", 3)
 end
 
-function wtjTrackerStats()
+function Sorted.trackerStats()
     Sorted:log(table.concat({
         "=== Sorted.Tracker Stats ===",
         "  Mode: Hybrid (INSTANT + BACKUP)",
@@ -173,11 +175,11 @@ end
 if Sorted and Sorted.log then
     Sorted:log(table.concat({
         "[Sorted.Tracker] Loaded! Commands:",
-        "  wtjTrackerToggle()      - enable/disable tracker",
-        "  wtjTrackerDebug()       - toggle debug mode",
-        "  wtjTrackerRadius(n)     - set radius (default 10)",
-        "  wtjTrackerForceUpdate() - force immediate update",
-        "  wtjTrackerStats()       - show cache stats",
+        "  Sorted.trackerToggle()      - enable/disable tracker",
+        "  Sorted.trackerDebug()       - toggle debug mode",
+        "  Sorted.trackerRadius(n)     - set radius (default 10)",
+        "  Sorted.trackerForceUpdate() - force immediate update",
+        "  Sorted.trackerStats()       - show cache stats",
     }, "\n"), 3)
 else
     print("[Sorted.Tracker] Loaded!")

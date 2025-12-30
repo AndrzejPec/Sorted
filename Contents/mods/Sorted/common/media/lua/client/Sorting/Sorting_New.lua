@@ -10,7 +10,7 @@ local function sortedLog(msg, lvl)
 end
 
 function BetterSorting.categorizeFoodBoxes(item)
-  if item:getItemType() ~= ItemType.FOOD then
+  if not item or not item.getItemType or item:getItemType() ~= ItemType.FOOD then
     return nil
   end
 
@@ -18,7 +18,7 @@ function BetterSorting.categorizeFoodBoxes(item)
     return nil
   end
 
-  local model = item:getWorldStaticModel()
+  local model = item and item:getWorldStaticModel()
   if model and string.find(model, "^Parcel_Food", 1, false) then
     return "FoodN"
   end

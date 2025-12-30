@@ -1,3 +1,4 @@
+---@diagnostic disable: inject-field, need-check-nil
 Sorted = Sorted or {}
 
 Sorted.categories = Sorted.categories or {}
@@ -230,8 +231,10 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
             local items = playerInv.inventory:getItems()
             for i = 0, items:size() - 1 do
                 local item = items:get(i)
-                if item:getFullType() == fullType then
-                    item:setDisplayCategory(category)
+                if item and item.getFullType and item:getFullType() == fullType then
+                    if item.setDisplayCategory then
+                        item:setDisplayCategory(category)
+                    end
                 end
             end
         end
@@ -241,8 +244,10 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
             local items = playerLoot.inventory:getItems()
             for i = 0, items:size() - 1 do
                 local item = items:get(i)
-                if item:getFullType() == fullType then
-                    item:setDisplayCategory(category)
+                if item and item.getFullType and item:getFullType() == fullType then
+                    if item.setDisplayCategory then
+                        item:setDisplayCategory(category)
+                    end
                 end
             end
         end
@@ -254,7 +259,7 @@ function Sorted.collectDisplayCategories()
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
-        local category = normalizeCategoryKey(scriptItem:getDisplayCategory())
+        local category = normalizeCategoryKey(scriptItem and scriptItem.getDisplayCategory and scriptItem:getDisplayCategory())
         if category and category ~= "" then
             raw[category] = true
         end
@@ -270,8 +275,8 @@ function Sorted.collectDefaultCategories()
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
-        local category = scriptItem:getDisplayCategory()
-        Sorted.defaultCategories[scriptItem:getFullName()] = category or "none"
+        local category = scriptItem and scriptItem.getDisplayCategory and scriptItem:getDisplayCategory()
+        Sorted.defaultCategories[scriptItem and scriptItem.getFullName and scriptItem:getFullName()] = category or "none"
     end
     Sorted._defaultCategoriesCollected = true
 end
