@@ -1,4 +1,4 @@
----@diagnostic disable: inject-field
+---@diagnostic disable: inject-field, param-type-mismatch
 
 
 require "ISUI/ISPanel"

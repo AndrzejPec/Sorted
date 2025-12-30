@@ -33,8 +33,6 @@ local function isCookwareLoot(item)
   return nil
 end
 
-
-
 local function isCookwareByEvolvedRecipe(item)
   if not item or not getEvolvedRecipes then return nil end
 
@@ -72,6 +70,21 @@ local function keepProtectiveGear(item)
   return nil
 end
 
+local function getAlcoholCategory(item)
+  if item.FluidContainer then
+    local fluidContainer = item:getFluidcontainer()
+    if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Alcoholic) then
+      return "FoodA"
+    end
+  end
+end
+
+local function getPetrolCategory(item)
+  if item.hasTag(ItemTag.PETROL) then
+    return "Fuel"
+  end
+end
+  
 local function getBeverageCategory(item)
   if item and item.getDisplayCategory and item:getDisplayCategory() == "Water" then
     return "FoodB"
@@ -91,8 +104,6 @@ local function getCleaningItems(item)
     return "Clean"
   end
 end
-
-
 
 local function getDishCategory(item)
   if not item then return nil end
@@ -467,8 +478,10 @@ end
 
 local CATEGORY_DETECTORS = {
   keepProtectiveGear,
+  getCleaningItems,
   getDishCategory,
   isCookwareLoot,
+  getAlcoholCategory,
   getBeverageCategory,
   getFrozenFoodCategory,
   getFoodCategory,
@@ -476,8 +489,8 @@ local CATEGORY_DETECTORS = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
-  getClothingCategoryDetailed,
   getMementoClothingCategory,
+  getClothingCategoryDetailed,
   dumpOneToOther("VehicleMaintenance", "Mech"),
   dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
   dumpOneToOther("WaterContainer", "Container"),
