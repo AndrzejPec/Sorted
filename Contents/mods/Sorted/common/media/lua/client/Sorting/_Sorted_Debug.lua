@@ -1,7 +1,7 @@
 Sorted = Sorted or {}
 
 Sorted.debug = {
-    enabled = false,
+    enabled = true,
     minLevel = 3, -- 1=ERROR, 2=WARN, 3=INFO
 }
 

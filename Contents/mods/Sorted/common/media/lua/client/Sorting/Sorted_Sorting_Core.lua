@@ -80,11 +80,11 @@ local function getAlcoholCategory(item)
 end
 
 local function getPetrolCategory(item)
-  if item.hasTag(ItemTag.PETROL) then
+  if item:hasTag(ItemTag.PETROL) then
     return "Fuel"
   end
 end
-  
+
 local function getBeverageCategory(item)
   if item and item.getDisplayCategory and item:getDisplayCategory() == "Water" then
     return "FoodB"
@@ -419,29 +419,6 @@ local function getClothingCategoryDetailed(item)
   return getClothingCategory(item, true)
 end
 
-function Sorted.DebugDumpGlasses()
-  local items = getAllItems()
-
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    local bodyLoc = item and item.getBodyLocation and item:getBodyLocation()
-    if bodyLoc and bodyLoc ~= "" then
-      local bodyLocStr = tostring(bodyLoc)
-      if bodyLocStr then
-        bodyLocStr = bodyLocStr:match(":([^:]+):?$") or bodyLocStr
-        bodyLocStr = string.upper(bodyLocStr)
-      end
-
-      if bodyLocStr == "EYES" or bodyLocStr == "LEFTEYE" or bodyLocStr == "RIGHTEYE" then
-        local displayCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-        Sorted:log("GLASSES? " .. item:getFullName()
-          .. " bodyLoc=" .. tostring(bodyLocStr)
-          .. " display=" .. tostring(displayCategory), 3)
-      end
-    end
-  end
-end
-
 local function dumpOneToOther(displayCategory, target)
   return function(item)
     if item and item.getDisplayCategory and item:getDisplayCategory() == displayCategory then
@@ -477,6 +454,7 @@ end
 
 
 local CATEGORY_DETECTORS = {
+  getPetrolCategory,
   keepProtectiveGear,
   getCleaningItems,
   getDishCategory,

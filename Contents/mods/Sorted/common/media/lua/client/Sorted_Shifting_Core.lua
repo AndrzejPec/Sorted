@@ -303,8 +303,11 @@ function Sorted.addContextMenu(player, context, items)
     managerOption.iconTexture = iconTex
 end
 
+---@class SortedModal : ISPanel
+---@type SortedModal
 Sorted.Modal = ISPanel:derive("Sorted.Modal")
 
+---@return SortedModal
 function Sorted.Modal:new(x, y, width, height, item)
     local o = ISPanel:new(x, y, width, height)
     setmetatable(o, self)
