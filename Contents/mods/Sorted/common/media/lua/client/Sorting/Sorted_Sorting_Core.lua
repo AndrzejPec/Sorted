@@ -1,5 +1,6 @@
 require("Sorting/ItemTweaker_Copy_CC")
 require("Sorting/Sorting_New")
+require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 
 if not Sorted then Sorted = {} end
 
@@ -130,7 +131,7 @@ local function isFoodBox(item)
   end
 
   local icon = item:getIcon()
-  if icon and string.find(icon, "CannedWater", 1, true) then
+  if icon and string.find(tostring(icon), "CannedWater", 1, true) then
       return false
   end
 
