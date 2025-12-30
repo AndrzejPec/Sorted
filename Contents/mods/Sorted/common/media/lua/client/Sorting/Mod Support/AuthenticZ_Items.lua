@@ -1,7 +1,5 @@
 require("Sorting/ItemTweaker_Copy_CC");
 
---AuthenticZ
---https://steamcommunity.com/sharedfiles/filedetails/?id=2335368829
 if getActivatedMods():contains("Authentic Z - Current") 
 or getActivatedMods():contains("AuthenticZBackpacks+") 
 or getActivatedMods():contains("AuthenticZLite") then

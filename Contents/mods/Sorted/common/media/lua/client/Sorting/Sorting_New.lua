@@ -1,10 +1,14 @@
--- Sorting_New.lua
--- Additional categorization rules for BetterSorting
 
 if not BetterSorting then BetterSorting = {} end
 
--- To moja usilna próba uchwycenia kategorii jedzenia pakowanego w paczki w sposób
--- zautomatyzowany w celu zabezpieczenia się na przyszłe dodatkowe itemy
+local function sortedLog(msg, lvl)
+  if Sorted and Sorted.log then
+    Sorted:log(msg, lvl or 3)
+    return
+  end
+  print(msg)
+end
+
 function BetterSorting.categorizeFoodBoxes(item)
   if item:getItemType() ~= ItemType.FOOD then
     return nil
@@ -22,7 +26,6 @@ function BetterSorting.categorizeFoodBoxes(item)
   return nil
 end
 
--- Utility function to iterate through all items in the game
 -- @param predicate - function(item) that returns true if item should be processed
 -- @param doReturn - if true, returns table of matching items
 -- @param doPrint - if true, prints matching items to console
@@ -51,7 +54,7 @@ function BetterSorting.iterateAllItems(predicate, doReturn, doPrint, param)
           end
         end
 
-        print(printStr)
+        sortedLog(printStr)
       end
 
       if doReturn then
@@ -63,7 +66,6 @@ function BetterSorting.iterateAllItems(predicate, doReturn, doPrint, param)
   return results
 end
 
--- Helper function to find items with isCookwareLoot
 function BetterSorting.findCookwareLootItems()
   return BetterSorting.iterateAllItems(
     function(item)

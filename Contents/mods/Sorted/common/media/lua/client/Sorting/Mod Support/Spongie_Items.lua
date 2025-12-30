@@ -1,6 +1,4 @@
 require("Sorting/ItemTweaker_Copy_CC");
---SpongiesClothing
---https://steamcommunity.com/sharedfiles/filedetails/?id=2684285534
 if getActivatedMods():contains("SpnCloth") or getActivatedMods():contains("SpnClothVanilla") then
 TweakItem("Spongie.Gloves_StripedLong","DisplayCategory","ClothArm");
 TweakItem("Spongie.Gloves_LeatherFingerless","DisplayCategory","ClothArm");
@@ -65,8 +63,6 @@ TweakItem("Base.Jacket_LeatherIronRodentOPEN","DisplayCategory","ClothBody");
 TweakItem("Base.Jacket_LeatherBarrelDogsOPEN","DisplayCategory","ClothBody");
 end
 
---Spongie's Open Jackets
---https://steamcommunity.com/sharedfiles/filedetails/?id=2812326159
 if getActivatedMods():contains("SpnOpenCloth") then
 TweakItem("Base.WeddingJacketOPEN","DisplayCategory","ClothBody");
 TweakItem("Base.Suit_JacketOPEN","DisplayCategory","ClothBody");

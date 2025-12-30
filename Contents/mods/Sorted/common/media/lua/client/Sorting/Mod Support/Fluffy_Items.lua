@@ -1,7 +1,5 @@
 require("Sorting/ItemTweaker_Copy_CC");
 
---UNDEADSURVIVOR
---https://steamcommunity.com/sharedfiles/filedetails/?id=2713921292
 if getActivatedMods():contains("UndeadSuvivor") then
 
 TweakItem("UndeadSurvivor.MakeUp_Amazona01","DisplayCategory","Appear");

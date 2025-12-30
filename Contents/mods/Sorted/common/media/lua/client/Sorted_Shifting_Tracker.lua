@@ -1,14 +1,4 @@
---[[
-================================================================================
-    SORTED - TRACKER
-    Hybrid event-based synchronizacja kategorii użytkownika
 
-    - INSTANT refresh: OnRefreshInventoryWindowContainers (user otwiera kontener)
-    - BACKUP refresh: OnPlayerUpdate z throttle 1s (edge cases: piekarnik, farming)
-    - Cache'uje kategorie z pliku INI (300 sekund)
-    - Best of both: instant UI responsiveness + reliability dla stationary edge cases
-================================================================================
-]]
 
 Sorted = Sorted or {}
 Sorted.Tracker = Sorted.Tracker or {}
@@ -36,12 +26,6 @@ local function tableSize(t)
     return count
 end
 
-local function log(msg)
-    if Sorted.Tracker.Config.debug then
-        print("[SORTYD] " .. msg)
-    end
-end
-
 function Sorted.Tracker.getSavedCategories()
     local now = getTimestampMs()
     if Sorted.Tracker._categoryCache and (now - Sorted.Tracker._categoryCacheTime) < CACHE_LIFETIME then
@@ -66,7 +50,7 @@ function Sorted.Tracker.getSavedCategories()
     Sorted.Tracker._categoryCacheTime = now
 
     if Sorted and Sorted.log then
-        Sorted:log("Loaded " .. tableSize(categories) .. " category assignments from INI", 1)
+        Sorted:log("Loaded " .. tableSize(categories) .. " category assignments from INI", 3)
     end
 
     return categories
@@ -76,7 +60,7 @@ function Sorted.Tracker.invalidateCategoryCache()
     Sorted.Tracker._categoryCache = nil
     Sorted.Tracker._categoryCacheTime = 0
     if Sorted and Sorted.log then
-        Sorted:log("Category cache invalidated", 1)
+        Sorted:log("Category cache invalidated", 3)
     end
 end
 
@@ -124,7 +108,7 @@ end
 if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(Sorted.Tracker.applyShiftingCategoriesToInventories)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 1)
+    Sorted:log("Tracker: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
   end
 end
 
@@ -140,7 +124,7 @@ end
 if Events and Events.OnPlayerUpdate then
   Events.OnPlayerUpdate.Add(applyWithThrottle)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 1)
+    Sorted:log("Tracker: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end
 else
   if Sorted and Sorted.log then
@@ -150,43 +134,51 @@ end
 
 function wtjTrackerToggle()
     Sorted.Tracker.Config.enabled = not Sorted.Tracker.Config.enabled
-    print("[Sorted.Tracker] " .. (Sorted.Tracker.Config.enabled and "ENABLED" or "DISABLED"))
+    Sorted:log("[Sorted.Tracker] " .. (Sorted.Tracker.Config.enabled and "ENABLED" or "DISABLED"), 3)
 end
 
 function wtjTrackerDebug()
     Sorted.Tracker.Config.debug = not Sorted.Tracker.Config.debug
-    print("[Sorted.Tracker] Debug: " .. (Sorted.Tracker.Config.debug and "ON" or "OFF"))
+    Sorted:log("[Sorted.Tracker] Debug: " .. (Sorted.Tracker.Config.debug and "ON" or "OFF"), 3)
 end
 
 function wtjTrackerRadius(r)
     r = tonumber(r) or 10
     Sorted.Tracker.Config.radius = r
-    print("[Sorted.Tracker] Radius set to " .. r)
+    Sorted:log("[Sorted.Tracker] Radius set to " .. r, 3)
 end
 
 function wtjTrackerForceUpdate()
     Sorted.Tracker.clearAllCache()
-    print("[Sorted.Tracker] Cache cleared - categories will reload on next inventory open")
+    Sorted:log("[Sorted.Tracker] Cache cleared - categories will reload on next inventory open", 3)
 end
 
 function Sorted.Tracker.update()
     Sorted.Tracker.clearAllCache()
-    print("[Sorted.Tracker] Update called (cache refreshed)")
+    Sorted:log("[Sorted.Tracker] Update called (cache refreshed)", 3)
 end
 
 function wtjTrackerStats()
-    print("=== Sorted.Tracker Stats ===")
-    print("  Mode: Hybrid (INSTANT + BACKUP)")
-    print("  INSTANT: OnRefreshInventoryWindowContainers (container open)")
-    print("  BACKUP: OnPlayerUpdate with 1s throttle (edge cases)")
-    print("  Debug: " .. tostring(Sorted.Tracker.Config.debug))
-    print("  Cached categories: " .. (Sorted.Tracker._categoryCache and tableSize(Sorted.Tracker._categoryCache) or 0))
-    print("  Cache lifetime: " .. (CACHE_LIFETIME / 1000) .. " seconds")
+    Sorted:log(table.concat({
+        "=== Sorted.Tracker Stats ===",
+        "  Mode: Hybrid (INSTANT + BACKUP)",
+        "  INSTANT: OnRefreshInventoryWindowContainers (container open)",
+        "  BACKUP: OnPlayerUpdate with 1s throttle (edge cases)",
+        "  Debug: " .. tostring(Sorted.Tracker.Config.debug),
+        "  Cached categories: " .. (Sorted.Tracker._categoryCache and tableSize(Sorted.Tracker._categoryCache) or 0),
+        "  Cache lifetime: " .. (CACHE_LIFETIME / 1000) .. " seconds",
+    }, "\n"), 3)
 end
 
-print("[Sorted.Tracker] Loaded! Commands:")
-print("  wtjTrackerToggle()      - enable/disable tracker")
-print("  wtjTrackerDebug()       - toggle debug mode")
-print("  wtjTrackerRadius(n)     - set radius (default 10)")
-print("  wtjTrackerForceUpdate() - force immediate update")
-print("  wtjTrackerStats()       - show cache stats")
+if Sorted and Sorted.log then
+    Sorted:log(table.concat({
+        "[Sorted.Tracker] Loaded! Commands:",
+        "  wtjTrackerToggle()      - enable/disable tracker",
+        "  wtjTrackerDebug()       - toggle debug mode",
+        "  wtjTrackerRadius(n)     - set radius (default 10)",
+        "  wtjTrackerForceUpdate() - force immediate update",
+        "  wtjTrackerStats()       - show cache stats",
+    }, "\n"), 3)
+else
+    print("[Sorted.Tracker] Loaded!")
+end

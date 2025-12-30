@@ -1,13 +1,4 @@
---[[
-================================================================================
-    WHAT THE JUNK - CATEGORY MANAGER
-    Okno do bulk-assign kategorii dla dowolnych itemów z gry
 
-    Layout: Dwa panele
-    - Lewy: Lista wszystkich itemów (z wyszukiwarką)
-    - Prawy: "Bucket" - wybrane itemy do zmiany kategorii
-================================================================================
-]]
 
 require "ISUI/ISPanel"
 require "ISUI/ISButton"
@@ -24,9 +15,6 @@ Sorted.Manager.instance = nil
 
 local ASSIGNMENTS_FILE = "Sorted_CategoryAssignments.ini"
 
--- =============================================================================
--- CONSTRUCTOR
--- =============================================================================
 
 function Sorted.Manager:new(x, y, width, height)
     local o = ISPanel:new(x, y, width, height)
@@ -37,16 +25,13 @@ function Sorted.Manager:new(x, y, width, height)
     o.borderColor = {r=0.6, g=0.6, b=0.6, a=1}
     o.moveWithMouse = true
 
-    o.fullList = {}           -- cache wszystkich itemów
-    o.filteredList = {}       -- przefiltrowana lista (lewy panel)
-    o.bucketItems = {}        -- wybrane itemy (prawy panel) {fullType = itemData}
+    o.fullList = {}
+    o.filteredList = {}
+    o.bucketItems = {}
 
     return o
 end
 
--- =============================================================================
--- INITIALISE
--- =============================================================================
 
 function Sorted.Manager:initialise()
     ISPanel.initialise(self)
@@ -62,16 +47,12 @@ function Sorted.Manager:createChildren()
     local btnH = 28
     local y = 10
 
-    -- Wymiary paneli
-    local panelGap = 60  -- miejsce na przyciski Add/Remove
+    local panelGap = 60
     local totalListWidth = self.width - pad * 3 - panelGap
-    local leftPanelWidth = totalListWidth * 0.78  -- więcej miejsca na lewą listę
+    local leftPanelWidth = totalListWidth * 0.78
     local rightPanelWidth = totalListWidth - leftPanelWidth
     local listHeight = 280
 
-    -- =========================================================================
-    -- TYTUŁ I ZAMKNIĘCIE
-    -- =========================================================================
     local title = ISLabel:new(pad, y, labelH, "Category Manager", 1, 1, 1, 1, UIFont.Medium, true)
     self:addChild(title)
 
@@ -83,15 +64,11 @@ function Sorted.Manager:createChildren()
 
     y = y + 35
 
-    -- =========================================================================
-    -- LEWY PANEL - WSZYSTKIE ITEMY
-    -- =========================================================================
     local leftX = pad
 
     local leftLabel = ISLabel:new(leftX, y, labelH, "All Items", 1, 1, 1, 1, UIFont.Small, true)
     self:addChild(leftLabel)
 
-    -- Search box
     local searchY = y + labelH
     local searchLabelText = "Search:"
     local searchLabelWidth = getTextManager():MeasureStringX(UIFont.Small, searchLabelText)
@@ -108,26 +85,21 @@ function Sorted.Manager:createChildren()
     self.searchBox.target = self
     self:addChild(self.searchBox)
 
-    -- Nagłówki kolumn - pozycje dopasowane do szerszej lewej listy
     local headerY = searchY + inputH + 5
-    local colWidth = 120  -- szerokość każdej kolumny
-    local colSortingX = leftX + leftPanelWidth - colWidth - 25  -- ostatnia kolumna (odsunięta od prawej)
-    local colShiftingX = colSortingX - colWidth - 20  -- środkowa kolumna (bardziej na środek)
+    local colWidth = 120
+    local colSortingX = leftX + leftPanelWidth - colWidth - 25
+    local colShiftingX = colSortingX - colWidth - 20
 
-    -- Nagłówek "Shifting" (środkowa kolumna - kategorie z INI)
     local shiftingHeader = ISLabel:new(colShiftingX + colWidth/2 - 20, headerY, labelH, "Shifting", 1, 0.9, 0.6, 1, UIFont.Small, true)
     self:addChild(shiftingHeader)
 
-    -- Nagłówek "Sorting" (ostatnia kolumna - kategorie z BetterSorting)
     local sortingHeader = ISLabel:new(colSortingX + colWidth/2 - 18, headerY, labelH, "Sorting", 0.6, 0.6, 0.6, 1, UIFont.Small, true)
     self:addChild(sortingHeader)
 
-    -- Zapisz pozycje kolumn do użycia w doDrawLeftItem
     self.colShiftingX = colShiftingX
     self.colSortingX = colSortingX
     self.colWidth = colWidth
 
-    -- Lista lewa
     local leftListY = headerY + labelH + 2
     self.leftList = ISScrollingListBox:new(leftX, leftListY, leftPanelWidth, listHeight - labelH - 2)
     self.leftList:initialise()
@@ -141,9 +113,6 @@ function Sorted.Manager:createChildren()
     self.leftList.onDoubleClick = Sorted.Manager.onLeftListDoubleClick
     self:addChild(self.leftList)
 
-    -- =========================================================================
-    -- ŚRODEK - PRZYCISKI ADD / REMOVE
-    -- =========================================================================
     local centerX = leftX + leftPanelWidth + 10
     local centerY = leftListY + listHeight / 2 - 35
 
@@ -159,9 +128,6 @@ function Sorted.Manager:createChildren()
     removeBtn.backgroundColorMouseOver = {r=0.5, g=0.1, b=0.1, a=0.7}
     self:addChild(removeBtn)
 
-    -- =========================================================================
-    -- PRAWY PANEL - BUCKET (WYBRANE)
-    -- =========================================================================
     local rightX = centerX + panelGap
 
     local bucketLabelText = "Selected Items"
@@ -169,13 +135,11 @@ function Sorted.Manager:createChildren()
     self.bucketLabel = ISLabel:new(rightX, y, labelH, bucketLabelText, 1, 1, 0.7, 1, UIFont.Small, true)
     self:addChild(self.bucketLabel)
 
-    -- Używamy zmiennej do śledzenia liczby, rysowanej w renderze panelu
     self.bucketCountLabelX = rightX + bucketLabelWidth + 6
     self.bucketCountLabelY = y
     self.bucketCount = 0
     self:updateBucketCountLabel(0)
 
-    -- Lista prawa (bucket)
     local rightListY = searchY + inputH + 5
     self.rightList = ISScrollingListBox:new(rightX, rightListY, rightPanelWidth, listHeight)
     self.rightList:initialise()
@@ -189,19 +153,14 @@ function Sorted.Manager:createChildren()
     self.rightList.onDoubleClick = Sorted.Manager.onRightListDoubleClick
     self:addChild(self.rightList)
 
-    -- Clear bucket button
     local clearBucketBtn = ISButton:new(rightX, rightListY + listHeight + 5, rightPanelWidth, btnH - 3, "Clear", self, Sorted.Manager.onClearBucket)
     clearBucketBtn.borderColor = {r=0.5, g=0.5, b=0.5, a=1}
     clearBucketBtn.backgroundColor = {r=0.2, g=0.2, b=0.2, a=0.5}
     clearBucketBtn.backgroundColorMouseOver = {r=0.3, g=0.3, b=0.3, a=0.7}
     self:addChild(clearBucketBtn)
 
-    -- =========================================================================
-    -- DOLNA CZĘŚĆ - WYBÓR KATEGORII
-    -- =========================================================================
     y = leftListY + listHeight + 45
 
-    -- Lewa strona - dropdown z kategoriami
     local catLabel = ISLabel:new(pad, y, labelH, "Choose from list:", 1, 1, 1, 1, UIFont.Small, true)
     self:addChild(catLabel)
 
@@ -210,7 +169,6 @@ function Sorted.Manager:createChildren()
     self:addChild(self.categoryCombo)
     self:populateCategoryCombo()
 
-    -- Prawa strona - custom input
     local customLabel = ISLabel:new(self.width / 2 + pad, y, labelH, "Or type custom:", 1, 1, 1, 1, UIFont.Small, true)
     self:addChild(customLabel)
 
@@ -221,19 +179,14 @@ function Sorted.Manager:createChildren()
 
     y = y + labelH + inputH + 10
 
-    -- =========================================================================
-    -- PRZYCISKI APPLY (dwa osobne)
-    -- =========================================================================
     local btnWidth = (self.width - pad * 3) / 2
 
-    -- Apply Selected (z dropdowna) - zielony
     self.applySelectedBtn = ISButton:new(pad, y, btnWidth, btnH, "Apply Selected", self, Sorted.Manager.onApplySelected)
     self.applySelectedBtn.borderColor = {r=0.2, g=0.8, b=0.2, a=1}
     self.applySelectedBtn.backgroundColor = {r=0.1, g=0.3, b=0.1, a=0.5}
     self.applySelectedBtn.backgroundColorMouseOver = {r=0.1, g=0.5, b=0.1, a=0.7}
     self:addChild(self.applySelectedBtn)
 
-    -- Apply Custom - zielony ale inny odcień
     self.applyCustomBtn = ISButton:new(pad * 2 + btnWidth, y, btnWidth, btnH, "Apply Custom", self, Sorted.Manager.onApplyCustom)
     self.applyCustomBtn.borderColor = {r=0.2, g=0.6, b=0.4, a=1}
     self.applyCustomBtn.backgroundColor = {r=0.1, g=0.25, b=0.2, a=0.5}
@@ -242,18 +195,13 @@ function Sorted.Manager:createChildren()
 
     y = y + btnH + 8
 
-    -- =========================================================================
-    -- PRZYCISKI RESET (dwa)
-    -- =========================================================================
 
-    -- Reset Selected - niebieski
     self.resetSelectedBtn = ISButton:new(pad, y, btnWidth, btnH, "Reset Selected", self, Sorted.Manager.onResetSelected)
     self.resetSelectedBtn.borderColor = {r=0.3, g=0.3, b=0.8, a=1}
     self.resetSelectedBtn.backgroundColor = {r=0.15, g=0.15, b=0.4, a=0.5}
     self.resetSelectedBtn.backgroundColorMouseOver = {r=0.2, g=0.2, b=0.6, a=0.7}
     self:addChild(self.resetSelectedBtn)
 
-    -- Reset All - niebieski ciemniejszy
     self.resetAllBtn = ISButton:new(pad * 2 + btnWidth, y, btnWidth, btnH, "Reset All", self, Sorted.Manager.onResetAll)
     self.resetAllBtn.borderColor = {r=0.2, g=0.2, b=0.6, a=1}
     self.resetAllBtn.backgroundColor = {r=0.1, g=0.1, b=0.3, a=0.5}
@@ -262,9 +210,6 @@ function Sorted.Manager:createChildren()
 
     y = y + btnH + 8
 
-    -- =========================================================================
-    -- CANCEL
-    -- =========================================================================
     self.cancelBtn = ISButton:new(pad, y, self.width - pad * 2, btnH, "Cancel", self, Sorted.Manager.onClose)
     self.cancelBtn.borderColor = {r=0.6, g=0.2, b=0.2, a=1}
     self.cancelBtn.backgroundColor = {r=0.25, g=0.1, b=0.1, a=0.5}
@@ -272,18 +217,13 @@ function Sorted.Manager:createChildren()
     self:addChild(self.cancelBtn)
 end
 
--- =============================================================================
--- DATA LOADING
--- =============================================================================
 
--- Helper: tłumaczy kategorię przez getText z prefixem IGUI_ItemCat_
 local function getCategoryLabel(rawCategory)
     if not rawCategory or rawCategory == "" then
         return "-"
     end
     local key = "IGUI_ItemCat_" .. rawCategory
     local label = getText(key)
-    -- Jeśli getText zwróciło sam klucz (brak tłumaczenia), użyj surowej nazwy
     if label == key then
         return rawCategory
     end
@@ -329,7 +269,7 @@ function Sorted.Manager:loadAllItems()
                 fullType = fullType,
                 displayName = item:getDisplayName() or fullType,
                 category = rawCategory,
-                categoryLabel = currentLabel,  -- aktualna kategoria (saved lub script)
+                categoryLabel = currentLabel,
                 savedCategory = savedRaw,
                 savedCategoryLabel = savedLabel,
                 defaultCategory = defaultRaw,
@@ -341,7 +281,6 @@ function Sorted.Manager:loadAllItems()
         end
     end
 
-    -- Sortuj alfabetycznie
     table.sort(self.fullList, function(a, b)
         return string.lower(a.displayName) < string.lower(b.displayName)
     end)
@@ -350,13 +289,11 @@ end
 function Sorted.Manager:populateCategoryCombo()
     self.categoryCombo:clear()
 
-    -- Użyj Sorted.categories jeśli dostępne
     if Sorted.categories and #Sorted.categories > 0 then
         for _, entry in ipairs(Sorted.categories) do
             self.categoryCombo:addOption(entry.label or entry.key)
         end
     else
-        -- Fallback - zbierz z fullList
         local categories = {}
         for _, item in ipairs(self.fullList) do
             if item.category and item.category ~= "" then
@@ -376,9 +313,6 @@ function Sorted.Manager:populateCategoryCombo()
     end
 end
 
--- =============================================================================
--- FILTERING (LEWY PANEL)
--- =============================================================================
 
 function Sorted.Manager:filterItems(searchText)
     self.leftList:clear()
@@ -386,7 +320,6 @@ function Sorted.Manager:filterItems(searchText)
     searchText = string.lower(searchText or "")
 
     for _, item in ipairs(self.fullList) do
-        -- Nie pokazuj itemów które już są w bucket
         if not self.bucketItems[item.fullType] then
             local matchName = item.displayName and string.find(string.lower(item.displayName), searchText, 1, true)
             local matchType = item.fullType and string.find(string.lower(item.fullType), searchText, 1, true)
@@ -406,48 +339,36 @@ function Sorted.Manager.onSearchChange(searchBox)
     manager:filterItems(text)
 end
 
--- =============================================================================
--- LIST RENDERING
--- =============================================================================
 
 function Sorted.Manager.doDrawLeftItem(self, y, item, alt)
     local itemData = item.item
     local manager = self.target
 
-    -- Tlo alternujace
     if alt then
         self:drawRect(0, y, self.width, self.itemheight, 0.08, 0.1, 0.1, 0.1)
     end
 
-    -- Zaznaczenie
     if self.selected == item.index then
         self:drawRect(0, y, self.width, self.itemheight, 0.3, 0.3, 0.5, 0.3)
     end
 
-    -- Nazwa itemu (lewa strona)
     self:drawText(itemData.displayName, 6, y + 2, 1, 1, 1, 1, UIFont.Small)
 
-    -- Środkowa kolumna = Shifting (kategoria z INI, zapisana przez użytkownika)
-    -- Ostatnia kolumna = Sorting (defaultCategory z BetterSorting)
-    local shiftingText = itemData.savedCategoryLabel or "-"  -- z INI
-    local sortingText = itemData.defaultCategoryLabel or "-"  -- z BetterSorting
+    local shiftingText = itemData.savedCategoryLabel or "-"
+    local sortingText = itemData.defaultCategoryLabel or "-"
 
     local textManager = getTextManager()
     local sortingWidth = textManager:MeasureStringX(UIFont.Small, sortingText)
     local shiftingWidth = textManager:MeasureStringX(UIFont.Small, shiftingText)
 
-    -- Użyj pozycji z managera lub domyślnych
     local colWidth = (manager and manager.colWidth) or 110
     local colSortingX = (manager and manager.colSortingX) or (self.width - colWidth - 15)
     local colShiftingX = (manager and manager.colShiftingX) or (colSortingX - colWidth - 10)
 
-    -- Wycentrowanie tekstu w kolumnach
     local shiftingTextX = colShiftingX + (colWidth - shiftingWidth) / 2
     local sortingTextX = colSortingX + (colWidth - sortingWidth) / 2
 
-    -- Środkowa kolumna: żółtawa (Shifting - zmiany użytkownika)
     self:drawText(shiftingText, shiftingTextX, y + 2, 1, 0.9, 0.6, 1, UIFont.Small)
-    -- Ostatnia kolumna: szara (Sorting - domyślne z moda)
     self:drawText(sortingText, sortingTextX, y + 2, 0.6, 0.6, 0.6, 1, UIFont.Small)
 
     return y + self.itemheight
@@ -456,27 +377,21 @@ end
 function Sorted.Manager.doDrawRightItem(self, y, item, alt)
     local itemData = item.item
 
-    -- Tło - lekko zielonkawe dla bucket
     if alt then
         self:drawRect(0, y, self.width, self.itemheight, 0.1, 0.1, 0.15, 0.1)
     else
         self:drawRect(0, y, self.width, self.itemheight, 0.05, 0.1, 0.12, 0.05)
     end
 
-    -- Zaznaczenie
     if self.selected == item.index then
         self:drawRect(0, y, self.width, self.itemheight, 0.3, 0.2, 0.5, 0.2)
     end
 
-    -- Nazwa itemu
     self:drawText(itemData.displayName, 6, y + 2, 1, 1, 0.8, 1, UIFont.Small)
 
     return y + self.itemheight
 end
 
--- =============================================================================
--- LIST CLICK HANDLERS
--- =============================================================================
 
 function Sorted.Manager.onLeftListClick(self, x, y)
     local row = self:rowAt(x, y)
@@ -514,9 +429,6 @@ function Sorted.Manager.onRightListDoubleClick(self, x, y)
     end
 end
 
--- =============================================================================
--- BUCKET OPERATIONS
--- =============================================================================
 
 function Sorted.Manager:addItemToBucket(itemData)
     if not itemData or self.bucketItems[itemData.fullType] then
@@ -544,7 +456,6 @@ function Sorted.Manager:refreshBucketList()
     self.rightList:clear()
 
     local count = 0
-    -- Sortuj bucket alfabetycznie
     local sorted = {}
     for _, itemData in pairs(self.bucketItems) do
         table.insert(sorted, itemData)
@@ -583,9 +494,6 @@ function Sorted.Manager:onClearBucket()
     self:filterItems(self.searchBox:getInternalText() or "")
 end
 
--- =============================================================================
--- APPLY CATEGORY
--- =============================================================================
 
 function Sorted.Manager:getBucketCount()
     local count = 0
@@ -613,7 +521,7 @@ function Sorted.Manager:applyCategory(category)
             Sorted.Tracker.update()
         end
         Sorted.collectDisplayCategories()
-        print("[Sorted.Manager] Applied category '" .. category .. "' to " .. count .. " item types")
+        Sorted:log("[Sorted.Manager] Applied category '" .. category .. "' to " .. count .. " item types", 3)
     end
 
     return count
@@ -621,35 +529,34 @@ end
 
 function Sorted.Manager:onApplySelected()
     if self:getBucketCount() == 0 then
-        print("[Sorted.Manager] onApplySelected: bucket is empty")
+        Sorted:log("[Sorted.Manager] onApplySelected: bucket is empty", 2)
         return
     end
 
     local selected = self.categoryCombo.selected
-    print("[Sorted.Manager] onApplySelected: selected index = " .. tostring(selected))
+    Sorted:log("[Sorted.Manager] onApplySelected: selected index = " .. tostring(selected), 3)
 
     if not selected or selected < 1 then
-        print("[Sorted.Manager] onApplySelected: no selection")
+        Sorted:log("[Sorted.Manager] onApplySelected: no selection", 2)
         return
     end
 
     local option = self.categoryCombo.options[selected]
     if not option then
-        print("[Sorted.Manager] onApplySelected: option not found at index " .. tostring(selected))
+        Sorted:log("[Sorted.Manager] onApplySelected: option not found at index " .. tostring(selected), 2)
         return
     end
 
-    -- ISComboBox stores the text directly in the option table
     local category = option.text or option
-    print("[Sorted.Manager] onApplySelected: category = " .. tostring(category))
+    Sorted:log("[Sorted.Manager] onApplySelected: category = " .. tostring(category), 3)
 
     if not category or category == "" then
-        print("[Sorted.Manager] onApplySelected: category is empty")
+        Sorted:log("[Sorted.Manager] onApplySelected: category is empty", 2)
         return
     end
 
     local count = self:applyCategory(category)
-    print("[Sorted.Manager] onApplySelected: applied to " .. tostring(count) .. " items")
+    Sorted:log("[Sorted.Manager] onApplySelected: applied to " .. tostring(count) .. " items", 3)
     if count > 0 then
         self:close()
     end
@@ -671,16 +578,12 @@ function Sorted.Manager:onApplyCustom()
     end
 end
 
--- =============================================================================
--- RESET FUNCTIONS
--- =============================================================================
 
 function Sorted.Manager:onResetSelected()
     if self:getBucketCount() == 0 then
         return
     end
 
-    -- Popup potwierdzenia
     local modal = ISModalDialog:new(
         getCore():getScreenWidth() / 2 - 150,
         getCore():getScreenHeight() / 2 - 50,
@@ -701,7 +604,6 @@ function Sorted.Manager:onResetSelectedConfirm(button)
     for fullType, _ in pairs(self.bucketItems) do
         local defaultCategory = Sorted.defaultCategories[fullType]
         if defaultCategory and defaultCategory ~= "none" then
-            -- skipNormalize=true bo defaultCategory ma oryginalny prefix IGUI_ItemCat_
             Sorted.writeCategoryToIni(fullType, defaultCategory, true)
             Sorted.applyCategory(fullType, defaultCategory, true)
             Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
@@ -715,14 +617,13 @@ function Sorted.Manager:onResetSelectedConfirm(button)
             Sorted.Tracker.update()
         end
         Sorted.collectDisplayCategories()
-        print("[Sorted.Manager] Reset " .. count .. " items to default categories")
+        Sorted:log("[Sorted.Manager] Reset " .. count .. " items to default categories", 3)
     end
 
     self:close()
 end
 
 function Sorted.Manager:onResetAll()
-    -- Popup potwierdzenia
     local modal = ISModalDialog:new(
         getCore():getScreenWidth() / 2 - 150,
         getCore():getScreenHeight() / 2 - 50,
@@ -739,14 +640,11 @@ function Sorted.Manager:onResetAllConfirm(button)
         return
     end
 
-    -- Wyczyść plik INI - zapisz pusty
     local writer = getFileWriter("Sorted_CategoryAssignments.ini", true, false)
     if writer then
         writer:close()
     end
 
-    -- Przywróć wszystkie ScriptItems do domyślnych kategorii
-    -- NIE normalizujemy - zachowujemy oryginalny prefix IGUI_ItemCat_
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
@@ -754,7 +652,6 @@ function Sorted.Manager:onResetAllConfirm(button)
         local defaultCategory = Sorted.defaultCategories[fullType]
         if defaultCategory and defaultCategory ~= "none" then
             scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
-            -- Zsynchronizuj też InventoryItem w inventory gracza (skipNormalize=true)
             Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
         end
     end
@@ -765,32 +662,23 @@ function Sorted.Manager:onResetAllConfirm(button)
     end
 
     Sorted.collectDisplayCategories()
-    print("[Sorted.Manager] Reset ALL items to default categories")
+    Sorted:log("[Sorted.Manager] Reset ALL items to default categories", 3)
 
     self:close()
 end
 
--- =============================================================================
--- RENDER
--- =============================================================================
 
 function Sorted.Manager:render()
     ISPanel.render(self)
 
-    -- Rysuj licznik bucket ręcznie (żeby uniknąć nakładania się tekstu)
     if self.bucketCountLabelX and self.bucketCountLabelY then
         local text = "(" .. tostring(self.bucketCount or 0) .. ")"
         local textWidth = getTextManager():MeasureStringX(UIFont.Small, text)
-        -- Tło
         self:drawRect(self.bucketCountLabelX - 2, self.bucketCountLabelY, textWidth + 4, 20, 0.35, 0, 0, 0)
-        -- Tekst
         self:drawText(text, self.bucketCountLabelX, self.bucketCountLabelY + 2, 1, 1, 0.9, 1, UIFont.Small)
     end
 end
 
--- =============================================================================
--- OPEN / CLOSE
--- =============================================================================
 
 function Sorted.Manager:onClose()
     self:setVisible(false)
@@ -821,12 +709,13 @@ function Sorted.Manager.toggle()
     Sorted.Manager.instance = manager
 end
 
--- =============================================================================
--- Komenda konsolowa do testów
--- =============================================================================
 
 function wtjOpenManager()
     Sorted.Manager.toggle()
 end
 
-print("[Sorted.Manager] Loaded! Use wtjOpenManager() or right-click menu to open.")
+if Sorted and Sorted.log then
+    Sorted:log("[Sorted.Manager] Loaded! Use wtjOpenManager() or right-click menu to open.", 3)
+else
+    print("[Sorted.Manager] Loaded!")
+end

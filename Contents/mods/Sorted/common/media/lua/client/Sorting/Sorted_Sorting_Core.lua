@@ -3,14 +3,10 @@ require("Sorting/Sorting_New")
 
 if not Sorted then Sorted = {} end
 
--- remove any old core hook if this file is reloaded
 if Sorted.OnGameBoot and Events and Events.OnGameBoot and Events.OnGameBoot.Remove then
   Events.OnGameBoot.Remove(Sorted.OnGameBoot)
 end
 
----------------------------------------------------------------------------
--- Helper functions
----------------------------------------------------------------------------
 
 local function isPerishable(item)
   if item.getDaysTotallyRotten then
@@ -37,32 +33,8 @@ local function isCookwareLoot(item)
   return nil
 end
 
--- tu mają byc meal'e:
--- COMMENTED OUT: isCookwareByTags - no longer used
--- Evolved recipes are detected dynamically in Sorted_Sorting_FluidDynamicPatch.lua
---[[
-local function isCookwareByTags(item)
-  if not item then return nil end
 
-  -- Fast path: explicit eatType used by pots/saucepans
-  local eatType = item.getEatType and item:getEatType() or nil
-  if eatType == "Pot" or eatType == "Saucepan" then
-    return "FoodD"
-  end
 
-  -- local hasTagMethod = item.hasTag
-  if item.hasTag and item:hasTag(ItemTag.COOKABLE) then
-    local fluidContainer = item.fluidContainer or (item.getFluidContainer and item:getFluidContainer())
-    if fluidContainer then
-      return "FoodD"
-    end
-  end
-
-  return nil
-end
---]]
-
--- Detect cookware via evolved recipe base items (Pot, Saucepan, RoastingPan, GridlePan, etc.)
 local function isCookwareByEvolvedRecipe(item)
   if not item or not getEvolvedRecipes then return nil end
 
@@ -82,7 +54,6 @@ local function isCookwareByEvolvedRecipe(item)
   return nil
 end
 
--- Keep existing Protective Gear display category before other detectors
 local function keepProtectiveGear(item)
   if not item or not item.getDisplayCategory then
     return nil
@@ -126,12 +97,6 @@ end
 local function getDishCategory(item)
   if not item then return nil end
 
-  -- if item.hasTag and item:hasTag(ItemTag.COOKABLE) then
-  --   local fluidContainer = item.fluidContainer or (item.getFluidContainer and item:getFluidContainer())
-  --   if fluidContainer then
-  --     return "FoodD"
-  --   end
-  -- end
 
   local eatType = item.getEatType and item:getEatType()
   if item:getItemType() == ItemType.FOOD then
@@ -162,19 +127,16 @@ local function getLiteratureCategory(item)
     return "LitC"
   end
 
-  -- Recipe/knowledge book (crafting, building, farming)
   local recipe = item:getLearnedRecipes()
   if recipe and recipe.size and recipe:size() > 0 then
     return "LitR"
   end
 
-  -- Skill training book (e.g. "Carpentry for Beginners")
   local skill = item.getSkillTrained and item:getSkillTrained()
   if skill ~= nil then
     return "LitS"
   end
 
-  -- Entertainment (reduces stress/boredom/unhappiness)
   local stressChange = item.getStressChange and item:getStressChange() or 0
   local boredomChange = item.getBoredomChange and item:getBoredomChange() or 0
   local unhappyChange = item.getUnhappyChange and item:getUnhappyChange() or 0
@@ -182,7 +144,6 @@ local function getLiteratureCategory(item)
     return "LitE"
   end
 
-  -- Other written material
   return "LitW"
 end
 
@@ -210,7 +171,6 @@ local function getPlushieCategory(item)
   return nil
 end
 
--- Memento clothing -> proper clothing categories based on BodyLocation
 local function getMementoClothingCategory(item)
   if item:getDisplayCategory() ~= "Memento" then
     return nil
@@ -222,7 +182,6 @@ local function getMementoClothingCategory(item)
   local bodyLoc = item.getBodyLocation and item:getBodyLocation() or ""
   bodyLoc = string.lower(tostring(bodyLoc or ""))
 
-  -- Map body location to clothing category
   if bodyLoc ~= "" then
     if string.find(bodyLoc, "hat", 1, true) or string.find(bodyLoc, "mask", 1, true) then
       return "ClothHead"
@@ -235,7 +194,6 @@ local function getMementoClothingCategory(item)
     end
   end
 
-  -- Fallback for unknown memento clothing
   return "ClothMisc"
 end
 
@@ -248,14 +206,8 @@ local function getKeyCategory(item)
   return nil
 end
 
----------------------------------------------------------------------------
--- Clothing categorization based on BodyLocation and BloodBodyPartType
----------------------------------------------------------------------------
 
--- Detailed BodyLocation -> Category mapping (two-level hierarchy)
--- Keys are UPPERCASE to match BodyLocation enum values
 local BODYLOCATION_MAP = {
-  -- Head/Face
   HAT                   = { simple = "ClothHead", detailed = "ClothHead_Hat" },
   FULLHAT               = { simple = "ClothHead", detailed = "ClothHead_FullHat" },
   MASK                  = { simple = "ClothHead", detailed = "ClothHead_Mask" },
@@ -266,12 +218,10 @@ local BODYLOCATION_MAP = {
   RIGHTEYE              = { simple = "ClothHead", detailed = "ClothHead_Glasses" },
   FULLSUITHEAD          = { simple = "ClothHead", detailed = "ClothHead_FullHat" },
 
-  -- Neck/Scarf
   NECK                  = { simple = "ClothAcc", detailed = "ClothAcc_Neck" },
   NECK_TEXTURE          = { simple = "ClothAcc", detailed = "ClothAcc_Neck" },
   SCARF                 = { simple = "ClothAcc", detailed = "ClothAcc_Scarf" },
 
-  -- Body/Torso
   JACKET                = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
   JACKET_BULKY          = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
   JACKET_DOWN           = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
@@ -299,7 +249,6 @@ local BODYLOCATION_MAP = {
   CUIRASS               = { simple = "ClothBody", detailed = "ClothBody_Extra" },
   GORGET                = { simple = "ClothBody", detailed = "ClothBody_Extra" },
 
-  -- Arms/Shoulders
   LEFTARM               = { simple = "ClothBody", detailed = "ClothBody_Extra" },
   RIGHTARM              = { simple = "ClothBody", detailed = "ClothBody_Extra" },
   FOREARM_LEFT          = { simple = "ClothBody", detailed = "ClothBody_Extra" },
@@ -311,14 +260,12 @@ local BODYLOCATION_MAP = {
   SPORTSHOULDERPAD      = { simple = "ClothBody", detailed = "ClothBody_Extra" },
   SPORTSHOULDERPADONTOP = { simple = "ClothBody", detailed = "ClothBody_Extra" },
 
-  -- Hands/Wrists
   HANDS                 = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
   HANDSLEFT             = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
   HANDSRIGHT            = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
   LEFTWRIST             = { simple = "ClothHands", detailed = "ClothHands_WristLeft" },
   RIGHTWRIST            = { simple = "ClothHands", detailed = "ClothHands_WristRight" },
 
-  -- Legs/Thighs/Knees
   PANTS                 = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
   PANTS_SKINNY          = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
   PANTS_EXTRA           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
@@ -338,11 +285,9 @@ local BODYLOCATION_MAP = {
   GAITER_LEFT           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
   GAITER_RIGHT          = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
 
-  -- Feet
   SHOES                 = { simple = "ClothFeet", detailed = "ClothFeet_Shoes" },
   SOCKS                 = { simple = "ClothFeet", detailed = "ClothFeet_Socks" },
 
-  -- Belt/Holsters
   BELT                  = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
   BELTEXTRA             = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
   AMMOSTRAP             = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
@@ -350,13 +295,11 @@ local BODYLOCATION_MAP = {
   SHOULDERHOLSTER       = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
   ANKLEHOLSTER          = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
 
-  -- Bags
   BACK                  = { simple = "ClothBag", detailed = "ClothBag_Back" },
   SATCHEL               = { simple = "ClothBag", detailed = "ClothBag_Belt" },
   FANNYPACKFRONT        = { simple = "ClothBag", detailed = "ClothBag_Belt" },
   FANNYPACKBACK         = { simple = "ClothBag", detailed = "ClothBag_Back" },
 
-  -- Underwear
   UNDERWEAR             = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Bottom" },
   UNDERWEARTOP          = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Top" },
   UNDERWEARBOTTOM       = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Bottom" },
@@ -364,7 +307,6 @@ local BODYLOCATION_MAP = {
   UNDERWEAREXTRA2       = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Extra" },
   CODPIECE              = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Extra" },
 
-  -- Jewelry/Piercings
   NECKLACE              = { simple = "ClothJewelry", detailed = "ClothJewelry_Necklace" },
   NECKLACE_LONG         = { simple = "ClothJewelry", detailed = "ClothJewelry_Necklace" },
   NOSE                  = { simple = "ClothJewelry", detailed = "ClothJewelry_Nose" },
@@ -378,7 +320,6 @@ local BODYLOCATION_MAP = {
   TAIL                  = { simple = "ClothAcc", detailed = "ClothAcc_Tail" },
   GROIN                 = { simple = "ClothJewelry", detailed = "ClothJewelry_Groin" },
 
-  -- Special/Misc
   BANDAGE               = { simple = "ClothMisc", detailed = "ClothMisc" },
   SCBA                  = { simple = "ClothHead", detailed = "ClothHead_Mask" },
   SCBANOTANK            = { simple = "ClothHead", detailed = "ClothHead_Mask" },
@@ -390,20 +331,16 @@ local BODYLOCATION_MAP = {
   MAKEUP_LIPS           = { simple = "ClothMisc", detailed = "ClothMisc" },
 }
 
--- Check if item is clothing using IsClothing() method
 local function isClothing(item)
-  -- Primary check: ItemType.CLOTHING (works on Item definitions)
   if item:getItemType() == ItemType.CLOTHING then
     return true
   end
 
-  -- Fallback: check BodyLocation for modded items
   local bodyLoc = item.getBodyLocation and item:getBodyLocation()
   if bodyLoc and bodyLoc ~= "" then
     return true
   end
 
-  -- Fallback: check BloodBodyPartType (modded clothing with custom BodyLocation)
   local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
   if bloodLoc and bloodLoc ~= "" then
     return true
@@ -412,7 +349,6 @@ local function isClothing(item)
   return false
 end
 
--- Throttled logging helper (uses Sorted.Throttle queue when available)
 local function logClothingDecision(message)
   if Sorted and Sorted.Throttle and Sorted.Throttle.queue then
     table.insert(Sorted.Throttle.queue, message)
@@ -421,11 +357,10 @@ local function logClothingDecision(message)
   end
 
   if Sorted and Sorted.log then
-    Sorted:log(message, 0)
+    Sorted:log(message, 3)
   end
 end
 
--- Get clothing category based on BodyLocation
 -- @param useDetailed boolean: if true, return detailed category; if false, return simple category
 local function getClothingCategory(item, useDetailed)
   if not isClothing(item) then
@@ -434,54 +369,45 @@ local function getClothingCategory(item, useDetailed)
 
   local bodyLoc = item.getBodyLocation and item:getBodyLocation()
   if not bodyLoc or bodyLoc == "" then
-    -- Fallback for modded items: use BloodBodyPartType if available
     local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
     if bloodLoc and bloodLoc ~= "" then
-      -- BloodBodyPartType often matches BodyLocation names, try mapping it
       bodyLoc = bloodLoc
       logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
     else
       logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
-      return "ClothMisc" -- Unknown clothing
+      return "ClothMisc"
     end
   else
     logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
   end
 
-  -- Convert enum to string and uppercase (e.g., BodyLocation.Hat -> "HAT")
-  -- Format is ":BASE:Hat:" or similar, we need to extract just "HAT"
   local bodyLocStr = tostring(bodyLoc)
   if bodyLocStr then
-    -- Remove leading/trailing colons and module name (e.g., ":BASE:Hat:" -> "Hat")
     bodyLocStr = bodyLocStr:match(":([^:]+):?$") or bodyLocStr
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
 
   local mapping = BODYLOCATION_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
-    Sorted:log("Mapped to: " .. category, 0)
+    Sorted:log("Mapped to: " .. category, 3)
     return category
   end
 
-  -- Unknown body location
-  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
   return "ClothMisc"
 end
 
--- Wrapper for simple (Level 1) categorization
 local function getClothingCategorySimple(item)
   return getClothingCategory(item, false)
 end
 
--- Wrapper for detailed (Level 2) categorization
 local function getClothingCategoryDetailed(item)
   return getClothingCategory(item, true)
 end
 
--- Debug helper: list items that use eye body locations (glasses candidates)
 function Sorted.DebugDumpGlasses()
   local items = getAllItems()
 
@@ -499,13 +425,12 @@ function Sorted.DebugDumpGlasses()
         local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
         Sorted:log("GLASSES? " .. item:getFullName()
           .. " bodyLoc=" .. tostring(bodyLocStr)
-          .. " display=" .. tostring(displayCategory), 0)
+          .. " display=" .. tostring(displayCategory), 3)
       end
     end
   end
 end
 
--- Helper: remap one DisplayCategory to another
 local function dumpOneToOther(displayCategory, target)
   return function(item)
     if item:getDisplayCategory() == displayCategory then
@@ -539,16 +464,11 @@ local function orphanTheUnfit()
   end
 end
 
----------------------------------------------------------------------------
--- Category detection pipeline (order matters!)
----------------------------------------------------------------------------
 
 local CATEGORY_DETECTORS = {
-  keepProtectiveGear, -- prioritize existing Protective Gear category
-  -- getFluidCategory,
+  keepProtectiveGear,
   getDishCategory,
   isCookwareLoot,
-  -- isCookwareByEvolvedRecipe, -- alternate stricter detector; uncomment to try
   getBeverageCategory,
   getFrozenFoodCategory,
   getFoodCategory,
@@ -556,10 +476,8 @@ local CATEGORY_DETECTORS = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
-  -- getClothingCategorySimple,  -- Auto-categorize clothing by BodyLocation (simple mode)
-  getClothingCategoryDetailed,  -- Auto-categorize clothing by BodyLocation (detailed mode)
+  getClothingCategoryDetailed,
   getMementoClothingCategory,
-  -- Category remaps
   dumpOneToOther("VehicleMaintenance", "Mech"),
   dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
   dumpOneToOther("WaterContainer", "Container"),
@@ -573,13 +491,9 @@ local CATEGORY_DETECTORS = {
   dumpOneToOther("Cooking", "Cook"),
   dumpOneToOther("Teddy Bear", "Plush"),
   dumpOneToOther("Sports", "Junk"),
-  -- Add more detectors from Sorting_New.lua
   Sorted.categorizeFoodBoxes,
 }
 
----------------------------------------------------------------------------
--- Main categorization function
----------------------------------------------------------------------------
 
 function Sorted.CategorizeItem(item)
   for _, detector in ipairs(CATEGORY_DETECTORS) do
@@ -609,19 +523,17 @@ function Sorted.CategorizeAllItems()
 end
 
 function Sorted.OnGameBoot()
-  print("--- Sorted Start (redux) ---")
+  Sorted:log("--- Sorted Start (redux) ---", 3)
   Sorted.CategorizeAllItems()
   if ItemTweaker and ItemTweaker.tweakItems then
     ItemTweaker.tweakItems()
   end
   orphanTheUnfit()
-  print("--- Sorted End (redux) ---")
+  Sorted:log("--- Sorted End (redux) ---", 3)
 
-  -- Zbierz "domyślne" kategorie PO tym jak Sorted ustawi swoje
-  -- Te kategorie będą traktowane jako "default" dla Shifting
   if Sorted and Sorted.collectDefaultCategories then
     Sorted.collectDefaultCategories()
-    print("[Sorted] Sorted.collectDefaultCategories() called")
+    Sorted:log("[Sorted] Sorted.collectDefaultCategories() called", 3)
   end
 end
 

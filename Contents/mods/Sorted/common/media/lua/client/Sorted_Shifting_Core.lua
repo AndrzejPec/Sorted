@@ -1,34 +1,24 @@
--- Guard clause - nie nadpisuj jeśli już istnieje (fix race condition przy ładowaniu modułów)
 Sorted = Sorted or {}
 
 Sorted.categories = Sorted.categories or {}
 Sorted.defaultCategories = Sorted.defaultCategories or {}
 
--- =============================================================================
--- CENTRALNA KONFIGURACJA (używana przez wszystkie moduły)
--- =============================================================================
 Sorted.Config = Sorted.Config or {
-    -- Stałe nazw plików
     ASSIGNMENTS_FILE = "Sorted_CategoryAssignments.ini",
     LAST_USED_FILE = "Sorted_LastUsedCategory.ini",
     NO_WARN_FILE = "Sorted_noWarnFile.ini",
-    KNOWN_MODS_FILE = "Sorted_KnownMods.ini",  -- dla Orphan Wizard (przyszłość)
-    CONFIG_FILE = "Sorted_Config.ini",          -- dla first-run modal (przyszłość)
+    KNOWN_MODS_FILE = "Sorted_KnownMods.ini",
+    CONFIG_FILE = "Sorted_Config.ini",
 
-    -- Stałe kategorii
     CATEGORY_PREFIX = "IGUI_ItemCat_",
 
-    -- Cache
-    CACHE_LIFETIME_MS = 300 * 1000,  -- 5 minut
+    CACHE_LIFETIME_MS = 300 * 1000,
 
-    -- MRU (Most Recently Used)
     MRU_LIMIT = 6,
 
-    -- Feature flags (przyszłość)
-    bettersorting_enabled = true,  -- czy BetterSorting jest włączony
+    bettersorting_enabled = true,
 }
 
--- Lokalne aliasy dla backward compatibility
 local CATEGORY_PREFIX = Sorted.Config.CATEGORY_PREFIX
 local NO_WARN_FILE = Sorted.Config.NO_WARN_FILE
 local LAST_USED_FILE = Sorted.Config.LAST_USED_FILE
@@ -217,8 +207,6 @@ local function ensureCategories(keys)
     end
 end
 
--- Aplikuje kategorię do jednego typu itemu
--- skipNormalize = true przy resecie do domyślnych (żeby zachować IGUI_ItemCat_ prefix)
 function Sorted.applyCategory(fullType, category, skipNormalize)
     if not fullType or not category or category == "" then
         return
@@ -232,14 +220,10 @@ function Sorted.applyCategory(fullType, category, skipNormalize)
     end
 end
 
--- Synchronizuje wszystkie InventoryItem danego typu ze ScriptItem
--- skipNormalize = true przy resecie do domyślnych
 function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
     if not skipNormalize then
         category = normalizeCategoryKey(category)
     end
-    -- syncItemFields() NIE aktualizuje DisplayCategory dla istniejących itemów!
-    -- Musimy ręcznie ustawić DisplayCategory na każdym InventoryItem
     for playerNum = 0, getNumActivePlayers() - 1 do
         local playerInv = getPlayerInventory(playerNum)
         if playerInv and playerInv.inventory then
@@ -247,7 +231,6 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
             for i = 0, items:size() - 1 do
                 local item = items:get(i)
                 if item:getFullType() == fullType then
-                    -- BEZPOŚREDNIO ustaw kategorię na InventoryItem
                     item:setDisplayCategory(category)
                 end
             end
@@ -266,7 +249,6 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
     end
 end
 
--- Zbiera TYLKO listę kategorii (do comboboxa), NIE nadpisuje defaultCategories
 function Sorted.collectDisplayCategories()
     local raw = {}
     local scripts = getScriptManager():getAllItems()
@@ -280,18 +262,15 @@ function Sorted.collectDisplayCategories()
     Sorted.categories = buildCategoryList(raw)
 end
 
--- Zbiera ORYGINALNE kategorie TYLKO RAZ przy starcie gry (przed aplikowaniem INI)
--- WAŻNE: NIE normalizujemy - zachowujemy oryginalną wartość z prefixem IGUI_ItemCat_
--- żeby przy resecie do domyślnych UI mogło poprawnie przetłumaczyć nazwę kategorii
 function Sorted.collectDefaultCategories()
     if Sorted._defaultCategoriesCollected then
-        return -- już zebrane, nie nadpisuj!
+        return
     end
     Sorted.defaultCategories = {}
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
-        local category = scriptItem:getDisplayCategory()  -- BEZ normalizacji!
+        local category = scriptItem:getDisplayCategory()
         Sorted.defaultCategories[scriptItem:getFullName()] = category or "none"
     end
     Sorted._defaultCategoriesCollected = true
@@ -300,7 +279,6 @@ end
 function Sorted.addContextMenu(player, context, items)
     local iconTex = getTexture("media/ui/Sorted_icon.png")
 
-    -- Opcja dla pojedynczego itemu
     if #items == 1 then
         local item = items[1]
         if type(item) == "table" and item.items then
@@ -312,7 +290,6 @@ function Sorted.addContextMenu(player, context, items)
         end
     end
 
-    -- Opcja "Open Category Manager" - zawsze dostępna
     local managerOption = context:addOption(getText("UI_Sorted_openManager"), nil, function()
         if Sorted.Manager and Sorted.Manager.toggle then
             Sorted.Manager.toggle()
@@ -414,12 +391,10 @@ function Sorted.Modal:initialise()
 
     local yOffset = 95
 
-    -- Label "Choose category:"
     local labelChoose = ISLabel:new(10, yOffset, 20, getText("UI_Sorted_chooseCategory"), 1, 1, 1, 1, UIFont.Small, true)
     self:addChild(labelChoose)
     yOffset = yOffset + 20
 
-    -- Combobox z istniejącymi kategoriami
     self.comboBox = ISComboBox:new(10, yOffset, self.width - 20, 25)
     for _, entry in ipairs(Sorted.categories) do
         self.comboBox:addOptionWithData(entry.label, entry.key)
@@ -428,12 +403,10 @@ function Sorted.Modal:initialise()
     self:addChild(self.comboBox)
     yOffset = yOffset + 30
 
-    -- Label "Or type custom category:"
     local labelCustom = ISLabel:new(10, yOffset, 20, getText("UI_Sorted_orTypeCustom"), 0.8, 0.8, 0.8, 1, UIFont.Small, true)
     self:addChild(labelCustom)
     yOffset = yOffset + 20
 
-    -- Input field na custom kategorię
     self.customInput = ISTextEntryBox:new("", 10, yOffset, self.width - 20, 25)
     self.customInput:initialise()
     self.customInput:instantiate()
@@ -466,7 +439,6 @@ function Sorted.Modal:initialise()
     self:addChild(cancelButton)
 end
 
--- skipNormalize = true przy resecie do domyślnych (zachowaj IGUI_ItemCat_ prefix)
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
     if not skipNormalize then
         category = normalizeCategoryKey(category)
@@ -505,14 +477,11 @@ function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
 end
 
 function Sorted.Modal:onClick()
-    -- Priorytet: custom input > combobox
     local customText = self.customInput:getText()
     local category
     if customText and customText ~= "" then
-        -- Użyj custom kategorii z inputa
         category = customText
     else
-        -- Użyj kategorii z comboboxa
         category = self.comboBox.options[self.comboBox.selected].data
     end
 
@@ -524,16 +493,13 @@ function Sorted.Modal:onClick()
     Sorted.writeCategoryToIni(fullType, category)
     saveMRUCategory(category)
 
-    -- KLUCZOWE: Aplikuj kategorię do ScriptItem NATYCHMIAST
     Sorted.applyCategory(fullType, category)
 
-    -- Zsynchronizuj wszystkie InventoryItem tego typu
     Sorted.syncAllItemsOfType(fullType, category)
 
-    -- Wymus aktualizacje trackera w poblizu gracza
     if Sorted.Tracker and Sorted.Tracker.update then
         Sorted.Tracker.clearAllCache()
-        Sorted.Tracker.update()  -- pobierze gracza automatycznie
+        Sorted.Tracker.update()
     end
 
     Sorted.collectDisplayCategories()
@@ -556,18 +522,12 @@ function Sorted.Modal:onReset()
         return
     end
 
-    -- Zapisz domyślną kategorię do INI (zamiast usuwać wpis)
-    -- Dzięki temu Tracker będzie wiedział jaką kategorię ustawić
-    -- skipNormalize=true bo defaultCategory ma już oryginalny prefix IGUI_ItemCat_
     Sorted.writeCategoryToIni(fullType, defaultCategory, true)
 
-    -- Aplikuj domyślną kategorię do ScriptItem
     Sorted.applyCategory(fullType, defaultCategory, true)
 
-    -- Zsynchronizuj wszystkie InventoryItem tego typu
     Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
 
-    -- Wymuś aktualizację trackera (kontenery w pobliżu)
     if Sorted.Tracker and Sorted.Tracker.update then
         Sorted.Tracker.clearAllCache()
         Sorted.Tracker.update()
@@ -599,11 +559,5 @@ function Sorted.applyDisplayCategories()
 end
 
 Events.OnFillInventoryObjectContextMenu.Add(Sorted.addContextMenu)
--- WAŻNA KOLEJNOŚĆ:
--- 1. BetterSorting (Sorting) ustawia kategorie dynamiczne
--- 2. BetterSorting wywołuje Sorted.collectDefaultCategories() na końcu
--- 3. Potem aplikuj zapisane kategorie z INI (Shifting)
--- 4. Na końcu zbierz listę kategorii do comboboxa (już po zmianach)
--- UWAGA: collectDefaultCategories jest wywoływane z BetterSorting.OnGameBoot!
 Events.OnGameBoot.Add(Sorted.applyDisplayCategories)
 Events.OnGameBoot.Add(Sorted.collectDisplayCategories)

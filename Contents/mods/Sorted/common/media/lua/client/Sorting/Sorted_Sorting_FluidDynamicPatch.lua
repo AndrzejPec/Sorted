@@ -103,7 +103,7 @@ if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(applyFluidCategoriesToAllInventories)
   BetterSorting._fluidDynamicPatch = true
   if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 1)
+    Sorted:log("FluidDynamicPatch: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
   end
 end
 
@@ -119,7 +119,7 @@ end
 if Events and Events.OnPlayerUpdate then
   Events.OnPlayerUpdate.Add(applyFluidWithThrottle)
   if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 1)
+    Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end
 else
   if Sorted and Sorted.log then

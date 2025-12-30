@@ -1,6 +1,4 @@
 require("Sorting/ItemTweaker_Copy_CC");
---Filibuster Rhymes' Used Cars!
---https://steamcommunity.com/sharedfiles/filedetails/?id=1510950729
 if getActivatedMods():contains("FRUsedCars") then
 TweakItem("Base.FRSideContainer1","DisplayCategory","Mech");
 TweakItem("Base.FRSideContainer2","DisplayCategory","Mech");
