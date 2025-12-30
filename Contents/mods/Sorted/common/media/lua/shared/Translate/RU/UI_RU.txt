@@ -1,0 +1,14 @@
+UI_RU = {
+    UI_WTJ_assignCategory = "Назначить категорию",
+    UI_WTJ_changeCategoryFor = "Изменить категорию отображения для:",
+    UI_WTJ_savedCategory = "Сохраненная категория: %s",
+    UI_WTJ_defaultCategory = "Категория по умолчанию: %s",
+    UI_WTJ_resetToDefault = "Сбросить до категории по умолчанию",
+    UI_WTJ_apply = "Применить",
+    UI_WTJ_cancel = "Отмена",
+    UI_WTJ_warningTitle1 = "ВНИМАНИЕ! Примененные изменения не вступают в силу немедленно.",
+    UI_WTJ_warningTitle2 = "Изменение категории: Для вступления в силу необходимо перезагрузить сохранение.",
+    UI_WTJ_warningTitle3 = "Новая категория: Для вступления в силу необходимо ПЕРЕЗАПУСТИТЬ игру.",
+    UI_WTJ_warningCheckbox = "Я понимаю, больше не показывать это сообщение.",
+    UI_WTJ_customCategoryHint = "Или введите свою категорию выше",
+}
