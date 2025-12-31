@@ -107,4 +107,9 @@ IGUI_EN = {
 	IGUI_ItemCat_ClothJewelry_Rings = "Clothing - Jewelry - Rings",
 	IGUI_ItemCat_ClothJewelry_Groin = "Clothing - Jewelry - Groin",
 
+	-- Container Categories
+	IGUI_ItemCat_ContBack = "Container - Backpack",
+	IGUI_ItemCat_ContBag = "Container - Bag",
+	IGUI_ItemCat_ContFanny = "Container - Fanny Pack",
+
 }

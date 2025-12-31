@@ -266,16 +266,18 @@ local fannypackMarkers = {
 ---@param item Item
 ---@return boolean
 local function isFannyPack(item)
-  local equipLocation = item and item.canBeEquipped and item:canBeEquipped()
-  return fannypackMarkers[equipLocation] == true
+  if not item or not item.canBeEquipped then
+    return false
+  end
+  return fannypackMarkers[item.canBeEquipped] == true
 end
 
 ---comment
 ---@param item Item
 ---@return boolean
 local function isBackpack(item)
-  if item:getTypeString() ~= "Container" then return false end
-  if (item:canBeEquipped() or "") ~= ItemBodyLocation.BACK then return false end
+  if item:getItemType() ~= ItemType.CONTAINER then return false end
+  if item.canBeEquipped ~= ItemBodyLocation.BACK then return false end
   local equip = item:getEquipSound() or ""
   if backpackMarkers[equip] then return true end
   local sp = item:getSoundParameter("EquippedBaggageContainer") or ""
@@ -292,7 +294,7 @@ end
 
 local function isBag(item)
   return item.getItemType and item:getItemType() == ItemType.CONTAINER
-      and item:canBeEquipped() ~= nil
+      and item.canBeEquipped ~= nil
       and not isBackpack(item)
 end
 
