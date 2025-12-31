@@ -63,11 +63,21 @@ local function getAlcoholCategory(fluidContainer, detailed)
   end
 end
 
+local dynamicCategories = {}
+
+---
+---@param category string
+---@return string
+local function collectAndReturn(category)
+  table.insert(dynamicCategories, category)
+  return category
+end
+
 local function getDynamicFluidCategory(fluidContainer, item)
   if item and item.getEvolvedRecipeName then
     local evolvedRecipeName = item:getEvolvedRecipeName()
     if evolvedRecipeName and evolvedRecipeName ~= "" then
-      return "FoodD"
+      collectAndReturn("FoodD")
     end
   end
 
@@ -130,6 +140,9 @@ function BetterSorting.ApplyFluidCategory(item)
   if dynamicCategory then
     if item and item.setDisplayCategory then
       item:setDisplayCategory(dynamicCategory)
+    end
+    if Sorted and Sorted.persistDynamicCategory then
+      Sorted.persistDynamicCategory(fullType, dynamicCategory)
     end
   elseif userCategory and userCategory ~= "none" then
     if item and item.setDisplayCategory then

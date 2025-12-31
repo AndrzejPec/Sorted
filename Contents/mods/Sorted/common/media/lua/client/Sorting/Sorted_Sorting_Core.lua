@@ -1,6 +1,23 @@
+-------------------------------------------------------------------------------
+---#region---------------------------IMPORTS-----------------------------------
+-------------------------------------------------------------------------------
 require("Sorting/ItemTweaker_Copy_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
+require("Sorting/Sorted_Sorting_CategoryIni")
+local debugPath = "C:/Users/andrz/Zomboid/Workshop/Sorted/debug.lua"
+local file = io.open(debugPath, "r")
+if file then
+  file:close()
+  dofile(debugPath)
+  Sorted:log("Debug file loaded successfully", 3)
+else
+  Sorted:log("Debug file not found: " .. debugPath, 2)
+end
+-------------------------------------------------------------------------------
+--#endregion-------------------------IMPORTS-----------------------------------
+-------------------------------------------------------------------------------
+
 
 if not Sorted then Sorted = {} end
 
