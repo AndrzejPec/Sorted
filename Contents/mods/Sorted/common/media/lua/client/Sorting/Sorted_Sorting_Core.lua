@@ -122,18 +122,29 @@ local function getDishCategory(item)
   return nil
 end
 
-local function isFoodBox(item)
-  if not item then return false end
+function Sorted.isFoodBox(item)
+  local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "unknown"
 
-  if item:getDoubleClickRecipe() ~= "OpenBoxOfCannedFood" then
+  if not item then
+    Sorted:log("[isFoodBox] " .. fullType .. " - FALSE: no item", 3)
+    return false
+  end
+
+  local recipe = item:getDoubleClickRecipe()
+  if recipe ~= "OpenBoxOfCannedFood" then
+      Sorted:log("[isFoodBox] " .. fullType .. " - FALSE: recipe = " .. tostring(recipe), 3)
       return false
   end
+
+  Sorted:log("[isFoodBox] " .. fullType .. " - Recipe matches OpenBoxOfCannedFood", 3)
 
   local icon = item:getIcon()
   if icon and string.find(tostring(icon), "CannedWater", 1, true) then
+      Sorted:log("[isFoodBox] " .. fullType .. " - FALSE: icon contains CannedWater", 3)
       return false
   end
 
+  Sorted:log("[isFoodBox] " .. fullType .. " - TRUE: is a food box!", 3)
   return true
 end
 
@@ -167,11 +178,86 @@ function LoL.selectInvItem(fullType)
   end
   local item = player:getInventory():getItemFromType(fullType)
   if item then
-    Sorted:log("Selected item: " .. tostring(item:getFullType()), 3)
+    local itemName = (item.getFullType and item:getFullType()) or (item.getFullName and item:getFullName()) or "unknown"
+    Sorted:log("Selected item: " .. itemName, 3)
   else
     Sorted:log("Item not found: " .. fullType, 2)
   end
   return item
+end
+
+---Probe if item has a specific field or method
+---@param item InventoryItem|Item The item to check (supports both inventory items and script definitions)
+---@param fieldOrMethod string The field or method name to check
+---@return boolean hasField True if item has the field
+---@return boolean hasMethod True if item has the method
+---@return any value The value of the field/method if it exists
+function LoL.probeFieldOrMethod(item, fieldOrMethod)
+  if not item then
+    Sorted:log("[probeFieldOrMethod] No item provided", 2)
+    return false, false, nil
+  end
+
+  local fullType = (item.getFullType and item:getFullType()) or (item.getFullName and item:getFullName()) or "unknown"
+  local hasField = false
+  local hasMethod = false
+  local value = nil
+
+  if item[fieldOrMethod] ~= nil then
+    hasField = true
+    value = item[fieldOrMethod]
+
+    if type(value) == "function" then
+      hasMethod = true
+      local success, result = pcall(function() return item[fieldOrMethod](item) end)
+      if success then
+        Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS METHOD: " .. fieldOrMethod .. "() = " .. tostring(result), 3)
+        return hasField, hasMethod, result
+      else
+        Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS METHOD: " .. fieldOrMethod .. "() but call FAILED: " .. tostring(result), 2)
+        return hasField, hasMethod, nil
+      end
+    else
+      Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS FIELD: " .. fieldOrMethod .. " = " .. tostring(value), 3)
+      return hasField, hasMethod, value
+    end
+  else
+    Sorted:log("[probeFieldOrMethod] " .. fullType .. " - NOT FOUND: " .. fieldOrMethod, 3)
+    return false, false, nil
+  end
+end
+
+---Probe all items in inventory for a specific field or method
+---@param fieldOrMethod string The field or method name to check
+function LoL.probeAllInventoryItems(fieldOrMethod)
+  local player = getPlayer()
+  if not player then
+    Sorted:log("ERROR: No player found", 2)
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("ERROR: No inventory found", 2)
+    return
+  end
+
+  Sorted:log("=== Probing all inventory items for: " .. fieldOrMethod .. " ===", 3)
+
+  local items = inventory:getItems()
+  local foundCount = 0
+  local totalCount = items:size()
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    ---@diagnostic disable-next-line: assign-type-mismatch, param-type-mismatch
+    local hasField, hasMethod = LoL.probeFieldOrMethod(item, fieldOrMethod)
+    if hasField or hasMethod then
+      foundCount = foundCount + 1
+    end
+  end
+
+  Sorted:log("=== Summary: " .. foundCount .. " / " .. totalCount .. " items have '" .. fieldOrMethod .. "' ===", 3)
 end
 
 ---Debug function: Compare if item is foodbox in inventory vs script definition
@@ -185,8 +271,8 @@ function LoL.debugFoodBoxComparison(fullType)
     return
   end
 
-  local invResult = isFoodBox(invItem)
-  local scriptResult = scriptItem and isFoodBox(scriptItem) or "N/A"
+  local invResult = Sorted.isFoodBox(invItem)
+  local scriptResult = scriptItem and Sorted.isFoodBox(scriptItem) or "N/A"
 
   Sorted:log("=== FoodBox Comparison for: " .. fullType .. " ===", 3)
   Sorted:log("Inventory Item is FoodBox: " .. tostring(invResult), 3)
@@ -194,23 +280,41 @@ function LoL.debugFoodBoxComparison(fullType)
 end
 
 local function getFoodCategory(item)
+  local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "unknown"
+
   if not item or not item.getItemType then
+      Sorted:log("[getFoodCategory] " .. fullType .. " - SKIP: no item or no getItemType", 3)
       return nil
+  end
+
+  if Sorted.isFoodBox(item) then
+    Sorted:log("[getFoodCategory] " .. fullType .. " - MATCH: isFoodBox = true -> FoodN", 3)
+    return "FoodN"
+  else
+      Sorted:log("[getFoodCategory] " .. fullType .. " - isFoodBox = false", 3)
   end
 
   if item:getItemType() ~= ItemType.FOOD then
+      Sorted:log("[getFoodCategory] " .. fullType .. " - SKIP: not FOOD type", 3)
       return nil
   end
 
-  if isFoodBox(item) then
-      return "FoodN"
-  end
+  Sorted:log("[getFoodCategory] " .. fullType .. " - Processing food item...", 3)
 
   if isPerishable(item) then
+      Sorted:log("[getFoodCategory] " .. fullType .. " - MATCH: isPerishable = true -> FoodP", 3)
       return "FoodP"
+  else
+      Sorted:log("[getFoodCategory] " .. fullType .. " - isPerishable = false", 3)
   end
 
+  Sorted:log("[getFoodCategory] " .. fullType .. " - DEFAULT: returning FoodN", 3)
   return "FoodN"
+end
+
+function Sorted.getBoxes(fullType)
+  local item = LoL.getScriptItemFromInv(fullType)
+  getFoodCategory(item)
 end
 
 ---comment
@@ -231,8 +335,8 @@ function Sorted.printAllFoodBoxes()
   local items = inventory:getItems()
   for i = 0, items:size() - 1 do
     local item = items:get(i)
-    local fullType = item and item.getFullType and item:getFullType() or "?"
-    if isFoodBox(item) then
+    local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "?"
+    if Sorted.isFoodBox(item) then
       Sorted:log("Item: " .. fullType .. " is a foodbox.", 3)
       count = count + 1
     else
