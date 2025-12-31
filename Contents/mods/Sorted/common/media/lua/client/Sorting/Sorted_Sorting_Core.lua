@@ -1,6 +1,7 @@
 require("Sorting/ItemTweaker_Copy_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
+require("Sorting/_LoL_debug")
 
 if not Sorted then Sorted = {} end
 
@@ -148,118 +149,6 @@ function Sorted.isFoodBox(item)
   return true
 end
 
-local LoL = LoL or {}
-
----Get Item script definition from inventory by fullType
----@param fullType string The item's full type identifier
----@return Item|nil The script item definition or nil if not found
-function LoL.getScriptItemFromInv(fullType)
-  local player = getPlayer()
-  if not player then
-    Sorted:log("ERROR: No player found in getScriptItemFromInv", 2)
-    return nil
-  end
-  local invItem = player:getInventory():getItemFromType(fullType)
-  if not invItem then
-    Sorted:log("ERROR: Item not found in inventory: " .. fullType, 2)
-    return nil
-  end
-  return invItem:getScriptItem()
-end
-
----Get inventory item by fullType
----@param fullType string The item's full type identifier
----@return InventoryItem|nil The inventory item instance or nil if not found
-function LoL.selectInvItem(fullType)
-  local player = getPlayer()
-  if not player then
-    Sorted:log("ERROR: No player found in selectInvItem", 2)
-    return nil
-  end
-  local item = player:getInventory():getItemFromType(fullType)
-  if item then
-    local itemName = (item.getFullType and item:getFullType()) or (item.getFullName and item:getFullName()) or "unknown"
-    Sorted:log("Selected item: " .. itemName, 3)
-  else
-    Sorted:log("Item not found: " .. fullType, 2)
-  end
-  return item
-end
-
----Probe if item has a specific field or method
----@param item InventoryItem|Item The item to check (supports both inventory items and script definitions)
----@param fieldOrMethod string The field or method name to check
----@return boolean hasField True if item has the field
----@return boolean hasMethod True if item has the method
----@return any value The value of the field/method if it exists
-function LoL.probeFieldOrMethod(item, fieldOrMethod)
-  if not item then
-    Sorted:log("[probeFieldOrMethod] No item provided", 2)
-    return false, false, nil
-  end
-
-  local fullType = (item.getFullType and item:getFullType()) or (item.getFullName and item:getFullName()) or "unknown"
-  local hasField = false
-  local hasMethod = false
-  local value = nil
-
-  if item[fieldOrMethod] ~= nil then
-    hasField = true
-    value = item[fieldOrMethod]
-
-    if type(value) == "function" then
-      hasMethod = true
-      local success, result = pcall(function() return item[fieldOrMethod](item) end)
-      if success then
-        Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS METHOD: " .. fieldOrMethod .. "() = " .. tostring(result), 3)
-        return hasField, hasMethod, result
-      else
-        Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS METHOD: " .. fieldOrMethod .. "() but call FAILED: " .. tostring(result), 2)
-        return hasField, hasMethod, nil
-      end
-    else
-      Sorted:log("[probeFieldOrMethod] " .. fullType .. " - HAS FIELD: " .. fieldOrMethod .. " = " .. tostring(value), 3)
-      return hasField, hasMethod, value
-    end
-  else
-    Sorted:log("[probeFieldOrMethod] " .. fullType .. " - NOT FOUND: " .. fieldOrMethod, 3)
-    return false, false, nil
-  end
-end
-
----Probe all items in inventory for a specific field or method
----@param fieldOrMethod string The field or method name to check
-function LoL.probeAllInventoryItems(fieldOrMethod)
-  local player = getPlayer()
-  if not player then
-    Sorted:log("ERROR: No player found", 2)
-    return
-  end
-
-  local inventory = player:getInventory()
-  if not inventory then
-    Sorted:log("ERROR: No inventory found", 2)
-    return
-  end
-
-  Sorted:log("=== Probing all inventory items for: " .. fieldOrMethod .. " ===", 3)
-
-  local items = inventory:getItems()
-  local foundCount = 0
-  local totalCount = items:size()
-
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    ---@diagnostic disable-next-line: assign-type-mismatch, param-type-mismatch
-    local hasField, hasMethod = LoL.probeFieldOrMethod(item, fieldOrMethod)
-    if hasField or hasMethod then
-      foundCount = foundCount + 1
-    end
-  end
-
-  Sorted:log("=== Summary: " .. foundCount .. " / " .. totalCount .. " items have '" .. fieldOrMethod .. "' ===", 3)
-end
-
 ---Debug function: Compare if item is foodbox in inventory vs script definition
 ---@param fullType string The item's full type identifier
 function LoL.debugFoodBoxComparison(fullType)
@@ -312,41 +201,6 @@ local function getFoodCategory(item)
   return "FoodN"
 end
 
-function Sorted.getBoxes(fullType)
-  local item = LoL.getScriptItemFromInv(fullType)
-  getFoodCategory(item)
-end
-
----comment
-function Sorted.printAllFoodBoxes()
-  local player = getPlayer()
-  if not player then
-    Sorted:log("ERROR: No player found", 3)
-    return
-  end
-
-  local inventory = player:getInventory()
-  if not inventory then
-    Sorted:log("ERROR: No inventory found", 3)
-    return
-  end
-
-  local count = 0
-  local items = inventory:getItems()
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "?"
-    if Sorted.isFoodBox(item) then
-      Sorted:log("Item: " .. fullType .. " is a foodbox.", 3)
-      count = count + 1
-    else
-      Sorted:log("Item: " .. fullType .. " is not a foodbox.", 3)
-    end
-  end
-  Sorted:log("A total of " .. count .. " foodboxes were found.", 3)
-end
-
-
 local function getLiteratureCategory(item)
   if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
     return nil
@@ -387,6 +241,76 @@ local function getThrowableWeaponCategory(item)
   end
   return nil
 end
+
+
+----------------------------------------------
+--#region: Backpack/bags/fannypacks indication
+----------------------------------------------
+local backpackMarkers = {
+  EquipBackpackSmall = true,
+  EquipBackpackLarge = true,
+}
+
+local backpackSoundParameters = {
+  HikingBag = true,
+  Schoolbag = true,
+  Dufflebag = true,
+}
+
+local fannypackMarkers = {
+  [ItemBodyLocation.FANNY_PACK_BACK] = true,
+  [ItemBodyLocation.FANNY_PACK_FRONT] = true,
+}
+
+---comment
+---@param item Item
+---@return boolean
+local function isFannyPack(item)
+  local equipLocation = item and item.canBeEquipped and item:canBeEquipped()
+  return fannypackMarkers[equipLocation] == true
+end
+
+---comment
+---@param item Item
+---@return boolean
+local function isBackpack(item)
+  if item:getTypeString() ~= "Container" then return false end
+  if (item:canBeEquipped() or "") ~= ItemBodyLocation.BACK then return false end
+  local equip = item:getEquipSound() or ""
+  if backpackMarkers[equip] then return true end
+  local sp = item:getSoundParameter("EquippedBaggageContainer") or ""
+  if backpackSoundParameters[sp] then return true end
+  local id = item:getFullName() or ""
+  local icon = item:getIcon() or table.concat(item:getIconsForTexture() or {}, ";")
+  if id:find("Backpack") then return true end
+  if id:find("HikingBag") then return true end
+  if id:find("Schoolbag") then return true end
+  if id:find("HydrationBackpack") then return true end
+  if icon and icon:find("Backpack") then return true end
+  return false
+end
+
+local function isBag(item)
+  return item.getItemType and item:getItemType() == ItemType.CONTAINER
+      and item:canBeEquipped() ~= nil
+      and not isBackpack(item)
+end
+
+local function getContainerCategory(item)
+  if isFannyPack(item) then
+    return "ContFanny"
+  elseif isBackpack(item) then
+    return "ContBack"
+  elseif isBag(item) then
+    return "ContBag"
+  else
+    return nil
+  end
+end
+
+------------------------------------------------
+--#endregion:Backpack/bags/fannypacks indication
+------------------------------------------------
 
 local function getPlushieCategory(item)
   if item and item.getIcon then
@@ -687,6 +611,7 @@ local CATEGORY_DETECTORS = {
   getPlushieCategory,
   getKeyCategory,
   getMementoClothingCategory,
+  getContainerCategory,
   getClothingCategoryDetailed,
   dumpOneToOther("VehicleMaintenance", "Mech"),
   dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
