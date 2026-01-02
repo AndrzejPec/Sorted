@@ -679,3 +679,708 @@ function LoL.testFunctionWithSpecificItem(fullType, functionName)
   local result = item[functionName](item)
   Sorted:log("Result of " .. functionName .. " for " .. fullType .. " is: " .. tostring(result))
 end
+
+function LoL.listAllItemsByTag(tag)
+  if not tag or type(tag) ~= "string" then
+    Sorted:log("ERROR: Provide tag as string (e.g., 'FoodAlcohol')", 3)
+    return
+  end
+
+  local items = getScriptManager():getAllItems()
+  local matched = 0
+  local checked = 0
+
+  Sorted:log("=== Items with tag: " .. tag .. " ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      checked = checked + 1
+      local hasTag = false
+
+      if item.getTags and type(item.getTags) == "function" then
+        local tags = item:getTags()
+        if tags then
+          if tags.iterator then
+            local it = tags:iterator()
+            while it:hasNext() do
+              local t = it:next()
+              local name = t.getName and t:getName() or tostring(t)
+              if name == tag then
+                hasTag = true
+                break
+              end
+            end
+          elseif tags.size and tags.get then
+            for j = 0, tags:size() - 1 do
+              local t = tags:get(j)
+              local name = t.getName and t:getName() or tostring(t)
+              if name == tag then
+                hasTag = true
+                break
+              end
+            end
+          elseif tags.length then
+            for j = 0, tags.length - 1 do
+              local t = tags[j]
+              local name = t.getName and t:getName() or tostring(t)
+              if name == tag then
+                hasTag = true
+                break
+              end
+            end
+          end
+        end
+      end
+
+      if hasTag then
+        local fullName = item.getFullName and item:getFullName() or tostring(item)
+        Sorted:log(fullName, 3)
+        matched = matched + 1
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Checked items: " .. checked, 3)
+  Sorted:log("Matched items: " .. matched, 3)
+end
+
+function LoL.iterateAllGameTags()
+  local allTags = {
+    "base:2diamondjewellery",
+    "base:2emeraldjewellery",
+    "base:2rubyjewellery",
+    "base:2sapphirejewellery",
+    "base:aerosol",
+    "base:alcoholicbeverage",
+    "base:alreadybroken",
+    "base:alreadycooked",
+    "base:aluminum",
+    "base:alwayshasstuff",
+    "base:amethystjewellery",
+    "base:ammo",
+    "base:ammocase",
+    "base:animalbone",
+    "base:animalbrain",
+    "base:animalcorpse",
+    "base:animalhead",
+    "base:animalskull",
+    "base:applyownername",
+    "base:awkwardgloves",
+    "base:awl",
+    "base:bagsfillexception",
+    "base:bakingfat",
+    "base:ballpeenhammer",
+    "base:barehands",
+    "base:barstock",
+    "base:barstockhalf",
+    "base:barstockquarter",
+    "base:binding",
+    "base:birdskull",
+    "base:blade",
+    "base:block",
+    "base:blowerfan",
+    "base:bluepen",
+    "base:boltcutters",
+    "base:boostsflurecovery",
+    "base:bottleopener",
+    "base:bowl",
+    "base:braintan",
+    "base:brake",
+    "base:breakfiber",
+    "base:breakonsmithing",
+    "base:breakwhenwet",
+    "base:brokenglass",
+    "base:bucket",
+    "base:buckle",
+    "base:buildingkey",
+    "base:burlapbag",
+    "base:butcheranimal",
+    "base:button",
+    "base:camera",
+    "base:canbedividedinbowls",
+    "base:canbedyed",
+    "base:canbewashed",
+    "base:caneat",
+    "base:canopener",
+    "base:cantcompost",
+    "base:carbattery",
+    "base:carkey",
+    "base:carpentrychisel",
+    "base:carvelongstick",
+    "base:charcoal",
+    "base:cheese",
+    "base:chewingtobacco",
+    "base:choptree",
+    "base:chunk",
+    "base:claytool",
+    "base:cleanstains",
+    "base:clearashes",
+    "base:clubhammer",
+    "base:coffeemaker",
+    "base:comfrey",
+    "base:commonmallow",
+    "base:compass",
+    "base:compost",
+    "base:concrete",
+    "base:consumable",
+    "base:consumeonread",
+    "base:cookable",
+    "base:cookablemicrowave",
+    "base:copperore",
+    "base:coppersource",
+    "base:corkscrew",
+    "base:crowbar",
+    "base:crude",
+    "base:crudeblade",
+    "base:crudechisel",
+    "base:crudesaw",
+    "base:crudetongs",
+    "base:cutheadsack",
+    "base:cutplant",
+    "base:d00",
+    "base:d10",
+    "base:d12",
+    "base:d20",
+    "base:d4",
+    "base:d6",
+    "base:d8",
+    "base:destructible",
+    "base:diamondjewellery",
+    "base:diamondscrap",
+    "base:dice",
+    "base:diggrave",
+    "base:digital",
+    "base:digplow",
+    "base:digworms",
+    "base:dogtag",
+    "base:dohairdo",
+    "base:dontinheritcondition",
+    "base:driedfood",
+    "base:drillmetal",
+    "base:drillwood",
+    "base:drillwoodpoor",
+    "base:duffelbag",
+    "base:dullknife",
+    "base:egg",
+    "base:emeraldjewellery",
+    "base:emptycan",
+    "base:epoxy",
+    "base:equippable",
+    "base:eraser",
+    "base:fakespear",
+    "base:fakeweapon",
+    "base:fancybook",
+    "base:farmingloot",
+    "base:fastdraw",
+    "base:fastread",
+    "base:feather",
+    "base:fertilizer",
+    "base:fiberglasstape",
+    "base:file",
+    "base:firearm",
+    "base:firearmloot",
+    "base:fishinghook",
+    "base:fishingline",
+    "base:fishingnet",
+    "base:fishingrod",
+    "base:fishingspear",
+    "base:fishmeat",
+    "base:fitskeyring",
+    "base:fitstoaster",
+    "base:fitswallet",
+    "base:flashlight",
+    "base:flashlightpillar",
+    "base:fleshingtool",
+    "base:flintpiece",
+    "base:flour",
+    "base:forge_crude_blade",
+    "base:fork",
+    "base:fullblade",
+    "base:garbagebag",
+    "base:gasmask",
+    "base:gasmaskfilter",
+    "base:gasmasknofilter",
+    "base:generator",
+    "base:giveslongstick",
+    "base:glass",
+    "base:glassbottle",
+    "base:glassbottlesmall",
+    "base:glue",
+    "base:goldscrap",
+    "base:goodfrozen",
+    "base:grater",
+    "base:greenpen",
+    "base:grilled",
+    "base:hammer",
+    "base:hammerstone",
+    "base:handguard",
+    "base:handscythe",
+    "base:hardcover",
+    "base:harmonica",
+    "base:hasmetal",
+    "base:hastoolhead",
+    "base:hazmatsuit",
+    "base:headingtool",
+    "base:heavyitem",
+    "base:heavythread",
+    "base:herbaltea",
+    "base:hidecooked",
+    "base:hidehungerchange",
+    "base:hideremaining",
+    "base:hideuncooked",
+    "base:holdcompost",
+    "base:holddirt",
+    "base:hollowbook",
+    "base:idcard",
+    "base:ignorezombiedensity",
+    "base:inferiorbinding",
+    "base:ingot",
+    "base:ironmaterial",
+    "base:ironore",
+    "base:ironsource",
+    "base:isatomic",
+    "base:iscompostable",
+    "base:iscutting",
+    "base:isdisguise",
+    "base:isfirefuel",
+    "base:isfirefuelsingleuse",
+    "base:isfiretinder",
+    "base:islowerdisguise",
+    "base:ismemento",
+    "base:isseed",
+    "base:isupperdisguise",
+    "base:jar",
+    "base:keyring",
+    "base:killanimal",
+    "base:knappingtool",
+    "base:knittingneedles",
+    "base:largeanimalbone",
+    "base:largeblade",
+    "base:largesack",
+    "base:leathercrudelarge",
+    "base:leathercrudemedium",
+    "base:leathercrudesmall",
+    "base:leathercrudetannedlarge",
+    "base:leathercrudetannedmedium",
+    "base:leathercrudetannedsmall",
+    "base:leathercrudewetlarge",
+    "base:leathercrudewetmedium",
+    "base:leathercrudewetsmall",
+    "base:leatherfulllarge",
+    "base:leatherfullmedium",
+    "base:leatherfullsmall",
+    "base:leatherfurlarge",
+    "base:leatherfurmedium",
+    "base:leatherfursmall",
+    "base:leatherfurtannedlarge",
+    "base:leatherfurtannedmedium",
+    "base:leatherfurtannedsmall",
+    "base:leatherfurwetlarge",
+    "base:leatherfurwetmedium",
+    "base:leatherfurwetsmall",
+    "base:lessfull",
+    "base:lightbar",
+    "base:lighter",
+    "base:lighterfluid",
+    "base:lightmetalsnips",
+    "base:lightwhenattached",
+    "base:limestone",
+    "base:litlantern",
+    "base:lock",
+    "base:lockonwrite",
+    "base:log",
+    "base:long_johns",
+    "base:longstick",
+    "base:lowalcohol",
+    "base:lugwrench",
+    "base:magazine",
+    "base:magnifier",
+    "base:makewoodcharcoallarge",
+    "base:makewoodcharcoalmedium",
+    "base:makewoodcharcoalsmall",
+    "base:mallet",
+    "base:masonschisel",
+    "base:masonstrowel",
+    "base:meatcleaver",
+    "base:megaphone",
+    "base:metalbucket",
+    "base:metalpiece",
+    "base:metalsaw",
+    "base:metalworkingchisel",
+    "base:metalworkingpliers",
+    "base:metalworkingpunch",
+    "base:milk",
+    "base:minoringredient",
+    "base:miscelectronic",
+    "base:mixingutensil",
+    "base:monogramownername",
+    "base:morewhennozombies",
+    "base:mortarpestle",
+    "base:mufflesneeze",
+    "base:neverempty",
+    "base:new",
+    "base:newspaper",
+    "base:newspaper_new",
+    "base:newspaperread",
+    "base:nocookingxp",
+    "base:nocriticals",
+    "base:nofencestab",
+    "base:nomaintenancexp",
+    "base:nopour",
+    "base:noragdoll",
+    "base:normalpillow",
+    "base:norope",
+    "base:oil",
+    "base:omitemptyfromname",
+    "base:optics",
+    "base:oxygentank",
+    "base:packed",
+    "base:paint",
+    "base:paintbrush",
+    "base:pasta",
+    "base:pen",
+    "base:pencil",
+    "base:petrol",
+    "base:pickaramidthread",
+    "base:pickaxe",
+    "base:picture",
+    "base:picturebook",
+    "base:piercedblock",
+    "base:piercedchunk",
+    "base:piercedingot",
+    "base:pillow",
+    "base:pipewrench",
+    "base:pistolmagazine",
+    "base:pizzacutter",
+    "base:pizzasauce",
+    "base:plantain",
+    "base:plastertrowel",
+    "base:pliers",
+    "base:preservedfood",
+    "base:prybar",
+    "base:puppers",
+    "base:purifywater",
+    "base:quarterbarstock",
+    "base:railroadspikepuller",
+    "base:razor",
+    "base:redpen",
+    "base:refillablelighter",
+    "base:regional",
+    "base:reloadfastbullets",
+    "base:reloadfastmagazines",
+    "base:reloadfastshells",
+    "base:removebarricade",
+    "base:removebullet",
+    "base:removeglass",
+    "base:repairablesawblade",
+    "base:repairwithepoxy",
+    "base:repairwithglue",
+    "base:repairwithtape",
+    "base:replaceprimary",
+    "base:respirator",
+    "base:respiratorfilter",
+    "base:respiratornofilter",
+    "base:ricerecipe",
+    "base:riflemagazine",
+    "base:ripclothigcotton",
+    "base:ripclothingcoton",
+    "base:ripclothingcotton",
+    "base:ripclothingdenim",
+    "base:ripclothingleather",
+    "base:rollingpaper",
+    "base:rollingpin",
+    "base:rope",
+    "base:rubyjewellery",
+    "base:salt",
+    "base:sapphirejewellery",
+    "base:saw",
+    "base:sawblade",
+    "base:scba",
+    "base:scbanotank",
+    "base:scissors",
+    "base:scrapaluminum",
+    "base:scrapaluminumlarge",
+    "base:scrapasbelt",
+    "base:scraplargecopper",
+    "base:scraplargesteel",
+    "base:scrapsmallcopper",
+    "base:screwdriver",
+    "base:scythe",
+    "base:sealedbeveragecan",
+    "base:sewingneedle",
+    "base:sharpenable",
+    "base:sharpknife",
+    "base:shear",
+    "base:sheet",
+    "base:sheetmetalsnips",
+    "base:shotgunshell",
+    "base:showcondition",
+    "base:showpoison",
+    "base:silverscrap",
+    "base:simpleweaponbinding",
+    "base:siphongas",
+    "base:sledgehammer",
+    "base:smallanimalbone",
+    "base:smallergoldscrap",
+    "base:smallersilverscrap",
+    "base:smallestgoldscrap",
+    "base:smallestsilverscrap",
+    "base:smallfiles",
+    "base:smallgoldscrap",
+    "base:smallpunch",
+    "base:smallsaw",
+    "base:smallsheetmetal",
+    "base:smallsilverscrap",
+    "base:smeltableironlarge",
+    "base:smeltableironmedium",
+    "base:smeltableironmediumplus",
+    "base:smeltableironsmall",
+    "base:smeltablesteellarge",
+    "base:smeltablesteelmedium",
+    "base:smeltablesteelmediumplus",
+    "base:smeltablesteelsmall",
+    "base:smithinghammer",
+    "base:smokable",
+    "base:softcover",
+    "base:spawncooked",
+    "base:spawnfullunlesslaundry",
+    "base:spearhead",
+    "base:spiked",
+    "base:spikedbehind",
+    "base:spoon",
+    "base:sprayer",
+    "base:startfire",
+    "base:steelmaterial",
+    "base:stone",
+    "base:stonemaul",
+    "base:sugar",
+    "base:takedirt",
+    "base:takedung",
+    "base:tape",
+    "base:tentbed",
+    "base:tentpeg",
+    "base:thimble",
+    "base:thread",
+    "base:tincan",
+    "base:tinygoldscrap",
+    "base:tinysilverscrap",
+    "base:toastable",
+    "base:tobacco",
+    "base:toiletbrush",
+    "base:tongs",
+    "base:toolhead",
+    "base:tvremote",
+    "base:tweezers",
+    "base:twine",
+    "base:uncutfish",
+    "base:uninteresting",
+    "base:unlitlantern",
+    "base:useall",
+    "base:usedisplayname",
+    "base:usesbattery",
+    "base:useworldstaticmodel",
+    "base:vermin",
+    "base:vinegar",
+    "base:visegrips",
+    "base:wallpaper",
+    "base:wallpaperpaste",
+    "base:wearable",
+    "base:weldingmask",
+    "base:wetbeverageingredient",
+    "base:whetstone",
+    "base:whistle",
+    "base:wholetire",
+    "base:wildgarlic",
+    "base:wire",
+    "base:woodhandle",
+    "base:wrench",
+    "base:write",
+  }
+
+  Sorted:log("=== ITERATING THROUGH ALL TAGS ===", 3)
+  Sorted:log("Total tags to process: " .. #allTags, 3)
+  Sorted:log("---", 3)
+
+  for _, tag in ipairs(allTags) do
+    LoL.listAllItemsByTag(tag)
+    Sorted:log("---", 3)
+  end
+
+  Sorted:log("=== ALL TAGS PROCESSED ===", 3)
+end
+
+local function countTable(t)
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
+end
+
+function LoL.debugProtectiveGear(detailed)
+  detailed = detailed or false
+  local items = getScriptManager():getAllItems()
+  local gearByLocation = {}
+  local totalChecked = 0
+  local totalMatched = 0
+
+  Sorted:log("=== PROTECTIVE GEAR DEBUG ===", 3)
+  Sorted:log("Mode: " .. (detailed and "DETAILED" or "NORMAL"), 3)
+  Sorted:log("---", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      totalChecked = totalChecked + 1
+      local displayCategory = item.getDisplayCategory and item:getDisplayCategory() or nil
+
+      if displayCategory then
+        local normalized = string.lower(displayCategory)
+        if normalized == "protectivegear" or normalized == "protective gear" then
+          totalMatched = totalMatched + 1
+          local fullName = item.getFullName and item:getFullName() or tostring(item)
+          local itemInstance = instanceItem(fullName)
+
+          if itemInstance then
+            local bodyLocation = itemInstance:getBodyLocation()
+            if not bodyLocation then
+              bodyLocation = "unknown"
+            else
+              bodyLocation = tostring(bodyLocation)
+            end
+
+            if not gearByLocation[bodyLocation] then
+              gearByLocation[bodyLocation] = {}
+            end
+
+            table.insert(gearByLocation[bodyLocation], {
+              name = fullName,
+              instance = itemInstance
+            })
+          end
+        end
+      end
+    end
+  end
+
+  if detailed then
+    for location, items_list in pairs(gearByLocation) do
+      Sorted:log("=== Body Location: " .. tostring(location) .. " ===", 3)
+      Sorted:log("Count: " .. #items_list, 3)
+
+      for _, item_data in ipairs(items_list) do
+        local inst = item_data.instance
+        Sorted:log("  Item: " .. item_data.name, 3)
+
+        if inst then
+          local canBeEquipped = inst.canBeEquipped and inst:canBeEquipped() or false
+          Sorted:log("    CanBeEquipped: " .. tostring(canBeEquipped), 3)
+
+          local displayName = inst.getDisplayName and inst:getDisplayName() or inst.DisplayName or ""
+          Sorted:log("    DisplayName: " .. tostring(displayName), 3)
+
+          local capacity = inst.getCapacity and inst:getCapacity() or inst.Capacity or 0
+          Sorted:log("    Capacity: " .. tostring(capacity), 3)
+
+          if inst.getTags and type(inst.getTags) == "function" then
+            local tags = inst:getTags()
+            if tags then
+              local tagCount = 0
+              if tags.size and tags.get then
+                tagCount = tags:size()
+              elseif tags.iterator then
+                local it = tags:iterator()
+                while it:hasNext() do
+                  tagCount = tagCount + 1
+                  it:next()
+                end
+              end
+              Sorted:log("    Tags count: " .. tagCount, 3)
+            end
+          end
+        end
+        Sorted:log("    ---", 3)
+      end
+      Sorted:log("---", 3)
+    end
+  else
+    for location, items_list in pairs(gearByLocation) do
+      Sorted:log(tostring(location) .. ": " .. #items_list .. " items", 3)
+      for _, item_data in ipairs(items_list) do
+        Sorted:log("  - " .. item_data.name, 3)
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Total items checked: " .. totalChecked, 3)
+  Sorted:log("Protective gear found: " .. totalMatched, 3)
+  Sorted:log("Unique body locations: " .. countTable(gearByLocation), 3)
+  Sorted:log("=== END PROTECTIVE GEAR DEBUG ===", 3)
+end
+
+function LoL.testBooleanWarning()
+  Sorted:log("=== TESTING BOOLEAN WARNING ===", 3)
+  Sorted:log("This should trigger a WARNING in console:", 3)
+  TweakItem("Base.Test_Item", "DisplayCategory", true)
+  Sorted:log("If you see WARNING above, the validation is working!", 3)
+  Sorted:log("=== END TEST ===", 3)
+end
+
+function LoL.testValidCategoryAssignment()
+  Sorted:log("=== TESTING VALID CATEGORY ASSIGNMENT ===", 3)
+  Sorted:log("This should NOT trigger a warning:", 3)
+  TweakItem("Base.Test_Item", "DisplayCategory", "ClothHead")
+  Sorted:log("If no WARNING above, assignment succeeded!", 3)
+  Sorted:log("=== END TEST ===", 3)
+end
+
+function logContainers()
+  local allItems = getScriptManager():getAllItems()
+  for i = 0, allItems:size() - 1 do
+    local item = allItems:get(i)
+    local fullType = item:getFullName()
+    if item:getDisplayCategory() == "Container" then
+      print(fullType)
+    end
+  end
+end
+
+function logCategories()
+  local categories = {}
+  local allItems = getScriptManager():getAllItems()
+
+  Sorted:log("=== LOGGING ALL ITEM CATEGORIES ===", 3)
+
+  for i = 0, allItems:size() - 1 do
+    local item = allItems:get(i)
+    local itemCategory = item:getDisplayCategory()
+
+    if itemCategory then
+      if not categories[itemCategory] then
+        categories[itemCategory] = 0
+      end
+      categories[itemCategory] = categories[itemCategory] + 1
+    end
+  end
+
+  -- Sort categories alphabetically
+  local sortedCategories = {}
+  for category, count in pairs(categories) do
+    table.insert(sortedCategories, { name = category, count = count })
+  end
+
+  table.sort(sortedCategories, function(a, b) return a.name < b.name end)
+
+  -- Log results
+  Sorted:log("Total unique categories: " .. #sortedCategories, 3)
+  Sorted:log("---", 3)
+
+  for _, catData in ipairs(sortedCategories) do
+    Sorted:log(catData.name .. ": " .. catData.count .. " items", 3)
+  end
+
+  Sorted:log("=== END CATEGORY LOG ===", 3)
+end

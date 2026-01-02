@@ -54,24 +54,6 @@ local function isCookwareByEvolvedRecipe(item)
   return nil
 end
 
-local function keepProtectiveGear(item)
-  if not item or not item.getDisplayCategory then
-    return nil
-  end
-
-  local displayCategory = item:getDisplayCategory()
-  if not displayCategory then
-    return nil
-  end
-
-  local normalized = string.lower(displayCategory)
-  if normalized == "protectivegear" or normalized == "protective gear" then
-    return displayCategory
-  end
-
-  return nil
-end
-
 local function getAlcoholCategory(item)
   if item.FluidContainer then
     local fluidContainer = item:getFluidcontainer()
@@ -181,7 +163,8 @@ local function getLiteratureCategory(item)
   end
 
   local skill = item.getSkillTrained and item:getSkillTrained()
-  if skill ~= nil then
+  local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
+  if recipe == "UnpackSetOfBooks" or skill ~= nil then
     return "LitS"
   end
 
@@ -453,6 +436,8 @@ local function isSmokable(item)
   if hasSmokableTag then
     return true
   end
+
+  return false
 end
 
 local function getSmokable(item)
@@ -461,16 +446,30 @@ local function getSmokable(item)
   end
 end
 
-local function getPlushieCategory(item)
-  if item and item.getIcon then
-    local icon = item:getIcon()
-    if icon then
-      icon = string.lower(icon)
-      if string.find(icon, "plush", 1, true) then
-        return "Plush"
-      end
-    end
+local function getAmmo(item)
+  if item:hasTag(ItemTag.AMMO_CASE) then
+    return "Ammo"
   end
+end
+
+local function getPlushieCategory(item)
+  if not item then
+    return nil
+  end
+
+  local function containsPlush(str)
+    if not str then return false end
+    return string.find(string.lower(str), "plush") ~= nil
+  end
+
+  if item.getIcon and containsPlush(item:getIcon()) then
+    return "Plush"
+  end
+
+  if item.getWorldStaticModel and containsPlush(item:getWorldStaticModel()) then
+    return "Plush"
+  end
+
   return nil
 end
 
@@ -482,6 +481,12 @@ local function isTacticalGear(item)
   return item:hasTag(ItemTag.RELOAD_FAST_BULLETS) or 
          item:hasTag(ItemTag.RELOAD_FAST_MAGAZINES) or 
          item:hasTag(ItemTag.RELOAD_FAST_SHELLS)
+end
+
+local function getMagazines(item)
+  if item:hasTag(ItemTag.PISTOL_MAGAZINE) or item:hasTag(ItemTag.RIFLE_MAGAZINE) then
+    return "WepMag"
+  end
 end
 
 local function getBreathingCategory(item)
@@ -514,34 +519,6 @@ local function getTacticalGear(item)
   if isTacticalGear(item) then
     return "TacticalGear"
   end
-end
-
-local function getMementoClothingCategory(item, useDetailed)
-  if not item or not item.getDisplayCategory or item:getDisplayCategory() ~= "Memento" then
-    return nil
-  end
-  if not item.getItemType or item:getItemType() ~= ItemType.CLOTHING then
-    return nil
-  end
-
-  local bodyLoc = item.getBodyLocation and item:getBodyLocation()
-  if not bodyLoc or bodyLoc == "" then
-    return "ClothMisc"
-  end
-
-  local bodyLocStr = tostring(bodyLoc)
-  if bodyLocStr then
-    bodyLocStr = bodyLocStr:match(":([^:]+):?$") or bodyLocStr
-    bodyLocStr = string.upper(bodyLocStr)
-  end
-
-  local mapping = BODYLOCATION_MAP[bodyLocStr]
-  if mapping then
-    local category = useDetailed and mapping.detailed or mapping.simple
-    return category
-  end
-
-  return "ClothMisc"
 end
 
 local function getKeyCategory(item)
@@ -678,6 +655,54 @@ local BODYLOCATION_MAP = {
   MAKEUP_LIPS           = { simple = "ClothMisc", detailed = "ClothMisc" },
 }
 
+local PROTECTIVE_GEAR_MAP = {
+  HAT                   = { simple = "PGearHead", detailed = "PGearHead_Hat" },
+  FULLHAT               = { simple = "PGearHead", detailed = "PGearHead_FullHat" },
+  MASK                  = { simple = "PGearHead", detailed = "PGearHead_Mask" },
+  MASKFULL              = { simple = "PGearHead", detailed = "PGearHead_Mask" },
+  MASKEYES              = { simple = "PGearHead", detailed = "PGearHead_Mask" },
+
+  JACKET                = { simple = "PGearBody", detailed = "PGearBody_Jacket" },
+  TORSOEXTRA            = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  TORSOEXTRAVEST        = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  TORSOEXTRAVESTBULLET  = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  CUIRASS               = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  GORGET                = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  CODPIECE              = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+
+  LEFTARM               = { simple = "PGearArms", detailed = "PGearArms_Left" },
+  RIGHTARM              = { simple = "PGearArms", detailed = "PGearArms_Right" },
+  FOREARM_LEFT          = { simple = "PGearArms", detailed = "PGearArms_ForearmLeft" },
+  FOREARM_RIGHT         = { simple = "PGearArms", detailed = "PGearArms_ForearmRight" },
+  ELBOW_LEFT            = { simple = "PGearArms", detailed = "PGearArms_ElbowLeft" },
+  ELBOW_RIGHT           = { simple = "PGearArms", detailed = "PGearArms_ElbowRight" },
+  SHOULDERPADLEFT       = { simple = "PGearArms", detailed = "PGearArms_ShoulderLeft" },
+  SHOULDERPADRIGHT      = { simple = "PGearArms", detailed = "PGearArms_ShoulderRight" },
+  SPORTSHOULDERPAD      = { simple = "PGearArms", detailed = "PGearArms_Shoulder" },
+  SPORTSHOULDERPADONTOP = { simple = "PGearArms", detailed = "PGearArms_Shoulder" },
+
+  HANDS                 = { simple = "PGearHands", detailed = "PGearHands_Gloves" },
+  HANDSLEFT             = { simple = "PGearHands", detailed = "PGearHands_GlovesLeft" },
+  HANDSRIGHT            = { simple = "PGearHands", detailed = "PGearHands_GlovesRight" },
+
+  PANTS                 = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
+  PANTS_SKINNY          = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
+  PANTS_EXTRA           = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
+  SHORTPANTS            = { simple = "PGearLegs", detailed = "PGearLegs_Shorts" },
+  THIGH_LEFT            = { simple = "PGearLegs", detailed = "PGearLegs_ThighLeft" },
+  THIGH_RIGHT           = { simple = "PGearLegs", detailed = "PGearLegs_ThighRight" },
+  KNEE_LEFT             = { simple = "PGearLegs", detailed = "PGearLegs_KneeLeft" },
+  KNEE_RIGHT            = { simple = "PGearLegs", detailed = "PGearLegs_KneeRight" },
+  CALF_LEFT             = { simple = "PGearLegs", detailed = "PGearLegs_CalfLeft" },
+  CALF_RIGHT            = { simple = "PGearLegs", detailed = "PGearLegs_CalfRight" },
+  CALF_LEFT_TEXTURE     = { simple = "PGearLegs", detailed = "PGearLegs_CalfLeft" },
+  CALF_RIGHT_TEXTURE    = { simple = "PGearLegs", detailed = "PGearLegs_CalfRight" },
+  GAITER_LEFT           = { simple = "PGearLegs", detailed = "PGearLegs_GaiterLeft" },
+  GAITER_RIGHT          = { simple = "PGearLegs", detailed = "PGearLegs_GaiterRight" },
+
+  SHOES                 = { simple = "PGearFeet", detailed = "PGearFeet_Shoes" },
+}
+
 local function isClothing(item)
   if item and item.getItemType and item:getItemType() == ItemType.CLOTHING then
     return true
@@ -708,6 +733,33 @@ local function logClothingDecision(message)
   end
 end
 
+local function getMementoClothingCategory(item, useDetailed)
+  if not item or not item.getDisplayCategory or item:getDisplayCategory() ~= "Memento" then
+    return nil
+  end
+  if not item.getItemType or item:getItemType() ~= ItemType.CLOTHING then
+    return nil
+  end
+
+  local bodyLoc = item.getBodyLocation and item:getBodyLocation()
+  if not bodyLoc or bodyLoc == "" then
+    return "ClothMisc"
+  end
+
+  local bodyLocStr = tostring(bodyLoc)
+  if bodyLocStr then
+    bodyLocStr = bodyLocStr:match(":([^:]+):?$") or bodyLocStr
+    bodyLocStr = string.upper(bodyLocStr)
+  end
+
+  local mapping = BODYLOCATION_MAP[bodyLocStr]
+  if mapping then
+    local category = useDetailed and mapping.detailed or mapping.simple
+    return category
+  end
+
+  return "ClothMisc"
+end
 -- @param useDetailed boolean: if true, return detailed category; if false, return simple category
 local function getClothingCategory(item, useDetailed)
   if not isClothing(item) then
@@ -763,6 +815,56 @@ local function getMementoClothingCategoryDetailed(item)
   return getMementoClothingCategory(item, true)
 end
 
+local function getProtectiveGearCategory(item, useDetailed)
+  if not item or not item.getDisplayCategory then
+    return nil
+  end
+
+  local displayCategory = item:getDisplayCategory()
+  if not displayCategory then
+    return nil
+  end
+
+  local normalized = string.lower(displayCategory)
+  if normalized ~= "protectivegear" and normalized ~= "protective gear" then
+    return nil
+  end
+
+  local bodyLoc = item.getBodyLocation and item:getBodyLocation()
+  if not bodyLoc or bodyLoc == "" then
+    Sorted:log("PGear: No BodyLocation for " .. item:getFullName(), 3)
+    return "PGearMisc"
+  end
+
+  local bodyLocStr = tostring(bodyLoc)
+  if bodyLocStr then
+    bodyLocStr = bodyLocStr:match(":([^:]+):?$") or bodyLocStr
+    bodyLocStr = string.upper(bodyLocStr)
+  end
+
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+
+  local mapping = PROTECTIVE_GEAR_MAP[bodyLocStr]
+  if mapping then
+    local category = useDetailed and mapping.detailed or mapping.simple
+    if category and type(category) == "string" then
+      Sorted:log("PGear mapped to: " .. category, 3)
+      return category
+    end
+  end
+
+  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  return "PGearMisc"
+end
+
+local function getProtectiveGearCategorySimple(item)
+  return getProtectiveGearCategory(item, false)
+end
+
+local function getProtectiveGearCategoryDetailed(item)
+  return getProtectiveGearCategory(item, true)
+end
+
 local function dumpOneToOther(displayCategory, target)
   return function(item)
     if item and item.getDisplayCategory and item:getDisplayCategory() == displayCategory then
@@ -800,9 +902,10 @@ end
 local CATEGORY_DETECTORS_DETAILED = {
   getSmokable,
   getBreathingCategory,
+  getMagazines,
   getTacticalGear,
   getPetrolCategory,
-  keepProtectiveGear,
+  getProtectiveGearCategorySimple,
   getCleaningItems,
   getDishCategory,
   isCookwareLoot,
@@ -817,6 +920,7 @@ local CATEGORY_DETECTORS_DETAILED = {
   getContainerCategory,
   getMementoClothingCategoryDetailed,
   getClothingCategoryDetailed,
+  getAmmo,
   -- dumpOneToOther("VehicleMaintenance", "Mech"),
   -- dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
   -- dumpOneToOther("WaterContainer", "Container"),
@@ -838,7 +942,7 @@ local CATEGORY_DETECTORS_SIMPLE = {
   getBreathingCategory,
   getTacticalGear,
   getPetrolCategory,
-  keepProtectiveGear,
+  getProtectiveGearCategorySimple,
   getCleaningItems,
   getDishCategory,
   isCookwareLoot,
@@ -903,5 +1007,12 @@ end
 
 Events.OnGameBoot.Add(Sorted.OnGameBoot)
 Sorted._reduxLoaded = true
+
+-- TODO: Item Category Overrides
+-- Items that need manual categorization override:
+-- - Hat_HazmatSuit -> Move from "Breathing" to proper category
+local overrides = {
+  Hat_HazmatSuit = "Breath",
+}
 
 require("Sorting/Sorted_FluidDynamicPatch")

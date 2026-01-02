@@ -39,6 +39,22 @@ function Sorted:log(msg, level)
     print(prefix .. " -------> " .. tostring(msg))
 end
 
+function stopLog()
+    Sorted:setLogging(false)
+end
+
+function logErrors()
+    Sorted:setLogging(true, 1)
+end
+
+function logWarns()
+    Sorted:setLogging(true, 2)
+end
+
+function logAll()
+    Sorted:setLogging(true, 3)
+end
+
 Sorted.throttle = { queue = {}, active = false }
 
 --- @param lines table|nil
