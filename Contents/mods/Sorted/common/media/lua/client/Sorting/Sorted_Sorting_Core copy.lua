@@ -755,14 +755,6 @@ local function getClothingCategoryDetailed(item)
   return getClothingCategory(item, true)
 end
 
-local function getMementoClothingCategorySimple(item)
-  return getMementoClothingCategory(item, false)
-end
-
-local function getMementoClothingCategoryDetailed(item)
-  return getMementoClothingCategory(item, true)
-end
-
 local function dumpOneToOther(displayCategory, target)
   return function(item)
     if item and item.getDisplayCategory and item:getDisplayCategory() == displayCategory then
@@ -797,7 +789,7 @@ local function orphanTheUnfit()
 end
 
 
-local CATEGORY_DETECTORS_DETAILED = {
+local CATEGORY_DETECTORS = {
   getSmokable,
   getBreathingCategory,
   getTacticalGear,
@@ -815,7 +807,7 @@ local CATEGORY_DETECTORS_DETAILED = {
   getPlushieCategory,
   getKeyCategory,
   getContainerCategory,
-  getMementoClothingCategoryDetailed,
+  getMementoClothingCategory,
   getClothingCategoryDetailed,
   -- dumpOneToOther("VehicleMaintenance", "Mech"),
   -- dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
@@ -832,31 +824,6 @@ local CATEGORY_DETECTORS_DETAILED = {
   -- dumpOneToOther("Sports", "Junk"),
   Sorted.categorizeFoodBoxes,
 }
-
-local CATEGORY_DETECTORS_SIMPLE = {
-  getSmokable,
-  getBreathingCategory,
-  getTacticalGear,
-  getPetrolCategory,
-  keepProtectiveGear,
-  getCleaningItems,
-  getDishCategory,
-  isCookwareLoot,
-  getAlcoholCategory,
-  getBeverageCategory,
-  getFrozenFoodCategory,
-  getFoodCategory,
-  getLiteratureCategory,
-  getThrowableWeaponCategory,
-  getPlushieCategory,
-  getKeyCategory,
-  getContainerCategory,
-  getMementoClothingCategorySimple,
-  getClothingCategorySimple,
-  Sorted.categorizeFoodBoxes,
-}
-
-local CATEGORY_DETECTORS = CATEGORY_DETECTORS_DETAILED
 
 
 function Sorted.CategorizeItem(item)
