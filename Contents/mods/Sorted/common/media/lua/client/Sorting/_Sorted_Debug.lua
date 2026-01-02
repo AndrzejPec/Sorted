@@ -1,8 +1,8 @@
 Sorted = Sorted or {}
 
 Sorted.debug = {
-    enabled = true,
-    minLevel = 3, -- 1=ERROR, 2=WARN, 3=INFO
+    enabled = false,
+    minLevel = 1, -- 1=ERROR, 2=WARN, 3=INFO
 }
 
 Sorted.LOG_PREFIXES = {

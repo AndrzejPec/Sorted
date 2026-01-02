@@ -596,3 +596,86 @@ function LoL.debugContainerSorting()
 
   Sorted:log("=== DEBUG COMPLETE ===")
 end
+
+------------------------------------------------------------------------
+--#region: ScriptItem method dumping
+------------------------------------------------------------------------
+
+function inspectItem(fullName)
+  local scriptItem = getScriptManager():getItem(fullName)
+  if not scriptItem then
+      print("[Debug] Item not found: " .. fullName)
+      return
+  end
+
+  print("=== JAVA FIELDS (reflection): " .. fullName .. " ===")
+
+  -- Użyj reflection żeby wylistować WSZYSTKIE pola Java
+  local numFields = getNumClassFields(scriptItem)
+  print("  Found " .. numFields .. " fields:")
+
+  local sorted = {}
+  for i = 0, numFields - 1 do
+      local field = getClassField(scriptItem, i)
+      local fieldName = tostring(field)
+      -- Próbuj pobrać wartość
+      local success, value = pcall(getClassFieldVal, scriptItem, field)
+      local valueStr = success and tostring(value) or "ERROR"
+
+      table.insert(sorted, {name = fieldName, value = valueStr})
+  end
+
+  -- Sortuj alfabetycznie
+  table.sort(sorted, function(a, b) return a.name < b.name end)
+
+  for _, item in ipairs(sorted) do
+      -- Skróć długie wartości
+      local val = item.value
+      if #val > 50 then val = string.sub(val, 1, 50) .. "..." end
+      print("  " .. item.name .. " = " .. val)
+  end
+end
+
+---Get specific field value from ScriptItem using reflection
+---@param fullType string The item's full type identifier (e.g., "Base.Bag_Satchel")
+---@param fieldName string The field name to get (e.g., "canBeEquipped")
+---@return any The field value or nil if not found
+function LoL.getScriptItemField(fullType, fieldName)
+  local scriptItem = getScriptManager():getItem(fullType)
+  if not scriptItem then
+    Sorted:log("ERROR: ScriptItem not found for: " .. fullType)
+    return nil
+  end
+
+  local numFields = getNumClassFields(scriptItem)
+  for i = 0, numFields - 1 do
+    local field = getClassField(scriptItem, i)
+    local currentFieldName = tostring(field)
+
+    -- Check if field name ends with the requested field name
+    -- e.g., "zombie.scripting.objects.Item.canBeEquipped" ends with "canBeEquipped"
+    if string.find(currentFieldName, "%." .. fieldName .. "$") or currentFieldName == fieldName then
+      local success, value = pcall(getClassFieldVal, scriptItem, field)
+      if success then
+        Sorted:log("Found field '" .. currentFieldName .. "' = " .. tostring(value))
+        return value
+      else
+        Sorted:log("ERROR: Could not get value for field: " .. fieldName)
+        return nil
+      end
+    end
+  end
+
+  Sorted:log("ERROR: Field '" .. fieldName .. "' not found in " .. fullType)
+  return nil
+end
+
+function LoL.testFunctionWithSpecificItem(fullType, functionName)
+  local item = getScriptManager():getItem(fullType)
+  if not item then
+    Sorted:log("Item not found: " .. fullType)
+    return
+  end
+  local result = item[functionName](item)
+  Sorted:log("Result of " .. functionName .. " for " .. fullType .. " is: " .. tostring(result))
+end
