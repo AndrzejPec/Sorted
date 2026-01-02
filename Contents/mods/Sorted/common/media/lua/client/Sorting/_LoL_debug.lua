@@ -519,3 +519,80 @@ function LoL.addToInvAllItemsMatchingPredicate(predicateFunc, predicateName)
   Sorted:log("Checked items: " .. checkedCount)
   Sorted:log("Added " .. addedCount .. " items matching predicate '" .. name .. "'")
 end
+
+function LoL.testGetContainerCategory()
+  local items = getScriptManager():getAllItems()
+  local categoryCounts = {}
+
+  Sorted:log("=== Testing getContainerCategory on all items ===")
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local category = getContainerCategory(item)
+
+    if category then
+      if not categoryCounts[category] then
+        categoryCounts[category] = 0
+      end
+      categoryCounts[category] = categoryCounts[category] + 1
+      Sorted:log(itemName .. " -> " .. category)
+    end
+  end
+
+  Sorted:log("=== Summary ===")
+  for cat, count in pairs(categoryCounts) do
+    Sorted:log(cat .. ": " .. count)
+  end
+end
+
+function LoL.debugContainerSorting()
+  local player = getSpecificPlayer(0)
+  local inv = player:getInventory()
+  local items = inv:getItems()
+
+  Sorted:log("=== CONTAINER SORTING DEBUG ===")
+
+  for i=0, items:size()-1 do
+    local item = items:get(i)
+    local fullType = item:getFullType()
+
+    -- Sprawdź wszystkie kontenery
+    if item:IsInventoryContainer() or string.find(string.lower(fullType), "bag") or string.find(string.lower(fullType), "pack") then
+      Sorted:log("Item: " .. fullType)
+      Sorted:log("  IsInventoryContainer: " .. tostring(item:IsInventoryContainer()))
+
+      -- Pobierz script item żeby sprawdzić ItemType
+      local scriptItem = getScriptManager():getItem(fullType)
+      if scriptItem then
+        Sorted:log("  ItemType (script): " .. tostring(scriptItem:getItemType()))
+      end
+
+      Sorted:log("  canBeEquipped: " .. tostring(item:canBeEquipped()))
+
+      -- Sprawdź body location
+      local bodyLoc = item:getBodyLocation()
+      Sorted:log("  BodyLocation: " .. tostring(bodyLoc or "nil"))
+
+      -- Sprawdź czy to fanny pack używając enum
+      if bodyLoc then
+        local isFannyBack = item:isBodyLocation(ItemBodyLocation.FANNY_PACK_BACK)
+        local isFannyFront = item:isBodyLocation(ItemBodyLocation.FANNY_PACK_FRONT)
+        Sorted:log("  isFannyPackBack: " .. tostring(isFannyBack))
+        Sorted:log("  isFannyPackFront: " .. tostring(isFannyFront))
+      end
+
+      -- Test na backpack (script item)
+      if scriptItem then
+        local equip = scriptItem:getEquipSound() or ""
+        local sp = scriptItem:getSoundParameter("EquippedBaggageContainer") or ""
+        Sorted:log("  EquipSound: " .. equip)
+        Sorted:log("  SoundParam: " .. sp)
+        Sorted:log("  DisplayCategory: " .. tostring(scriptItem:getDisplayCategory() or "nil"))
+      end
+      Sorted:log("---")
+    end
+  end
+
+  Sorted:log("=== DEBUG COMPLETE ===")
+end

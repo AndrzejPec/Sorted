@@ -267,48 +267,57 @@ local fannypackMarkers = {
 ---@param item Item
 ---@return boolean
 local function isFannyPack(item)
-  if not item or not item.canBeEquipped then
+  if not item or not item.getItemType or item:getItemType() ~= ItemType.CONTAINER then
     return false
   end
-  if item.getBodyLocation and item:getBodyLocation() == ItemBodyLocation.SATCHEL then
+
+  local slot = item:getBodyLocation()
+  if not slot then
     return false
   end
-  return fannypackMarkers[item.canBeEquipped] == true
+
+  -- Sprawdź przez porównanie stringa (bo to script Item, nie inventory item)
+  local slotStr = tostring(slot):lower()
+  if slotStr:find("fannypack") then
+    return true
+  end
+
+  return false
 end
 
----comment
+  ---comment
 ---@param item Item
 ---@return boolean
 local function isBackpack(item)
   local id = item and item.getFullName and item:getFullName() or "unknown"
   local invItem = instanceItem(id)
   if not invItem then
-    Sorted:log("[isBackpack] " .. id .. " - NOT FOUND")
+    -- Sorted:log("[isBackpack] " .. id .. " - NOT FOUND")
     return false
   end
 
   if item:getItemType() ~= ItemType.CONTAINER then
-    Sorted:log("[isBackpack] " .. id .. " - NOT CONTAINER (type: " .. tostring(item:getItemType()) .. ")")
+    -- Sorted:log("[isBackpack] " .. id .. " - NOT CONTAINER (type: " .. tostring(item:getItemType()) .. ")")
     return false
   end
 
-  Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem.canBeEquipped))
-  Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem:canBeEquipped()))
+  -- Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem.canBeEquipped))
+  -- Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem:canBeEquipped()))
 
   if invItem.canBeEquipped and invItem:canBeEquipped() ~= nil and invItem:canBeEquipped() ~= ItemBodyLocation.BACK then
-    Sorted:log("[isBackpack] " .. id .. " - NOT BACK (equipped: " .. tostring(item.canBeEquipped) .. ")")
+    -- Sorted:log("[isBackpack] " .. id .. " - NOT BACK (equipped: " .. tostring(item.canBeEquipped) .. ")")
     return false
   end
 
   local equip = item:getEquipSound() or ""
   if backpackMarkers[equip] then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via equipSound: " .. equip)
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via equipSound: " .. equip)
     return true
   end
 
   local sp = item:getSoundParameter("EquippedBaggageContainer") or ""
   if backpackSoundParameters[sp] then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via soundParam: " .. sp)
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via soundParam: " .. sp)
     return true
   end
 
@@ -318,29 +327,40 @@ local function isBackpack(item)
   end
 
   if id:find("Backpack") then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Backpack)")
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Backpack)")
     return true
   end
   if id:find("HikingBag") then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HikingBag)")
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HikingBag)")
     return true
   end
   if id:find("Schoolbag") then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Schoolbag)")
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Schoolbag)")
     return true
   end
   if id:find("HydrationBackpack") then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HydrationBackpack)")
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HydrationBackpack)")
     return true
   end
   if icon and icon:find("Duffel") then
-    Sorted:log("[isBackpack] " .. id .. " - MATCH via icon (Duffel): " .. icon)
+    -- Sorted:log("[isBackpack] " .. id .. " - MATCH via icon (Duffel): " .. icon)
     return true
+  end
+
+  local iconsArray = item:getIconsForTexture()
+  if iconsArray then
+    for j = 0, iconsArray:size() - 1 do
+      local iconTexture = iconsArray:get(j)
+      if iconTexture and iconTexture:find("Duffel") then
+        -- Sorted:log("[isBackpack] " .. id .. " - MATCH via IconTexture (Duffel): " .. iconTexture)
+        return true
+      end
+    end
   end
 
   -- local displayCategory = item:getDisplayCategory() or ""
   -- if displayCategory == "Bag" then
-  --   Sorted:log("[isBackpack] " .. id .. " - MATCH via DisplayCategory: " .. displayCategory)
+  --   -- Sorted:log("[isBackpack] " .. id .. " - MATCH via DisplayCategory: " .. displayCategory)
   --   return true
   -- end
 
@@ -349,17 +369,33 @@ local function isBackpack(item)
 end
 
 function Sorted.getAllBackpacks()
+  local player = getPlayer()
+  if not player then return {} end
+  local inventory = player:getInventory()
+  if not inventory then return {} end
+
   local items = getScriptManager():getAllItems()
   local backpacks = {}
+  local count = 0
+
+  Sorted:log("=== Searching for all Backpacks (including Duffelbags) ===")
+
   for i = 0, items:size() - 1 do
     local item = items:get(i)
-    if item and item.getFullName and item:getFullName() and isBackpack(item) then
-      table.insert(backpacks, item:getFullName())
-      local itemInstance = instanceItem(item:getFullName())
-      getPlayer():getInventory():DoAddItem(itemInstance)
-      Sorted:log("Added backpack: " .. item:getFullName())
+    local itemName = item:getFullName()
+
+    if item and itemName and isBackpack(item) then
+      count = count + 1
+      table.insert(backpacks, itemName)
+      local itemInstance = instanceItem(itemName)
+      if itemInstance then
+        inventory:DoAddItem(itemInstance)
+        Sorted:log(count .. ". Added backpack: " .. itemName)
+      end
     end
   end
+
+  Sorted:log("=== Total backpacks found and added: " .. count .. " ===")
   return backpacks
 end
 
@@ -479,12 +515,21 @@ function LoL.spawnBagsOtherThanBackpacks()
   Sorted:log("=== Total bags added: " .. addedCount .. " ===")
 end
 
-
 local function isBag(item)
-  return item.getItemType and item:getItemType() == ItemType.CONTAINER
-      and item.canBeEquipped ~= nil
-      and not isBackpack(item)
-      and not isFannyPack(item)
+  if not item or not item.getItemType or item:getItemType() ~= ItemType.CONTAINER then
+    return false
+  end
+
+  if isBackpack(item) or isFannyPack(item) then
+    return false
+  end
+
+  local bodyLoc = item.getBodyLocation and item:getBodyLocation()
+  if bodyLoc and bodyLoc ~= "" then
+    return true
+  end
+
+  return item.canBeEquipped == ItemBodyLocation.SATCHEL
 end
 
 local function getContainerCategory(item)
@@ -495,9 +540,13 @@ local function getContainerCategory(item)
     Sorted:log("Item " .. itemType or "?" .. " categorized as backpack")
     return "ContBack"
   elseif isBag(item) then
-    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack")
+    Sorted:log("Item " .. itemType or "?" .. " categorized as bag")
     return "ContBag"
   else
+    local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
+    -- if displayCategory == "Bag" then
+    --   return "Container"
+    -- end
     return nil
   end
 end
@@ -873,22 +922,22 @@ local CATEGORY_DETECTORS = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
-  getMementoClothingCategory,
   getContainerCategory,
+  getMementoClothingCategory,
   getClothingCategoryDetailed,
-  dumpOneToOther("VehicleMaintenance", "Mech"),
-  dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
-  dumpOneToOther("WaterContainer", "Container"),
-  dumpOneToOther("Fishing", "SurFish"),
-  dumpOneToOther("SkillBook", "LitS"),
-  dumpOneToOther("Literature", "LitE"),
-  dumpOneToOther("Electronics", "Elec"),
-  dumpOneToOther("Furniture", "Furn"),
-  dumpOneToOther("Misc", "Furn"),
-  dumpOneToOther("Container", "Cont"),
-  dumpOneToOther("Cooking", "Cook"),
-  dumpOneToOther("Teddy Bear", "Plush"),
-  dumpOneToOther("Sports", "Junk"),
+  -- dumpOneToOther("VehicleMaintenance", "Mech"),
+  -- dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
+  -- dumpOneToOther("WaterContainer", "Container"),
+  -- dumpOneToOther("Fishing", "SurFish"),
+  -- dumpOneToOther("SkillBook", "LitS"),
+  -- dumpOneToOther("Literature", "LitE"),
+  -- dumpOneToOther("Electronics", "Elec"),
+  -- dumpOneToOther("Furniture", "Furn"),
+  -- dumpOneToOther("Misc", "Furn"),
+  -- dumpOneToOther("Container", "Cont"),
+  -- dumpOneToOther("Cooking", "Cook"),
+  -- dumpOneToOther("Teddy Bear", "Plush"),
+  -- dumpOneToOther("Sports", "Junk"),
   Sorted.categorizeFoodBoxes,
 }
 
