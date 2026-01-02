@@ -243,7 +243,7 @@ local function getThrowableWeaponCategory(item)
 end
 
 
-----------------------------------------------
+------------------------------------------------
 --#region: Backpack/bags/fannypacks indication
 ----------------------------------------------
 local backpackMarkers = {
@@ -254,6 +254,7 @@ local backpackMarkers = {
 local backpackSoundParameters = {
   HikingBag = true,
   Schoolbag = true,
+  SchoolBag = true,
   Dufflebag = true,
 }
 
@@ -269,6 +270,9 @@ local function isFannyPack(item)
   if not item or not item.canBeEquipped then
     return false
   end
+  if item.getBodyLocation and item:getBodyLocation() == ItemBodyLocation.SATCHEL then
+    return false
+  end
   return fannypackMarkers[item.canBeEquipped] == true
 end
 
@@ -276,38 +280,295 @@ end
 ---@param item Item
 ---@return boolean
 local function isBackpack(item)
-  if item:getItemType() ~= ItemType.CONTAINER then return false end
-  if item.canBeEquipped ~= ItemBodyLocation.BACK then return false end
+  local id = item and item.getFullName and item:getFullName() or "unknown"
+  local invItem = instanceItem(id)
+  if not invItem then
+    Sorted:log("[isBackpack] " .. id .. " - NOT FOUND")
+    return false
+  end
+
+  if item:getItemType() ~= ItemType.CONTAINER then
+    Sorted:log("[isBackpack] " .. id .. " - NOT CONTAINER (type: " .. tostring(item:getItemType()) .. ")")
+    return false
+  end
+
+  Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem.canBeEquipped))
+  Sorted:log("[isBackpack] " .. id .. " - canBeEquipped: " .. tostring(invItem:canBeEquipped()))
+
+  if invItem.canBeEquipped and invItem:canBeEquipped() ~= nil and invItem:canBeEquipped() ~= ItemBodyLocation.BACK then
+    Sorted:log("[isBackpack] " .. id .. " - NOT BACK (equipped: " .. tostring(item.canBeEquipped) .. ")")
+    return false
+  end
+
   local equip = item:getEquipSound() or ""
-  if backpackMarkers[equip] then return true end
+  if backpackMarkers[equip] then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via equipSound: " .. equip)
+    return true
+  end
+
   local sp = item:getSoundParameter("EquippedBaggageContainer") or ""
-  if backpackSoundParameters[sp] then return true end
-  local id = item:getFullName() or ""
-  local icon = item:getIcon() or table.concat(item:getIconsForTexture() or {}, ";")
-  if id:find("Backpack") then return true end
-  if id:find("HikingBag") then return true end
-  if id:find("Schoolbag") then return true end
-  if id:find("HydrationBackpack") then return true end
-  if icon and icon:find("Backpack") then return true end
+  if backpackSoundParameters[sp] then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via soundParam: " .. sp)
+    return true
+  end
+
+  local icon = item:getIcon() or ""
+  if icon == "" and item:getIconsForTexture() then
+    icon = table.concat(item:getIconsForTexture() or {}, ";")
+  end
+
+  if id:find("Backpack") then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Backpack)")
+    return true
+  end
+  if id:find("HikingBag") then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HikingBag)")
+    return true
+  end
+  if id:find("Schoolbag") then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (Schoolbag)")
+    return true
+  end
+  if id:find("HydrationBackpack") then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via name (HydrationBackpack)")
+    return true
+  end
+  if icon and icon:find("Duffel") then
+    Sorted:log("[isBackpack] " .. id .. " - MATCH via icon (Duffel): " .. icon)
+    return true
+  end
+
+  -- local displayCategory = item:getDisplayCategory() or ""
+  -- if displayCategory == "Bag" then
+  --   Sorted:log("[isBackpack] " .. id .. " - MATCH via DisplayCategory: " .. displayCategory)
+  --   return true
+  -- end
+
+  -- Sorted:log("[isBackpack] " .. id .. " - NO MATCH (equip='" .. equip .. "', sp='" .. sp .. "', icon='" .. icon .. "', cat='" .. displayCategory .. "')")
   return false
 end
+
+function Sorted.getAllBackpacks()
+  local items = getScriptManager():getAllItems()
+  local backpacks = {}
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item and item.getFullName and item:getFullName() and isBackpack(item) then
+      table.insert(backpacks, item:getFullName())
+      local itemInstance = instanceItem(item:getFullName())
+      getPlayer():getInventory():DoAddItem(itemInstance)
+      Sorted:log("Added backpack: " .. item:getFullName())
+    end
+  end
+  return backpacks
+end
+
+function LoL.getAllDuffelbags()
+  local items = getScriptManager():getAllItems()
+  local count = 0
+  Sorted:log("=== Searching for all Duffelbags ===")
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local found = false
+    local matchReason = ""
+
+    local icon = item:getIcon()
+    if icon and icon:find("Duffel") then
+      found = true
+      matchReason = "Icon: " .. icon
+    end
+
+    if not found then
+      local iconsArray = item:getIconsForTexture()
+      if iconsArray then
+        for j = 0, iconsArray:size() - 1 do
+          local iconTexture = iconsArray:get(j)
+          if iconTexture and iconTexture:find("Duffel") then
+            found = true
+            matchReason = "IconTexture: " .. iconTexture
+            break
+          end
+        end
+      end
+    end
+
+    if found then
+      count = count + 1
+      Sorted:log(count .. ". " .. itemName .. " | " .. matchReason)
+    end
+  end
+  Sorted:log("=== Total Duffelbags found: " .. count .. " ===")
+  return count
+end
+
+function LoL.getRandomDuffelbag()
+  local items = getScriptManager():getAllItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local icon = item:getIcon()
+    if icon and icon:find("Duffel") then
+      Sorted:log(itemName .. " is a Duffelbag | Icon: " .. icon)
+      return item
+    end
+    local iconsArray = item:getIconsForTexture()
+    if iconsArray then
+      for j = 0, iconsArray:size() - 1 do
+        local iconTexture = iconsArray:get(j)
+        if iconTexture and iconTexture:find("Duffel") then
+          Sorted:log(itemName .. " is a Duffelbag | IconTexture: " .. iconTexture)
+          return item
+        end
+      end
+    end
+  end
+  return nil
+end
+
+function LoL.countAllBackpacks()
+  local items = getScriptManager():getAllItems()
+  local count = 0
+  local backpacks = {}
+  Sorted:log("=== Counting all backpacks ===")
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    -- local itemInstance = instanceItem(item:getFullName())
+    if item and item.getDisplayCategory and item:getDisplayCategory() == "Bag" then
+      if item and isBackpack(item) then
+        count = count + 1
+        Sorted:log(count .. ". " .. item:getFullName())
+        table.insert(backpacks, item:getFullName())
+        -- local itemInstance = instanceItem(item:getFullName())
+        -- getPlayer():getInventory():DoAddItem(itemInstance)
+      end
+    end
+  end
+  Sorted:log("=== Total backpacks: " .. count .. " ===")
+  return backpacks
+end
+
+function LoL.spawnBagsOtherThanBackpacks()
+  local player = getPlayer()
+  if not player then return end
+  local inventory = player:getInventory()
+  if not inventory then return end
+
+  local allItems = getScriptManager():getAllItems()
+  local addedCount = 0
+
+  Sorted:log("=== Spawning bags other than backpacks ===")
+
+  for i = 0, allItems:size() - 1 do
+    local item = allItems:get(i)
+    local itemName = item:getFullName()
+    local displayCategory = item:getDisplayCategory() or ""
+
+    if displayCategory == "Bag" then
+      local itemInstance = instanceItem(itemName)
+      if itemInstance then
+        if not isBackpack(item) then
+          inventory:DoAddItem(itemInstance)
+          addedCount = addedCount + 1
+          Sorted:log("Added bag: " .. itemName)
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== Total bags added: " .. addedCount .. " ===")
+end
+
 
 local function isBag(item)
   return item.getItemType and item:getItemType() == ItemType.CONTAINER
       and item.canBeEquipped ~= nil
       and not isBackpack(item)
+      and not isFannyPack(item)
 end
 
 local function getContainerCategory(item)
+  local itemType = item.getFullName and item:getFullName()
   if isFannyPack(item) then
     return "ContFanny"
   elseif isBackpack(item) then
+    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack")
     return "ContBack"
   elseif isBag(item) then
+    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack")
     return "ContBag"
   else
     return nil
   end
+end
+
+function Sorted:getAllInventoryItems()
+  local result = {}
+  local allItems = getScriptManager():getAllItems()
+  for i = 0, allItems:size() - 1 do
+    local item = allItems:get(i)
+    local invItem = instanceItem(item)
+    local displayName = invItem and invItem.getDisplayName and invItem:getDisplayName()
+    if displayName == "Duffel Bag" then
+      table.insert(result, invItem)
+    end
+  end
+
+  self:log("Result array has " .. #result .. " items.")
+  return result
+end
+
+function Sorted:spawnItems()
+  local items = self:getAllInventoryItems()
+  for _, v in pairs(items) do
+    getPlayer():getInventory():DoAddItem(v)
+  end
+end
+
+function Sorted:logInventory()
+  local invItems = getPlayer():getInventory():getItems()
+  local lines = {}
+
+  for i = 0, invItems:size() - 1 do
+    local item = invItems:get(i)
+    table.insert(lines, "Item fullType: " .. item:getFullType())
+  end
+
+  self:startThrottle(lines)
+end
+
+function Sorted.equipSound(item)
+  local equipSound = item.getEquipSound and item:getEquipSound()
+  return equipSound == "EquipDuffleBag"
+end
+
+function Sorted.getAllScriptItemsList()
+  local result = {}
+  local allItems = getScriptManager():getAllItems()
+  for i = 0, allItems:size() - 1 do
+    local item = allItems:get(i)
+    local isContainer = item:isItemType(ItemType.CONTAINER)
+    if isContainer then
+      local equipSound = item.getEquipSound and item:getEquipSound()
+      local isSoundsExpected = "EquipDuffleBag"
+      if equipSound == isSoundsExpected then
+        table.insert(result, item)
+        local name = item.getFullName and item:getFullName()
+        -- instanceItem(name)
+        getPlayer():getInventory():AddItem(name)
+      else
+        Sorted:log("Wrong equip sound for: " .. item:getFullName())
+      end
+    end
+  end
+
+  local label = "Condition"
+  for _, it in ipairs(result) do
+    local fullType = it and it.getFullName and it:getFullName()
+    Sorted:log(label .. " was met by item: " .. tostring(fullType))
+  end
+
+  return result
 end
 
 ------------------------------------------------

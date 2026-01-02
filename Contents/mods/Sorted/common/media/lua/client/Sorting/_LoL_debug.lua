@@ -254,3 +254,268 @@ end
 ------------------------------------------------------------------------
 --#endregion: items in the invemntory, conversion Item <-> InventoryItem
 ------------------------------------------------------------------------
+--#region: item properties
+------------------------------------------------------------------------
+
+function LoL.addToInvAllItemsWithSpecificProperty(propertyName, propertyValue)
+  local player = getPlayer()
+  if not player then return end
+  local inventory = player:getInventory()
+  if not inventory then return end
+  local items = getScriptManager():getAllItems()
+  local addedCount = 0
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local itemInstance = instanceItem(itemName)
+    local itemFullType = itemInstance and itemInstance:getFullType()
+    if itemInstance and itemInstance[propertyName] == propertyValue then
+      inventory:DoAddItem(itemInstance)
+      Sorted:log("Added item: " .. itemFullType .. " to inventory using property")
+      addedCount = addedCount + 1
+    end
+  end
+  Sorted:log("Added " .. addedCount .. " items to inventory")
+end
+
+function LoL.addToInvAllItemsWithSpecificGetter(getterName, searchSubstring)
+  local player = getPlayer()
+  if not player then return end
+  local inventory = player:getInventory()
+  if not inventory then return end
+  local items = getScriptManager():getAllItems()
+  local addedCount = 0
+  local checkedCount = 0
+  local hasGetterCount = 0
+  Sorted:log("=== Starting search for " .. getterName .. " containing '" .. tostring(searchSubstring) .. "' ===")
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local itemInstance = instanceItem(itemName)
+    if itemInstance then
+      checkedCount = checkedCount + 1
+      local itemFullType = itemInstance:getFullType()
+      local getter = itemInstance[getterName]
+      if getter and type(getter) == "function" then
+        hasGetterCount = hasGetterCount + 1
+        local success, value = pcall(getter, itemInstance)
+        if success and value then
+          Sorted:log("Item: " .. itemFullType .. " | Type of value: " .. type(value))
+          if type(value) == "table" or type(value) == "userdata" then
+            local size = value.size and value:size() or 0
+            Sorted:log("  ArrayList size: " .. tostring(size))
+            for j = 0, size - 1 do
+              local v = value:get(j)
+              Sorted:log("    [" .. j .. "] = " .. tostring(v))
+              if string.find(tostring(v), searchSubstring) then
+                inventory:DoAddItem(itemInstance)
+                Sorted:log("  >>> MATCH FOUND! Added: " .. itemFullType .. " (value: " .. tostring(v) .. ")")
+                addedCount = addedCount + 1
+                break
+              end
+            end
+          elseif type(value) == "string" and string.find(value, searchSubstring) then
+            inventory:DoAddItem(itemInstance)
+            Sorted:log("  >>> DIRECT MATCH! Added: " .. itemFullType .. " (value: " .. value .. ")")
+            addedCount = addedCount + 1
+          end
+        else
+          Sorted:log("ERROR calling getter on " .. itemFullType .. ": " .. tostring(value))
+        end
+      end
+    end
+  end
+  Sorted:log("=== SUMMARY ===")
+  Sorted:log("Checked items: " .. checkedCount)
+  Sorted:log("Items with getter '" .. getterName .. "': " .. hasGetterCount)
+  Sorted:log("Added " .. addedCount .. " items to inventory")
+end
+
+function LoL.addToInvAllItemsWithIconContaining(substring)
+  local player = getPlayer()
+  if not player then return end
+  local inventory = player:getInventory()
+  if not inventory then return end
+  local items = getScriptManager():getAllItems()
+  local addedCount = 0
+  local checkedCount = 0
+  Sorted:log("=== Starting search for Icon containing: " .. tostring(substring) .. " ===")
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local itemInstance = instanceItem(itemName)
+    if itemInstance then
+      checkedCount = checkedCount + 1
+      local itemFullType = itemInstance:getFullType()
+      local icon = item.getIcon and item:getIcon() or nil
+      if icon and string.find(icon, substring) then
+        inventory:DoAddItem(itemInstance)
+        Sorted:log(">>> MATCH! Added: " .. itemFullType .. " | Icon: " .. icon)
+        addedCount = addedCount + 1
+      end
+    end
+  end
+  Sorted:log("=== SUMMARY ===")
+  Sorted:log("Checked items: " .. checkedCount)
+  Sorted:log("Added " .. addedCount .. " items with Icon containing '" .. substring .. "'")
+end
+
+function LoL.addToInvAllItemsMatchingDuffelbags()
+  local player = getPlayer()
+  if not player then return end
+  local inventory = player:getInventory()
+  if not inventory then return end
+  local items = getScriptManager():getAllItems()
+
+  local addedSet = {}
+  local addedCount = 0
+  local getterMatches = 0
+  local iconMatches = 0
+
+  Sorted:log("=== Starting combined search for Duffelbags ===")
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local itemInstance = instanceItem(itemName)
+
+    if itemInstance then
+      local itemFullType = itemInstance:getFullType()
+      local shouldAdd = false
+      local matchReason = ""
+
+      -- Skip if already added
+      if not addedSet[itemFullType] then
+
+        -- Check 1: getIconsForTexture contains "Duffelbag"
+        local getter = itemInstance["getIconsForTexture"]
+        if getter and type(getter) == "function" then
+          local success, value = pcall(getter, itemInstance)
+          if success and value then
+            if type(value) == "table" or type(value) == "userdata" then
+              local size = value.size and value:size() or 0
+              for j = 0, size - 1 do
+                local v = value:get(j)
+                if tostring(v) == "Duffelbag" then
+                  shouldAdd = true
+                  matchReason = "getIconsForTexture"
+                  getterMatches = getterMatches + 1
+                  break
+                end
+              end
+            end
+          end
+        end
+
+        -- Check 2: Icon field contains "Duffel"
+        if not shouldAdd then
+          local icon = itemInstance.Icon
+          if icon and type(icon) == "string" then
+            if string.find(icon, "Duffel") then
+              shouldAdd = true
+              matchReason = "Icon field"
+              iconMatches = iconMatches + 1
+            end
+          end
+        end
+
+        -- Add if matched
+        if shouldAdd then
+          inventory:DoAddItem(itemInstance)
+          addedSet[itemFullType] = true
+          addedCount = addedCount + 1
+          Sorted:log(">>> Added: " .. itemFullType .. " (matched via " .. matchReason .. ")")
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===")
+  Sorted:log("Matches via getIconsForTexture: " .. getterMatches)
+  Sorted:log("Matches via Icon field: " .. iconMatches)
+  Sorted:log("Total unique items added: " .. addedCount)
+end
+
+function LoL.clearInv()
+  local player = getPlayer()
+  if not player then
+    Sorted:log("ERROR: No player found")
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("ERROR: No inventory found")
+    return
+  end
+
+  Sorted:log("=== Clearing player inventory ===")
+  local removedCount = 0
+
+  -- Get all items from inventory
+  local items = inventory:getItems()
+
+  -- Iterate backwards to avoid index shifting issues when removing
+  for i = items:size() - 1, 0, -1 do
+    local item = items:get(i)
+    if item then
+      inventory:DoRemoveItem(item)
+      removedCount = removedCount + 1
+    end
+  end
+
+  Sorted:log("=== Inventory cleared ===")
+  Sorted:log("Removed " .. removedCount .. " items")
+end
+
+function LoL.addToInvAllItemsMatchingPredicate(predicateFunc, predicateName)
+  local player = getPlayer()
+  if not player then
+    Sorted:log("ERROR: No player found")
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("ERROR: No inventory found")
+    return
+  end
+
+  if type(predicateFunc) ~= "function" then
+    Sorted:log("ERROR: First argument must be a function (predicate)")
+    return
+  end
+
+  local items = getScriptManager():getAllItems()
+  local addedCount = 0
+  local checkedCount = 0
+  local name = predicateName or "custom predicate"
+
+  Sorted:log("=== Starting search with predicate: " .. name .. " ===")
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local itemName = item:getFullName()
+    local itemInstance = instanceItem(itemName)
+
+    if itemInstance then
+      checkedCount = checkedCount + 1
+      local itemFullType = itemInstance:getFullType()
+
+      -- Call predicate function
+      local success, result = pcall(predicateFunc, item)
+
+      if success and result == true then
+        inventory:DoAddItem(itemInstance)
+        Sorted:log(">>> Added: " .. itemFullType)
+        addedCount = addedCount + 1
+      elseif not success then
+        Sorted:log("ERROR calling predicate on " .. itemFullType .. ": " .. tostring(result))
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===")
+  Sorted:log("Checked items: " .. checkedCount)
+  Sorted:log("Added " .. addedCount .. " items matching predicate '" .. name .. "'")
+end
