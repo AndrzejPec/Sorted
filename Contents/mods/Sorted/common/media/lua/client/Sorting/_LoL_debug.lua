@@ -1337,6 +1337,181 @@ function LoL.testValidCategoryAssignment()
   Sorted:log("=== END TEST ===", 3)
 end
 
+---List all items that have meltingTime set
+---@param addToInventory boolean|nil If true, adds matching items to inventory; if false/nil, only logs them
+function LoL.listItemsWithMeltingTime(addToInventory)
+  local items = getScriptManager():getAllItems()
+  local matchedCount = 0
+  local checkedCount = 0
+
+  Sorted:log("=== ITEMS WITH MELTING TIME ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      checkedCount = checkedCount + 1
+      local fullName = item:getFullName()
+      local invItem = instanceItem(fullName)
+
+      -- Try to get melting time using getMeltingTime method
+      if invItem.getMeltingTime then
+        local success, meltingTime = pcall(function() return invItem:getMeltingTime() end)
+
+        if success and meltingTime and meltingTime > 0 then
+          matchedCount = matchedCount + 1
+          Sorted:log(fullName .. " | MeltingTime: " .. tostring(meltingTime), 3)
+
+          -- Optionally add to inventory
+          if addToInventory then
+            getPlayer():getInventory():DoAddItem(invItem)
+          end
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Checked items: " .. checkedCount, 3)
+  Sorted:log("Items with meltingTime: " .. matchedCount, 3)
+end
+
+---Add all items with meltingTime to player inventory
+function LoL.addItemsWithMeltingTime()
+  LoL.listItemsWithMeltingTime(true)
+end
+
+---Debug literature categorization
+function LoL.debugLiteratureCategories()
+  local items = getScriptManager():getAllItems()
+  local litItems = {}
+
+  Sorted:log("=== DEBUGGING LITERATURE CATEGORIES ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item and item.getItemType and item:getItemType() == ItemType.LITERATURE then
+      local fullName = item:getFullName()
+      local invItem = instanceItem(fullName)
+
+      if invItem then
+        local info = {
+          fullName = fullName,
+          displayName = item:getDisplayName() or fullName,
+          isMap = "no method",
+          IsMap = "no method",
+          hasRecipes = false,
+          recipeCount = 0,
+          skillTrained = "none",
+          stress = 0,
+          boredom = 0,
+          unhappy = 0
+        }
+
+        -- Check IsMap (capital I)
+        if invItem.IsMap then
+          local success, result = pcall(function() return invItem:IsMap() end)
+          if success then
+            info.IsMap = tostring(result)
+          else
+            info.IsMap = "error: " .. tostring(result)
+          end
+        end
+
+        -- Check isMap (lowercase i)
+        if invItem.isMap then
+          local success, result = pcall(function() return invItem:isMap() end)
+          if success then
+            info.isMap = tostring(result)
+          else
+            info.isMap = "error: " .. tostring(result)
+          end
+        end
+
+        -- Check recipes
+        if item.getLearnedRecipes then
+          local recipes = item:getLearnedRecipes()
+          if recipes and recipes.size then
+            info.recipeCount = recipes:size()
+            info.hasRecipes = info.recipeCount > 0
+          end
+        end
+
+        -- Check skill trained
+        if item.getSkillTrained then
+          local skill = item:getSkillTrained()
+          if skill then
+            info.skillTrained = tostring(skill)
+          end
+        end
+
+        -- Check mood changes
+        info.stress = item.getStressChange and item:getStressChange() or 0
+        info.boredom = item.getBoredomChange and item:getBoredomChange() or 0
+        info.unhappy = item.getUnhappyChange and item:getUnhappyChange() or 0
+
+        table.insert(litItems, info)
+      end
+    end
+  end
+
+  -- Log results
+  for _, info in ipairs(litItems) do
+    Sorted:log("---", 3)
+    Sorted:log("Item: " .. info.displayName, 3)
+    Sorted:log("  FullName: " .. info.fullName, 3)
+    Sorted:log("  IsMap (capital): " .. info.IsMap, 3)
+    Sorted:log("  isMap (lowercase): " .. info.isMap, 3)
+    Sorted:log("  Recipe count: " .. info.recipeCount, 3)
+    Sorted:log("  Skill trained: " .. info.skillTrained, 3)
+    Sorted:log("  Stress/Boredom/Unhappy: " .. info.stress .. "/" .. info.boredom .. "/" .. info.unhappy, 3)
+  end
+
+  Sorted:log("=== TOTAL LITERATURE ITEMS: " .. #litItems .. " ===", 3)
+end
+
+---Check which items in player's current inventory have meltingTime
+function LoL.checkInventoryForMeltingTime()
+  local player = getPlayer()
+  if not player then
+    Sorted:log("ERROR: No player found", 2)
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("ERROR: No inventory found", 2)
+    return
+  end
+
+  local items = inventory:getItems()
+  local matchedCount = 0
+  local totalCount = items:size()
+
+  Sorted:log("=== CHECKING PLAYER INVENTORY FOR MELTING TIME ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      local fullType = item:getFullType()
+      local displayName = item:getDisplayName()
+
+      -- Check if item has getMeltingTime method
+      if item.getMeltingTime then
+        local success, meltingTime = pcall(function() return item:getMeltingTime() end)
+
+        if success and meltingTime and meltingTime > 0 then
+          matchedCount = matchedCount + 1
+          Sorted:log("  " .. displayName .. " (" .. fullType .. ") | MeltingTime: " .. tostring(meltingTime), 3)
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Total items in inventory: " .. totalCount, 3)
+  Sorted:log("Items with meltingTime: " .. matchedCount, 3)
+end
+
 function logContainers()
   local allItems = getScriptManager():getAllItems()
   for i = 0, allItems:size() - 1 do

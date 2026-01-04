@@ -2,6 +2,7 @@ require("Sorting/ItemTweaker_Copy_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("Sorting/_LoL_debug")
+require("Sorting/Sorted_InventoryCategory_DoubleClick")
 
 if not Sorted then Sorted = {} end
 
@@ -140,6 +141,10 @@ local function getFoodCategory(item)
       return nil
   end
 
+  if item:isSpice() then
+    return "FoodS"
+  end
+
   if isPerishable(item) then
       return "FoodP"
   end
@@ -148,26 +153,45 @@ local function getFoodCategory(item)
 end
 
 local function getLiteratureCategory(item)
+  if item and item.getItemType and item:getItemType() == ItemType.NORMAL then
+    local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
+    if recipe == "UnpackSetOfBooks" then
+      return "LitS"
+    end
+  end
+
+  if item and item.getItemType and item:getItemType() == ItemType.CONTAINER then
+    if item:getDisplayCategory() == "Literature" then
+      return "LitH"
+    end
+  end
+
+  if item and item.getItemType and item:getItemType() == ItemType.MAP then
+    return "LitC"
+  end
+
   if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
     return nil
   end
 
-  local isMap = item.IsMap and item:IsMap()
-  if isMap then
-    return "LitC"
+  if item and item.getDisplayCategory and item:getDisplayCategory() ~= "Gardening" then
+    local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
+    if recipe and recipe.size and recipe:size() > 0 then
+      return "LitR"
+    end
   end
 
-  local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
-  if recipe and recipe.size and recipe:size() > 0 then
-    return "LitR"
-  end
-
+  -- Check for skill books (must have actual Perk object)
   local skill = item.getSkillTrained and item:getSkillTrained()
-  local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
-  if recipe == "UnpackSetOfBooks" or skill ~= nil then
-    return "LitS"
+  if skill then
+    local skillType = type(skill)
+    -- Perk objects are userdata, and tostring() gives skill name
+    if skillType == "userdata" or (skillType == "string" and skill ~= "") then
+      return "LitS"
+    end
   end
 
+  -- Check for entertainment (comics, magazines that affect mood)
   local stressChange = item.getStressChange and item:getStressChange() or 0
   local boredomChange = item.getBoredomChange and item:getBoredomChange() or 0
   local unhappyChange = item.getUnhappyChange and item:getUnhappyChange() or 0
@@ -175,7 +199,11 @@ local function getLiteratureCategory(item)
     return "LitE"
   end
 
-  return "LitW"
+  if item and item.canBeWrite and item:canBeWrite() then
+    return "LitW"
+  end
+
+  return "LitM"
 end
 
 local function getThrowableWeaponCategory(item)
@@ -189,6 +217,14 @@ local function getThrowableWeaponCategory(item)
   return nil
 end
 
+local function getSpecimenCategory(item)
+  if item and item.getWorldStaticModel then
+      local worldStaticModel = item:getWorldStaticModel()
+      if worldStaticModel and worldStaticModel:find("Specimen") then
+          return "Specimen"
+      end
+  end
+end
 
 ------------------------------------------------
 --#region: Backpack/bags/fannypacks indication
@@ -443,6 +479,12 @@ end
 local function getSmokable(item)
   if isSmokable(item) then
     return "Drugs"
+  end
+end
+
+local function getRanged(item)
+  if item:isRanged() then
+    return "Firearm"
   end
 end
 
@@ -857,6 +899,38 @@ local function getProtectiveGearCategory(item, useDetailed)
   return "PGearMisc"
 end
 
+local function isFirearmLootContainers(item)
+  if item:getItemType() ~= ItemType.CONTAINER or item:getDisplayCategory() ~= "Bag" then
+    return false
+  end
+
+  if item:hasTag(ItemTag.FIREARM_LOOT) then
+    return true
+  end
+
+  return false
+end
+
+local function getFirearmContainers(item)
+  if isFirearmLootContainers(item) then
+    return "ContFirearm"
+  end
+end
+
+local function getFirstAidContainers(item)
+  if not item or not item.getIcon then
+    return nil
+  end
+
+  local icon = item:getIcon()
+  if icon and string.find(string.lower(icon), "firstaid") then
+    return "FirstAid"
+  end
+
+  return nil
+end
+
+
 local function getProtectiveGearCategorySimple(item)
   return getProtectiveGearCategory(item, false)
 end
@@ -900,7 +974,9 @@ end
 
 
 local CATEGORY_DETECTORS_DETAILED = {
+  getRanged,
   getSmokable,
+  getSpecimenCategory,
   getBreathingCategory,
   getMagazines,
   getTacticalGear,
@@ -917,10 +993,12 @@ local CATEGORY_DETECTORS_DETAILED = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
-  getContainerCategory,
   getMementoClothingCategoryDetailed,
   getClothingCategoryDetailed,
   getAmmo,
+  getFirearmContainers,
+  getContainerCategory,
+  getFirstAidContainers,
   -- dumpOneToOther("VehicleMaintenance", "Mech"),
   -- dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
   -- dumpOneToOther("WaterContainer", "Container"),
