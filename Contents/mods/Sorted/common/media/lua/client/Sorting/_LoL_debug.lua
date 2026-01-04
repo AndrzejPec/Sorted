@@ -1469,6 +1469,67 @@ function LoL.debugLiteratureCategories()
   Sorted:log("=== TOTAL LITERATURE ITEMS: " .. #litItems .. " ===", 3)
 end
 
+---List all items that can emit light
+---@param addToInventory boolean|nil If true, adds matching items to inventory; if false/nil, only logs them
+function LoL.listItemsThatCanEmitLight(addToInventory)
+  local items = getScriptManager():getAllItems()
+  local matchedCount = 0
+  local checkedCount = 0
+
+  Sorted:log("=== ITEMS THAT CAN EMIT LIGHT ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      checkedCount = checkedCount + 1
+      local fullName = item:getFullName()
+      local invItem = instanceItem(fullName)
+
+      if invItem and invItem.canEmitLight then
+        local success, canEmit = pcall(function() return invItem:canEmitLight() end)
+
+        if success and canEmit then
+          matchedCount = matchedCount + 1
+
+          -- Get additional light info if available
+          local lightStrength = "unknown"
+          local lightDistance = "unknown"
+
+          if invItem.getLightStrength then
+            local s, strength = pcall(function() return invItem:getLightStrength() end)
+            if s and strength then
+              lightStrength = tostring(strength)
+            end
+          end
+
+          if invItem.getLightDistance then
+            local s, distance = pcall(function() return invItem:getLightDistance() end)
+            if s and distance then
+              lightDistance = tostring(distance)
+            end
+          end
+
+          Sorted:log(fullName .. " | Strength: " .. lightStrength .. " | Distance: " .. lightDistance, 3)
+
+          -- Optionally add to inventory
+          if addToInventory then
+            getPlayer():getInventory():DoAddItem(invItem)
+          end
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Checked items: " .. checkedCount, 3)
+  Sorted:log("Items that can emit light: " .. matchedCount, 3)
+end
+
+---Add all items that can emit light to player inventory
+function LoL.addItemsThatCanEmitLight()
+  LoL.listItemsThatCanEmitLight(true)
+end
+
 ---Check which items in player's current inventory have meltingTime
 function LoL.checkInventoryForMeltingTime()
   local player = getPlayer()

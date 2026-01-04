@@ -3,6 +3,7 @@ require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("Sorting/_LoL_debug")
 require("Sorting/Sorted_InventoryCategory_DoubleClick")
+require("Sorting/Sorted_Sorting_ContainerDynamic")
 
 if not Sorted then Sorted = {} end
 
@@ -31,7 +32,7 @@ end
 
 local function isCookwareLoot(item)
   if item.isCookwareLoot and item:isCookwareLoot() then
-    return "Cook"
+    return "Cooking"
   end
   return nil
 end
@@ -106,35 +107,48 @@ local function getDishCategory(item)
   return nil
 end
 
-function Sorted.isFoodBox(item)
-  local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "unknown"
-
+local function isFoodBox(item)
   if not item then
-    return false
+    return nil
   end
 
-  local recipe = item:getDoubleClickRecipe()
-  if recipe ~= "OpenBoxOfCannedFood" then
-      return false
+  local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
+
+  -- Check for wine box
+  if recipe == "OpenBoxOfWine" then
+    return "Wine"
   end
 
-  local icon = item:getIcon()
-  if icon and string.find(tostring(icon), "CannedWater", 1, true) then
-      return false
+  -- Check for canned food/water boxes
+  if recipe == "OpenBoxOfCannedFood" then
+    local icon = item:getIcon()
+    if icon and string.find(tostring(icon), "CannedWater", 1, true) then
+      return "Water"
+    end
+    return "Food"
   end
 
-  return true
+  return nil
 end
 
 local function getFoodCategory(item)
-  local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "unknown"
-
-  if not item or not item.getItemType then
+  if not item or not item.getItemType or not item.getDisplayCategory then
       return nil
   end
 
-  if Sorted.isFoodBox(item) then
-    return "FoodN"
+  if item:getDisplayCategory() == "Food" and item:getItemType() == ItemType.DRAINABLE then
+    return "Cooking"
+  end
+
+  local boxType = isFoodBox(item)
+  if boxType then
+    local boxes = {
+      ["Food"] = "FoodN",
+      ["Wine"] = "FoodAW",
+      ["Water"] = "FoodW"
+    }
+
+    return boxes[boxType]
   end
 
   if item:getItemType() ~= ItemType.FOOD then
@@ -153,6 +167,10 @@ local function getFoodCategory(item)
 end
 
 local function getLiteratureCategory(item)
+  if item and item.getDisplayCategory and item:getDisplayCategory() == "Gardening" then
+    return nil
+  end
+
   if item and item.getItemType and item:getItemType() == ItemType.NORMAL then
     local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
     if recipe == "UnpackSetOfBooks" then
@@ -174,11 +192,9 @@ local function getLiteratureCategory(item)
     return nil
   end
 
-  if item and item.getDisplayCategory and item:getDisplayCategory() ~= "Gardening" then
-    local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
-    if recipe and recipe.size and recipe:size() > 0 then
-      return "LitR"
-    end
+  local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
+  if recipe and recipe.size and recipe:size() > 0 then
+    return "LitR"
   end
 
   -- Check for skill books (must have actual Perk object)
@@ -312,19 +328,19 @@ local function isBackpack(item)
   if id:find("HydrationBackpack") then
     return true
   end
-  if icon and icon:find("Duffel") or icon:find("Golf") then
-    return true
-  end
+  -- if icon and icon:find("Duffel") or icon:find("Golf") then
+  --   return false
+  -- end
 
-  local iconsArray = item:getIconsForTexture()
-  if iconsArray then
-    for j = 0, iconsArray:size() - 1 do
-      local iconTexture = iconsArray:get(j)
-      if iconTexture and iconTexture:find("Duffel") or iconTexture:find("Golf") then
-        return true
-      end
-    end
-  end
+  -- local iconsArray = item:getIconsForTexture()
+  -- if iconsArray then
+  --   for j = 0, iconsArray:size() - 1 do
+  --     local iconTexture = iconsArray:get(j)
+  --     if iconTexture and iconTexture:find("Duffel") or iconTexture:find("Golf") then
+  --       return true
+  --     end
+  --   end
+  -- end
 
   return false
 end
@@ -371,10 +387,10 @@ local function getContainerCategory(item)
   if isFannyPack(item) then
     return "ContFanny"
   elseif isBackpack(item) then
-    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack")
+    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack", 3)
     return "ContBack"
   elseif isBag(item) then
-    Sorted:log("Item " .. itemType or "?" .. " categorized as bag")
+    Sorted:log("Item " .. itemType or "?" .. " categorized as bag", 3)
     return "ContBag"
   else
     local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
@@ -494,9 +510,19 @@ local function getAmmo(item)
   end
 end
 
+local function getLightSourceCategory(item)
+  if item.canEmitLight and item:canEmitLight() then
+    return "LightSource"
+  end
+end
+
 local function getPlushieCategory(item)
   if not item then
     return nil
+  end
+
+  if item.getDisplayCategory and item:getDisplayCategory() == "Teddy Bear" then
+    return "Plushie"
   end
 
   local function containsPlush(str)
@@ -504,12 +530,9 @@ local function getPlushieCategory(item)
     return string.find(string.lower(str), "plush") ~= nil
   end
 
-  if item.getIcon and containsPlush(item:getIcon()) then
-    return "Plush"
-  end
-
-  if item.getWorldStaticModel and containsPlush(item:getWorldStaticModel()) then
-    return "Plush"
+  if item.getIcon and containsPlush(item:getIcon()) 
+    or item.getWorldStaticModel and containsPlush(item:getWorldStaticModel()) then
+    return "Plushie"
   end
 
   return nil
@@ -974,6 +997,7 @@ end
 
 
 local CATEGORY_DETECTORS_DETAILED = {
+  getLightSourceCategory,
   getRanged,
   getSmokable,
   getSpecimenCategory,

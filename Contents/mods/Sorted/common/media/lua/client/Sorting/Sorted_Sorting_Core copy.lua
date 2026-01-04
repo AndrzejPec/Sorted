@@ -123,7 +123,7 @@
 --   return nil
 -- end
 
--- function Sorted.isFoodBox(item)
+-- function isFoodBox(item)
 --   local fullType = (item and item.getFullType and item:getFullType()) or (item and item.getFullName and item:getFullName()) or "unknown"
 
 --   if not item then
@@ -150,7 +150,7 @@
 --       return nil
 --   end
 
---   if Sorted.isFoodBox(item) then
+--   if isFoodBox(item) then
 --     return "FoodN"
 --   end
 
