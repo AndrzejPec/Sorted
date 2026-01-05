@@ -70,8 +70,6 @@ IGUI_EN = {
 	IGUI_ItemCat_WepPart = "Weapon - Part",
 	IGUI_ItemCat_WepRange = "Weapon - Ranged",
 	IGUI_ItemCat_WepShield = "Weapon - Shield",
-
-	-- Detailed Clothing Categories (for getClothingCategoryDetailed mode)
 	IGUI_ItemCat_ClothHead_Hat = "Clothing - Head - Hat",
 	IGUI_ItemCat_ClothHead_Mask = "Clothing - Head - Mask",
 	IGUI_ItemCat_ClothHead_Eyes = "Clothing - Head - Eyes",
@@ -89,8 +87,7 @@ IGUI_EN = {
 	IGUI_ItemCat_ClothBody_FullTop = "Clothing - Body - Full Top",
 	IGUI_ItemCat_ClothBody_TankTop = "Clothing - Body - Tank Top",
 	IGUI_ItemCat_ClothHands_Gloves = "Clothing - Hands - Gloves",
-	IGUI_ItemCat_ClothHands_WristLeft = "Clothing - Hands - Left Wrist",
-	IGUI_ItemCat_ClothHands_WristRight = "Clothing - Hands - Right Wrist",
+	IGUI_ItemCat_ClothHands_Wrist = "Clothing - Hands - Wrists",
 	IGUI_ItemCat_ClothLegs_Pants = "Clothing - Legs - Pants",
 	IGUI_ItemCat_ClothLegs_Skirt = "Clothing - Legs - Skirt",
 	IGUI_ItemCat_ClothLegs_Full = "Clothing - Legs - Full",
@@ -106,8 +103,6 @@ IGUI_EN = {
 	IGUI_ItemCat_ClothJewelry_Earrings = "Clothing - Jewelry - Earrings",
 	IGUI_ItemCat_ClothJewelry_Rings = "Clothing - Jewelry - Rings",
 	IGUI_ItemCat_ClothJewelry_Groin = "Clothing - Jewelry - Groin",
-
-	-- Container Categories
 	IGUI_ItemCat_ContBack = "Container - Backpack",
 	IGUI_ItemCat_ContBag = "Container - Bag",
 	IGUI_ItemCat_ContFanny = "Container - Fanny Pack",

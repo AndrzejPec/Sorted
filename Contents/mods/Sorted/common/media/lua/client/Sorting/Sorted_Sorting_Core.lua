@@ -155,7 +155,7 @@ local function getFoodCategory(item)
       return nil
   end
 
-  if item:isSpice() then
+  if item.isSpice then
     return "FoodS"
   end
 
@@ -215,8 +215,19 @@ local function getLiteratureCategory(item)
     return "LitE"
   end
 
-  if item and item.canBeWrite and item:canBeWrite() then
+  if item and item.canBeWrite then
     return "LitW"
+  end
+
+  local staticModel = item.getStaticModel and item:getWorldStaticModel()
+  local worldStaticModel = item.getWorldStaticModel and item:getWorldStaticModel()
+
+  if staticModel and string.find(string.lower(staticModel), "schematic") then
+    return "LitSch"
+  end
+
+  if worldStaticModel and string.find(string.lower(worldStaticModel), "schematic") then
+    return "LitSch"
   end
 
   return "LitM"
