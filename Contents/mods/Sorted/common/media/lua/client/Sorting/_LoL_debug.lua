@@ -1620,3 +1620,100 @@ function logCategories()
 
   Sorted:log("=== END CATEGORY LOG ===", 3)
 end
+
+function LoL.testIsSpiceOnAllItems()
+  local items = getScriptManager():getAllItems()
+  local spiceItems = {}
+  local spiceCount = 0
+  local foodCount = 0
+  local checkedCount = 0
+  local hasMethodCount = 0
+  local falseCount = 0
+
+  Sorted:log("=== TESTING isSpice() ON ALL FOOD ITEMS ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item and item.getItemType and item:getItemType() == ItemType.FOOD then
+      foodCount = foodCount + 1
+      local fullName = item:getFullName()
+      local invItem = instanceItem(fullName)
+
+      if invItem then
+        checkedCount = checkedCount + 1
+        local hasMethod = invItem.isSpice ~= nil
+
+        if hasMethod then
+          hasMethodCount = hasMethodCount + 1
+          local success, result = pcall(function() return invItem:isSpice() end)
+          if success then
+            if result == true then
+              spiceCount = spiceCount + 1
+              table.insert(spiceItems, {
+                fullName = fullName,
+                displayName = item:getDisplayName() or fullName
+              })
+              Sorted:log(fullName .. " | isSpice() = TRUE", 3)
+            else
+              falseCount = falseCount + 1
+            end
+          else
+            Sorted:log(fullName .. " | isSpice() ERROR: " .. tostring(result), 2)
+          end
+        end
+      end
+    end
+  end
+
+  Sorted:log("=== SPICE ITEMS FOUND (isSpice = true) ===", 3)
+  for _, spiceItem in ipairs(spiceItems) do
+    Sorted:log("  " .. spiceItem.displayName .. " (" .. spiceItem.fullName .. ")", 3)
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Total food items: " .. foodCount, 3)
+  Sorted:log("Food items checked (instanceItem): " .. checkedCount, 3)
+  Sorted:log("Items with isSpice() method: " .. hasMethodCount, 3)
+  Sorted:log("Items with isSpice() = true: " .. spiceCount, 3)
+  Sorted:log("Items with isSpice() = false: " .. falseCount, 3)
+end
+
+function LoL.checkScriptItemProperty(propertyName)
+  local items = getScriptManager():getAllItems()
+  local foundItems = {}
+  local foundCount = 0
+  local totalCount = 0
+
+  Sorted:log("=== CHECKING ScriptItem PROPERTY: " .. propertyName .. " ===", 3)
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item then
+      totalCount = totalCount + 1
+      local fullName = item:getFullName()
+
+      -- Check if property exists
+      local hasProperty = item[propertyName] ~= nil
+
+      if hasProperty then
+        foundCount = foundCount + 1
+        local value = tostring(item[propertyName])
+        table.insert(foundItems, {
+          fullName = fullName,
+          displayName = item:getDisplayName() or fullName,
+          value = value
+        })
+        Sorted:log(fullName .. " | " .. propertyName .. " = " .. value, 3)
+      end
+    end
+  end
+
+  Sorted:log("=== ITEMS WITH PROPERTY '" .. propertyName .. "' ===", 3)
+  for _, foundItem in ipairs(foundItems) do
+    Sorted:log("  " .. foundItem.displayName .. " (" .. foundItem.fullName .. ") = " .. foundItem.value, 3)
+  end
+
+  Sorted:log("=== SUMMARY ===", 3)
+  Sorted:log("Total items checked: " .. totalCount, 3)
+  Sorted:log("Items with property '" .. propertyName .. "': " .. foundCount, 3)
+end

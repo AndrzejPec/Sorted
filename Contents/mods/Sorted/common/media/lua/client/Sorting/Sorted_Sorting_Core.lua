@@ -156,7 +156,10 @@ local function getFoodCategory(item)
       return nil
   end
 
-  if item.isSpice then
+  local fullType = item.getFullName and item:getFullName() or "?"
+  local invItem = fullType and instanceItem(fullType) or nil
+  if invItem and invItem.isSpice and invItem:isSpice() then
+    Sorted:log("Item " .. fullType .. " detected as SPICE by checking its invItem", 3)
     return "FoodS"
   end
 

@@ -223,10 +223,14 @@ local function InitializeModOptions()
     -- Show container prefix
     config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
 
-    Sorted:log("[Sorted] B42 ModOptions initialized", 3)
+    if Sorted.log then
+        Sorted:log("[Sorted] B42 ModOptions initialized", 3)
+    else
+        print("[Sorted] B42 ModOptions initialized")
+    end
 end
 
 -- Call initialization
 InitializeModOptions()
 
-Sorted:log("[Sorted] ModOptions loaded with category grouping system", 3)
+-- Sorted:log("[Sorted] ModOptions loaded with category grouping system", 3)
