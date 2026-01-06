@@ -296,8 +296,8 @@ function Sorted.addContextMenu(player, context, items)
     end
 
     local managerOption = context:addOption(getText("UI_Sorted_openManager"), nil, function()
-        if Sorted.Manager and Sorted.Manager.toggle then
-            Sorted.Manager.toggle()
+        if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
+            Sorted.ManagerMC.toggle()
         end
     end)
     managerOption.iconTexture = iconTex

@@ -20,6 +20,11 @@ local function patchManageContainers()
     return false
   end
 
+  if not ISConfigureContainerWindow then
+    sortedLog("[Sorted] ManageContainers: ISConfigureContainerWindow not loaded yet, waiting...")
+    return false
+  end
+
   if not ISItemsIncludeExclude._original_populate then
     ISItemsIncludeExclude._original_populate = ISItemsIncludeExclude.populate
 
@@ -27,43 +32,56 @@ local function patchManageContainers()
       self:_original_populate()
 
       local combo = self.filterWidgetMap and self.filterWidgetMap.DisplayCategory
-      if combo then
-        local dynamicCategories = {
-          "FoodM",
-          "FoodW",
-          "FoodB",
-          "FoodA",
-          "Fuel",
-          "Drugs",
-          "Plush",
-        }
+      if not combo then
+        return
+      end
 
-        local existingOptions = {}
-        for i = 1, combo:getOptionCount() do
-          local optionText = combo:getOptionText(i)
-          if optionText then
-            existingOptions[optionText] = true
-          end
+      if Sorted and Sorted.collectDisplayCategories then
+        Sorted.collectDisplayCategories()
+      end
+
+      local existingOptions = {}
+      for i = 1, combo:getOptionCount() do
+        local optionText = combo:getOptionText(i)
+        if optionText then
+          existingOptions[optionText] = true
         end
+      end
 
-        local added = 0
-        for _, category in ipairs(dynamicCategories) do
-          if not existingOptions[category] then
-            combo:addOption(category)
+      local added = 0
+      if Sorted and Sorted.categories then
+        for _, entry in ipairs(Sorted.categories) do
+          local categoryKey = entry.key
+          if categoryKey and not existingOptions[categoryKey] then
+            combo:addOption(categoryKey)
+            existingOptions[categoryKey] = true
             added = added + 1
           end
         end
+      end
 
-        if added > 0 then
-        sortedLog("[Sorted] ManageContainers: Added " .. added .. " dynamic categories")
-        end
+      if added > 0 then
+        sortedLog("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to filter")
       end
     end
 
-    sortedLog("[Sorted] ManageContainers patch installed successfully!")
-    return true
+    sortedLog("[Sorted] ManageContainers: populate() patch installed")
   end
 
+  if not ISConfigureContainerWindow._original_new then
+    ISConfigureContainerWindow._original_new = ISConfigureContainerWindow.new
+
+    function ISConfigureContainerWindow:new(x, y, character, containers)
+      local o = ISConfigureContainerWindow:_original_new(x, y, character, containers)
+      o.simpleViewWidth = 350
+      sortedLog("[Sorted] ManageContainers: Widened simple view to " .. o.simpleViewWidth .. "px")
+      return o
+    end
+
+    sortedLog("[Sorted] ManageContainers: window width patch installed")
+  end
+
+  sortedLog("[Sorted] ManageContainers patch installed successfully!")
   return true
 end
 

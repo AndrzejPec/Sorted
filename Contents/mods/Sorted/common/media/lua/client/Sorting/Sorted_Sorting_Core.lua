@@ -3,6 +3,7 @@ require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("Sorting/_LoL_debug")
 require("Sorting/Sorted_InventoryCategory_DoubleClick")
+require("Sorting/Sorted_ModOptions")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
 
 if not Sorted then Sorted = {} end
@@ -511,7 +512,7 @@ end
 
 local function getRanged(item)
   if item:isRanged() then
-    return "Firearm"
+    return "WepFire"
   end
 end
 
@@ -663,8 +664,8 @@ local BODYLOCATION_MAP = {
   HANDS                 = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
   HANDSLEFT             = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
   HANDSRIGHT            = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
-  LEFTWRIST             = { simple = "ClothHands", detailed = "ClothHands_WristLeft" },
-  RIGHTWRIST            = { simple = "ClothHands", detailed = "ClothHands_WristRight" },
+  LEFTWRIST             = { simple = "ClothHands", detailed = "ClothHands_Wrist" },
+  RIGHTWRIST            = { simple = "ClothHands", detailed = "ClothHands_Wrist" },
 
   PANTS                 = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
   PANTS_SKINNY          = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
