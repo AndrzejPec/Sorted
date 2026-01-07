@@ -7,19 +7,19 @@
 |    ██║     ██║██║ ╚═╝ ██║██║  ██║   ██║       |
 |    ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝       |
 |                                               |
-|    PIMATSTUDIO (pryw. lic.)                   |
+|    PIMATSTUDIO (private license)              |
 |                                               |
-|    W razie niedostępności Autora:             |
+|    If the Author is unavailable:              |
 |                                               |
-|     PRZYZWALAM na                             |
-|       - inspirację                            |
-|       - dogłębną refaktoryzację               |
+|     I PERMIT:                                 |
+|       - inspiration                           |
+|       - deep refactoring                      |
 |                                               |
-|     ZABRANIAM                                 |
-|       - pozerstwa                             |
-|       - plagiatu                              |
-|       - grabieży intelektualnej               |
+|     I FORBID:                                 |
+|       - impersonation                         |
+|       - plagiarism                            |
+|       - intellectual theft                    |
 |                                               |
-|    WYMYŚL SWOJE SZCZĘŚCIE                     |
+|    DESIGN YOUR OWN HAPPINESS                  |
 |                                               |
 \***********************************************/
