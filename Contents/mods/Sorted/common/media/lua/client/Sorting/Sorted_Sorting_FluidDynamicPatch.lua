@@ -63,6 +63,10 @@ local function getAlcoholCategory(fluidContainer, detailed)
   end
 end
 
+---comment
+---@param fluidContainer FluidContainer
+---@param item InventoryItem
+---@return string|nil
 local function getDynamicFluidCategory(fluidContainer, item)
   if item and item.getEvolvedRecipeName then
     local evolvedRecipeName = item:getEvolvedRecipeName()
@@ -78,6 +82,15 @@ local function getDynamicFluidCategory(fluidContainer, item)
   local amount = fluidContainer:getAmount()
   if not amount or amount <= 0 then
     return nil
+  end
+  
+  if fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.HairDye) then
+    return "Appearance"
+  end
+
+  if fluidContainer.contains and
+    (fluidContainer:contains(Fluid.Bleach) or fluidContainer:contains(Fluid.CleaningLiquid)) then
+    return "Cleaning"
   end
 
   if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Fuel) then

@@ -6,54 +6,79 @@ Sorted.debug = {
 }
 
 Sorted.LOG_PREFIXES = {
+    [0] = "[@@@]",
     [1] = "[!!!]",
     [2] = "[???]",
     [3] = "[***]",
 }
 
 --- @param enabled boolean
---- @param minLevel number|nil; 1=ERROR, 2=WARN, 3=INFO
+--- @param minLevel number|nil; 0=DEBUG, 1=ERROR, 2=WARN, 3=INFO
 function Sorted:setLogging(enabled, minLevel)
     self.debug.enabled = enabled
 
     if minLevel ~= nil then
-        if minLevel < 1 then minLevel = 1 end
+        if minLevel < 0 then minLevel = 0 end
         if minLevel > 3 then minLevel = 3 end
         self.debug.minLevel = minLevel
     end
 end
 
 --- @param msg string
---- @param level number|nil; 1=ERROR, 2=WARN, 3=INFO
+--- @param level number|nil; 0=DEBUG, 1=ERROR, 2=WARN, 3=INFO
 function Sorted:log(msg, level)
     if not self.debug.enabled then return end
 
-    local lvl = level or 3
-    if lvl < 1 then lvl = 1 end
+    local lvl = level or 0
+    if lvl < 0 then lvl = 0 end
     if lvl > 3 then lvl = 3 end
 
     local minLevel = self.debug.minLevel or 3
-    if lvl > minLevel then return end
+    if lvl < minLevel then return end
 
     local prefix = self.LOG_PREFIXES[lvl] or "[LOG]"
     print(prefix .. " -------> " .. tostring(msg))
 end
 
-function stopLog()
+local function stopLog()
     Sorted:setLogging(false)
 end
 
-function logErrors()
+local function logErrors()
     Sorted:setLogging(true, 1)
 end
 
-function logWarns()
+local function logWarns()
     Sorted:setLogging(true, 2)
 end
 
-function logAll()
+local function logAll()
     Sorted:setLogging(true, 3)
 end
+
+local function doDebug()
+    Sorted:setLogging(selectedDebugScenario == true, 0)
+end
+
+function Sorted:doDebug(level)
+    if level == nil then
+        doDebug()
+    elseif level == 1 then
+        logErrors()
+    elseif level == 2 then
+        logWarns()
+    else
+        logAll()
+    end
+end
+
+function Sorted:stopLog()
+    stopLog()
+end
+
+Events.OnGameStart.Add(doDebug)
+
+
 
 Sorted.throttle = { queue = {}, active = false }
 

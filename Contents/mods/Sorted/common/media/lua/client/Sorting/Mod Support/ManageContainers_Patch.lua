@@ -84,6 +84,24 @@ local function patchManageContainers()
     sortedLog("[Sorted] ManageContainers: createChildren patch installed")
   end
 
+  if not ISConfigureContainerWindow._original_new then
+    ISConfigureContainerWindow._original_new = ISConfigureContainerWindow.new
+
+    function ISConfigureContainerWindow:new(x, y, character, containers)
+      local instance = ISConfigureContainerWindow:_original_new(x, y, character, containers)
+
+      local newWidth = 600
+      instance.simpleViewWidth = newWidth
+      instance:setWidth(newWidth)
+
+      sortedLog("[Sorted] ManageContainers: Set initial width to " .. newWidth .. "px (in new)")
+
+      return instance
+    end
+
+    sortedLog("[Sorted] ManageContainers: new() patch installed")
+  end
+
   sortedLog("[Sorted] ManageContainers patch installed successfully!")
   return true
 end

@@ -5,6 +5,7 @@ require("Sorting/_LoL_debug")
 require("Sorting/Sorted_InventoryCategory_DoubleClick")
 require("Sorting/Sorted_ModOptions")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
+require("Sorting/Mod Support/TheyKnew_Items")
 
 if not Sorted then Sorted = {} end
 
@@ -31,6 +32,103 @@ local function isPerishable(item)
   return false
 end
 
+local cannedFoodCache = {}
+
+local function getScriptItemBooleanField(item, fieldName)
+  if not item or not item.getFullName then
+    return nil
+  end
+
+  local fullType = item:getFullName()
+  if not fullType then
+    return nil
+  end
+
+  local cached = cannedFoodCache[fullType]
+  if cached ~= nil then
+    return cached
+  end
+
+  if not getNumClassFields or not getClassField or not getClassFieldVal then
+    cannedFoodCache[fullType] = false
+    return false
+  end
+
+  local numFields = getNumClassFields(item)
+  for i = 0, numFields - 1 do
+    local field = getClassField(item, i)
+    local currentFieldName = tostring(field)
+    if currentFieldName == fieldName or currentFieldName:sub(-(#fieldName + 1)) == "." .. fieldName then
+      local ok, value = pcall(getClassFieldVal, item, field)
+      local result = ok and value == true or false
+      cannedFoodCache[fullType] = result
+      return result
+    end
+  end
+
+  cannedFoodCache[fullType] = false
+  return false
+end
+
+function LoL.getAllItems()
+  return getScriptManager():getAllItems()
+end
+
+function LoL:getAllItemsPredicate(predicate)
+  local result = {}
+  local count = 0
+  local items = self.getAllItems() 
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if predicate(item) == true then
+      table.insert(result, item)
+    end
+    count = count + 1
+  end
+
+  for i, item in ipairs(result) do
+    print("Item #" .. i .. " is " .. tostring(item))
+  end
+  print("Found " .. #result .. " items out of all " .. count .. " items in game")
+  return result
+end
+
+local function isCannedFood(item)
+  if not item then
+    return false
+  end
+
+  if item.isCannedFood then
+    local ok, value = pcall(item.isCannedFood, item)
+    if ok then
+      return value == true
+    end
+  end
+
+  if item.cannedFood ~= nil then
+    return item.cannedFood == true
+  end
+
+  local displayCategory = item.getDisplayCategory and item:getDisplayCategory() or ""
+  local itemType = item.getItemType and item:getItemType()
+  if displayCategory ~= "Food" and itemType ~= ItemType.FOOD then
+    return false
+  end
+
+  local fullType = item.getFullName and item:getFullName() or ""
+  if fullType ~= "" and string.find(fullType, "Canned", 1, true) then
+    return true
+  end
+
+  return getScriptItemBooleanField(item, "cannedFood") == true
+end
+
+function Sorted:getAllCans()
+  return LoL:getAllItemsPredicate(function(item)
+    return isCannedFood(item) and not isPerishable(item)
+  end)
+end
+
 local function isCookwareLoot(item)
   if item.isCookwareLoot and item:isCookwareLoot() then
     return "Cooking"
@@ -38,24 +136,6 @@ local function isCookwareLoot(item)
   return nil
 end
 
-local function isCookwareByEvolvedRecipe(item)
-  if not item or not getEvolvedRecipes then return nil end
-
-  local fullName = item.getFullName and item:getFullName()
-  if not fullName then return nil end
-
-  local evolved = getEvolvedRecipes()
-  if not evolved or evolved:isEmpty() then return nil end
-
-  for i = 0, evolved:size() - 1 do
-    local er = evolved:get(i)
-    if er and er.getBaseItem and er:getBaseItem() == fullName then
-      return "Cook"
-    end
-  end
-
-  return nil
-end
 
 local function getAlcoholCategory(item)
   if item.FluidContainer then
@@ -88,7 +168,7 @@ end
 
 local function getCleaningItems(item)
   if item:hasTag(ItemTag.CLEAN_STAINS) then
-    return "Clean"
+    return "Cleaning"
   end
 end
 
@@ -152,8 +232,26 @@ local function getFoodCategory(item)
     return boxes[boxType]
   end
 
+
+
+  if isCannedFood(item) then
+    if isPerishable(item) then
+      return "FoodP"
+    end
+
+    local icon = item:getIcon()
+    local name = item:getFullName()
+    if icon and string.find(tostring(icon), "CannedWater", 1, true) then
+      return "FoodW"
+    elseif string.lower(name):find("can") then
+      return "FoodC"
+    else
+      return "FoodN"
+    end
+  end
+
   if item:getItemType() ~= ItemType.FOOD then
-      return nil
+    return nil
   end
 
   local fullType = item.getFullName and item:getFullName() or "?"
@@ -588,7 +686,7 @@ local function getBreathingCategory(item)
   
   for _, tag in ipairs(gasMaskTags) do
     if item:hasTag(tag) then
-      return "Breath"
+      return "Breathing"
     end
   end
   
@@ -973,19 +1071,6 @@ local function getProtectiveGearCategorySimple(item)
   return getProtectiveGearCategory(item, false)
 end
 
-local function getProtectiveGearCategoryDetailed(item)
-  return getProtectiveGearCategory(item, true)
-end
-
-local function dumpOneToOther(displayCategory, target)
-  return function(item)
-    if item and item.getDisplayCategory and item:getDisplayCategory() == displayCategory then
-      return target
-    end
-    return nil
-  end
-end
-
 local function orphanTheUnfit()
   local sparselyPopulatedCategories = {
     Accessory = true,
@@ -993,6 +1078,7 @@ local function orphanTheUnfit()
     Appearance = true,
     BrokenWeapon = true,
     Bug = true,
+    Bear = true,
     Cartography = true,
     Chainsaw = true,
     Communications = true,
@@ -1005,7 +1091,7 @@ local function orphanTheUnfit()
     local item = items:get(i)
     local category = item.getDisplayCategory and item:getDisplayCategory()
     if category and sparselyPopulatedCategories[category] then
-      TweakItem(item:getFullName(), "DisplayCategory", "")
+      TweakItem(item:getFullName(), "DisplayCategory", "_Sorted.Uncategorized")
     end
   end
 end
@@ -1038,20 +1124,7 @@ local CATEGORY_DETECTORS_DETAILED = {
   getFirearmContainers,
   getContainerCategory,
   getFirstAidContainers,
-  -- dumpOneToOther("VehicleMaintenance", "Mech"),
-  -- dumpOneToOther("VehicleMaintenanceWeapon", "Mech"),
-  -- dumpOneToOther("WaterContainer", "Container"),
-  -- dumpOneToOther("Fishing", "SurFish"),
-  -- dumpOneToOther("SkillBook", "LitS"),
-  -- dumpOneToOther("Literature", "LitE"),
-  -- dumpOneToOther("Electronics", "Elec"),
-  -- dumpOneToOther("Furniture", "Furn"),
-  -- dumpOneToOther("Misc", "Furn"),
-  -- dumpOneToOther("Container", "Cont"),
-  -- dumpOneToOther("Cooking", "Cook"),
-  -- dumpOneToOther("Teddy Bear", "Plush"),
-  -- dumpOneToOther("Sports", "Junk"),
-  Sorted.categorizeFoodBoxes,
+  Sorted.getZomboxCategory,
 }
 
 local CATEGORY_DETECTORS_SIMPLE = {
@@ -1074,7 +1147,7 @@ local CATEGORY_DETECTORS_SIMPLE = {
   getContainerCategory,
   getMementoClothingCategorySimple,
   getClothingCategorySimple,
-  Sorted.categorizeFoodBoxes,
+  Sorted.getZomboxCategory,
 }
 
 local CATEGORY_DETECTORS = CATEGORY_DETECTORS_DETAILED
@@ -1088,6 +1161,12 @@ function Sorted.CategorizeItem(item)
       return
     end
   end
+end
+
+-- Sorted.categories
+
+local function remapCategories()
+  
 end
 
 function Sorted.CategorizeAllItems()
@@ -1104,6 +1183,8 @@ function Sorted.CategorizeAllItems()
     if not hasManualCategory then
       Sorted.CategorizeItem(item)
     end
+
+    remapCategories()
   end
 end
 
@@ -1129,7 +1210,53 @@ Sorted._reduxLoaded = true
 -- Items that need manual categorization override:
 -- - Hat_HazmatSuit -> Move from "Breathing" to proper category
 local overrides = {
-  Hat_HazmatSuit = "Breath",
+  Hat_HazmatSuit = "Breathing",
 }
 
 require("Sorting/Sorted_FluidDynamicPatch")
+
+function Sorted.testIsCannedFood()
+  local player = getPlayer()
+  if not player then
+    Sorted:log("Player not found")
+    return
+  end
+
+  local inventory = player:getInventory()
+  if not inventory then
+    Sorted:log("Inventory not found")
+    return
+  end
+
+  local items = inventory:getItems()
+  if not items or items:isEmpty() then
+    Sorted:log("No items in inventory to test")
+    return
+  end
+
+  Sorted:log("=== Testing isCannedFood function ===")
+  Sorted:log("Total items in inventory: " .. items:size())
+
+  for i = 0, items:size() - 1 do
+    local item = items:get(i):getScriptItem()
+    local fullName = item:getFullName()
+    local result = isCannedFood(item)
+
+    Sorted:log(fullName .. " -> isCannedFood: " .. tostring(result))
+  end
+
+  Sorted:log("=== Test complete ===")
+end
+
+function Sorted.addCanToInv()
+  local items = getScriptManager():getAllItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local isCan = isCannedFood(item)
+    local name = item:getFullName()
+    if isCan and string.lower(name):find("can") then
+      local invItem = instanceItem(name)
+      getPlayer():getInventory():DoAddItem(invItem)
+    end
+  end
+end

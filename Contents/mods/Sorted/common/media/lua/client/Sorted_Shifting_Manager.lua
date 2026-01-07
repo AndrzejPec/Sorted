@@ -1,570 +1,515 @@
----@diagnostic disable: inject-field, param-type-mismatch
+---@diagnostic disable: inject-field, need-check-nil
 
-
-require "ISUI/ISPanel"
+require "ISUI/ISCollapsableWindow"
+require "ISUI/ISTabPanel"
+require "ISUI/ISTextEntryBox"
 require "ISUI/ISButton"
 require "ISUI/ISLabel"
-require "ISUI/ISTextEntryBox"
-require "ISUI/ISScrollingListBox"
 require "ISUI/ISComboBox"
-require "ISUI/ISModalDialog"
+require "MultiSelectListbox"
 
 Sorted = Sorted or {}
-Sorted.Manager = ISPanel:derive("Sorted.Manager")
 
-Sorted.Manager.instance = nil
+local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
+local FONT_HGT_MEDIUM = getTextManager():getFontHeight(UIFont.Medium)
+local FONT_HGT_LARGE = getTextManager():getFontHeight(UIFont.Large)
+local HEADER_HGT = FONT_HGT_MEDIUM + 4
 
-local ASSIGNMENTS_FILE = "Sorted_CategoryAssignments.ini"
+Sorted.CategoryManager = ISPanel:derive("Sorted.CategoryManager")
 
-
-function Sorted.Manager:new(x, y, width, height)
+function Sorted.CategoryManager:new(x, y, width, height, viewer)
     local o = ISPanel:new(x, y, width, height)
     setmetatable(o, self)
     self.__index = self
-
-    o.backgroundColor = {r=0, g=0, b=0, a=0.92}
-    o.borderColor = {r=0.6, g=0.6, b=0.6, a=1}
-    o.moveWithMouse = true
-
-    o.fullList = {}
-    o.filteredList = {}
-    o.bucketItems = {}
-
+    o.viewer = viewer
+    o.totalResult = 0
+    o.filterWidgets = {}
+    o.filterWidgetMap = {}
+    o.listHeaderColor = {r=0.4, g=0.4, b=0.4, a=0.3}
+    o.borderColor = {r=0.4, g=0.4, b=0.4, a=0}
+    o.backgroundColor = {r=0, g=0, b=0, a=1}
     return o
 end
 
-
-function Sorted.Manager:initialise()
+function Sorted.CategoryManager:initialise()
     ISPanel.initialise(self)
-    self:loadAllItems()
-    self:createChildren()
-    self:filterItems("")
 end
 
-function Sorted.Manager:createChildren()
-    local pad = 10
-    local labelH = 20
-    local inputH = 25
-    local btnH = 28
-    local y = 10
+function Sorted.CategoryManager:render()
+    ISPanel.render(self)
 
-    local panelGap = 60
-    local totalListWidth = self.width - pad * 3 - panelGap
-    local leftPanelWidth = totalListWidth * 0.78
-    local rightPanelWidth = totalListWidth - leftPanelWidth
-    local listHeight = 280
+    local y = self.datas.y + self.datas.height + 2
+    self:drawText(getText("IGUI_DbViewer_TotalResult") .. self.totalResult, 0, y, 1, 1, 1, 1, UIFont.Small)
 
-    local title = ISLabel:new(pad, y, labelH, "Category Manager", 1, 1, 1, 1, UIFont.Medium, true)
-    self:addChild(title)
+    y = self.filters:getBottom()
 
-    local closeBtn = ISButton:new(self.width - 30, 5, 25, 25, "X", self, Sorted.Manager.onClose)
-    closeBtn.borderColor = {r=0.7, g=0.2, b=0.2, a=1}
-    closeBtn.backgroundColor = {r=0.3, g=0.1, b=0.1, a=0.5}
-    closeBtn.backgroundColorMouseOver = {r=0.5, g=0.1, b=0.1, a=0.7}
-    self:addChild(closeBtn)
+    self:drawRectBorder(self.datas.x, y, self.datas:getWidth(), HEADER_HGT, 1, self.borderColor.r, self.borderColor.g, self.borderColor.b)
+    self:drawRect(self.datas.x, y + 1, self.datas:getWidth(), HEADER_HGT, self.listHeaderColor.a, self.listHeaderColor.r, self.listHeaderColor.g, self.listHeaderColor.b)
 
-    y = y + 35
+    local x = 0
+    for i, v in ipairs(self.datas.columns) do
+        local size
+        if i == #self.datas.columns then
+            size = self.datas.width - x
+        else
+            size = self.datas.columns[i + 1].size - self.datas.columns[i].size
+        end
+        self:drawText(v.name, x + 13, y + 2, 1, 1, 1, 1, UIFont.Small)
+        self:drawRectBorder(self.datas.x + x, y, 1, self.datas.itemheight + 1, 1, self.borderColor.r, self.borderColor.g, self.borderColor.b)
+        x = x + size
+    end
+end
 
-    local leftX = pad
+function Sorted.CategoryManager:createChildren()
+    ISPanel.createChildren(self)
 
-    local leftLabel = ISLabel:new(leftX, y, labelH, "All Items", 1, 1, 1, 1, UIFont.Small, true)
-    self:addChild(leftLabel)
+    local entryHgt = FONT_HGT_MEDIUM + 4
+    local totalResultsHgt = FONT_HGT_SMALL + 4
+    local filtersLabelHgt = FONT_HGT_LARGE + 4
+    local bottomHgt = totalResultsHgt + filtersLabelHgt + HEADER_HGT + entryHgt + 8
 
-    local searchY = y + labelH
-    local searchLabelText = "Search:"
-    local searchLabelWidth = getTextManager():MeasureStringX(UIFont.Small, searchLabelText)
-    local searchLabelY = searchY + (inputH - labelH) / 2
-    self.searchLabel = ISLabel:new(leftX, searchLabelY, labelH, searchLabelText, 1, 1, 1, 1, UIFont.Small, true)
-    self:addChild(self.searchLabel)
+    self.datas = MultiSelectListbox:new(0, HEADER_HGT, self.width, self.height - bottomHgt - HEADER_HGT, self.viewer.items)
+    self.datas:initialise()
+    self.datas:instantiate()
+    self.datas.itemheight = FONT_HGT_SMALL + 8
+    self.datas.font = UIFont.NewSmall
+    self.datas.doDrawItem = Sorted.CategoryManager.drawDatas
+    self.datas.drawBorder = true
+    self:addChild(self.datas)
 
-    local searchBoxX = leftX + searchLabelWidth + 6
-    local searchBoxWidth = leftPanelWidth - searchLabelWidth - 6
-    self.searchBox = ISTextEntryBox:new("", searchBoxX, searchY, searchBoxWidth, inputH)
-    self.searchBox:initialise()
-    self.searchBox:instantiate()
-    self.searchBox.onTextChange = Sorted.Manager.onSearchChange
-    self.searchBox.target = self
-    self:addChild(self.searchBox)
+    self.datas:addColumn("Type", 0)
+    self.datas:addColumn("Name", 200 * self.viewer.uiScale)
+    self.datas:addColumn("Category", 450 * self.viewer.uiScale)
+    self.datas:addColumn("DisplayCategory", 650 * self.viewer.uiScale)
 
-    local headerY = searchY + inputH + 5
-    local colWidth = 120
-    local colSortingX = leftX + leftPanelWidth - colWidth - 25
-    local colShiftingX = colSortingX - colWidth - 20
+    local filtersY = self.datas.y + self.datas.height + totalResultsHgt
+    self.filters = ISLabel:new(0, filtersY, filtersLabelHgt, getText("IGUI_DbViewer_Filters"), 1, 1, 1, 1, UIFont.Large, true)
+    self.filters:initialise()
+    self.filters:instantiate()
+    self:addChild(self.filters)
 
-    local shiftingHeader = ISLabel:new(colShiftingX + colWidth/2 - 20, headerY, labelH, "Shifting", 1, 0.9, 0.6, 1, UIFont.Small, true)
-    self:addChild(shiftingHeader)
+    local x = 0
+    local entryY = self.filters:getBottom() + HEADER_HGT
+    for i, column in ipairs(self.datas.columns) do
+        local size
+        if i == #self.datas.columns then
+            size = self.datas:getWidth() - x
+        else
+            size = self.datas.columns[i + 1].size - self.datas.columns[i].size
+        end
+        if column.name == "Category" then
+            local combo = ISComboBox:new(x, entryY, size, entryHgt)
+            combo.font = UIFont.Medium
+            combo:initialise()
+            combo:instantiate()
+            combo.columnName = column.name
+            combo.target = combo
+            combo.onChange = Sorted.CategoryManager.onFilterChange
+            combo.itemsListFilter = self.filterCategory
+            self:addChild(combo)
+            table.insert(self.filterWidgets, combo)
+            self.filterWidgetMap[column.name] = combo
+        elseif column.name == "DisplayCategory" then
+            local combo = ISComboBox:new(x, entryY, size, entryHgt)
+            combo.font = UIFont.Medium
+            combo:initialise()
+            combo:instantiate()
+            combo.columnName = column.name
+            combo.target = combo
+            combo.onChange = Sorted.CategoryManager.onFilterChange
+            combo.itemsListFilter = self.filterDisplayCategory
+            self:addChild(combo)
+            table.insert(self.filterWidgets, combo)
+            self.filterWidgetMap[column.name] = combo
+        else
+            local entry = ISTextEntryBox:new("", x, entryY, size, entryHgt)
+            entry.font = UIFont.Medium
+            entry:initialise()
+            entry:instantiate()
+            entry.columnName = column.name
+            entry.itemsListFilter = self["filter" .. column.name]
+            entry.onTextChange = Sorted.CategoryManager.onFilterChange
+            entry.target = self
+            entry:setClearButton(true)
+            self:addChild(entry)
+            table.insert(self.filterWidgets, entry)
+            self.filterWidgetMap[column.name] = entry
+        end
+        x = x + size
+    end
+end
 
-    local sortingHeader = ISLabel:new(colSortingX + colWidth/2 - 18, headerY, labelH, "Sorting", 0.6, 0.6, 0.6, 1, UIFont.Small, true)
-    self:addChild(sortingHeader)
+function Sorted.CategoryManager:initList(module)
+    self.totalResult = 0
+    self.datas:clear()
 
-    self.colShiftingX = colShiftingX
-    self.colSortingX = colSortingX
-    self.colWidth = colWidth
+    local categoryNames = {}
+    local displayCategoryNames = {}
+    local categoryMap = {}
+    local displayCategoryMap = {}
 
-    local leftListY = headerY + labelH + 2
-    self.leftList = ISScrollingListBox:new(leftX, leftListY, leftPanelWidth, listHeight - labelH - 2)
-    self.leftList:initialise()
-    self.leftList:instantiate()
-    self.leftList.itemheight = 20
-    self.leftList.font = UIFont.Small
-    self.leftList.drawBorder = true
-    self.leftList.doDrawItem = Sorted.Manager.doDrawLeftItem
-    self.leftList.target = self
-    self.leftList.onMouseDown = Sorted.Manager.onLeftListClick
-    self.leftList.onDoubleClick = Sorted.Manager.onLeftListDoubleClick
-    self:addChild(self.leftList)
+    for _, v in ipairs(module) do
+        self.datas:addItem(v:getDisplayName(), v)
+        local itemType = v:getItemType()
+        local typeString = itemType and tostring(itemType) or nil
+        if typeString and not categoryMap[typeString] then
+            categoryMap[typeString] = true
+            table.insert(categoryNames, typeString)
+        end
+        local displayCategory = v:getDisplayCategory()
+        if displayCategory and not displayCategoryMap[displayCategory] then
+            displayCategoryMap[displayCategory] = true
+            table.insert(displayCategoryNames, displayCategory)
+        end
+        self.totalResult = self.totalResult + 1
+    end
 
-    local centerX = leftX + leftPanelWidth + 10
-    local centerY = leftListY + listHeight / 2 - 35
+    table.sort(self.datas.items, function(a, b) return not string.sort(a.item:getDisplayName(), b.item:getDisplayName()) end)
+    self.datas.fullList = self.datas.items
 
-    local addBtn = ISButton:new(centerX, centerY, 40, btnH, ">>", self, Sorted.Manager.onAddToBucket)
-    addBtn.borderColor = {r=0.2, g=0.6, b=0.2, a=1}
-    addBtn.backgroundColor = {r=0.1, g=0.3, b=0.1, a=0.5}
-    addBtn.backgroundColorMouseOver = {r=0.1, g=0.5, b=0.1, a=0.7}
-    self:addChild(addBtn)
+    local combo = self.filterWidgetMap.Category
+    if combo then
+        table.sort(categoryNames, function(a, b) return tostring(a) < tostring(b) end)
+        combo:clear()
+        combo:addOption("<Any>")
+        for _, categoryName in ipairs(categoryNames) do
+            combo:addOption(categoryName)
+        end
+    end
 
-    local removeBtn = ISButton:new(centerX, centerY + btnH + 10, 40, btnH, "<<", self, Sorted.Manager.onRemoveFromBucket)
-    removeBtn.borderColor = {r=0.6, g=0.2, b=0.2, a=1}
-    removeBtn.backgroundColor = {r=0.3, g=0.1, b=0.1, a=0.5}
-    removeBtn.backgroundColorMouseOver = {r=0.5, g=0.1, b=0.1, a=0.7}
-    self:addChild(removeBtn)
+    combo = self.filterWidgetMap.DisplayCategory
+    if combo then
+        table.sort(displayCategoryNames, function(a, b) return tostring(a) < tostring(b) end)
+        combo:clear()
+        combo:addOption("<Any>")
+        combo:addOption("<No category set>")
+        for _, displayCategoryName in ipairs(displayCategoryNames) do
+            combo:addOption(displayCategoryName)
+        end
+    end
+end
 
-    local rightX = centerX + panelGap
+function Sorted.CategoryManager:filterDisplayCategory(widget, scriptItem)
+    if widget.selected == 1 then return true end
+    if widget.selected == 2 then return scriptItem:getDisplayCategory() == nil end
+    return scriptItem:getDisplayCategory() == widget:getOptionText(widget.selected)
+end
 
-    local bucketLabelText = "Selected Items"
-    local bucketLabelWidth = getTextManager():MeasureStringX(UIFont.Small, bucketLabelText)
-    self.bucketLabel = ISLabel:new(rightX, y, labelH, bucketLabelText, 1, 1, 0.7, 1, UIFont.Small, true)
-    self:addChild(self.bucketLabel)
+function Sorted.CategoryManager:filterCategory(widget, scriptItem)
+    if widget.selected == 1 then return true end
+    return tostring(scriptItem:getItemType()) == widget:getOptionText(widget.selected)
+end
 
-    self.bucketCountLabelX = rightX + bucketLabelWidth + 6
-    self.bucketCountLabelY = y
-    self.bucketCount = 0
-    self:updateBucketCountLabel(0)
+function Sorted.CategoryManager:filterName(widget, scriptItem)
+    local txtToCheck = string.lower(scriptItem:getDisplayName())
+    local filterTxt = string.lower(widget:getInternalText())
+    return string.match(txtToCheck, filterTxt)
+end
 
-    local rightListY = searchY + inputH + 5
-    self.rightList = ISScrollingListBox:new(rightX, rightListY, rightPanelWidth, listHeight)
-    self.rightList:initialise()
-    self.rightList:instantiate()
-    self.rightList.itemheight = 20
-    self.rightList.font = UIFont.Small
-    self.rightList.drawBorder = true
-    self.rightList.doDrawItem = Sorted.Manager.doDrawRightItem
-    self.rightList.target = self
-    self.rightList.onMouseDown = Sorted.Manager.onRightListClick
-    self.rightList.onDoubleClick = Sorted.Manager.onRightListDoubleClick
-    self:addChild(self.rightList)
+function Sorted.CategoryManager:filterType(widget, scriptItem)
+    local txtToCheck = string.lower(scriptItem:getName())
+    local filterTxt = string.lower(widget:getInternalText())
+    return string.match(txtToCheck, filterTxt)
+end
 
-    local clearBucketBtn = ISButton:new(rightX, rightListY + listHeight + 5, rightPanelWidth, btnH - 3, "Clear", self, Sorted.Manager.onClearBucket)
-    clearBucketBtn.borderColor = {r=0.5, g=0.5, b=0.5, a=1}
-    clearBucketBtn.backgroundColor = {r=0.2, g=0.2, b=0.2, a=0.5}
-    clearBucketBtn.backgroundColorMouseOver = {r=0.3, g=0.3, b=0.3, a=0.7}
-    self:addChild(clearBucketBtn)
+function Sorted.CategoryManager.onFilterChange(widget)
+    local datas = widget.parent.datas
+    if not datas.fullList then datas.fullList = datas.items end
+    widget.parent.totalResult = 0
+    datas:clear()
+    for i, v in ipairs(datas.fullList) do
+        local add = true
+        for _, filterWidget in ipairs(widget.parent.filterWidgets) do
+            if not filterWidget.itemsListFilter(self, filterWidget, v.item) then
+                add = false
+                break
+            end
+        end
+        if add then
+            datas:addItem(i, v.item)
+            widget.parent.totalResult = widget.parent.totalResult + 1
+        end
+    end
+end
 
-    y = leftListY + listHeight + 45
+function Sorted.CategoryManager.drawDatas(self, y, item, alt)
+    if y + self:getYScroll() + self.itemheight < 0 or y + self:getYScroll() >= self.height then
+        return y + self.itemheight
+    end
 
-    local catLabel = ISLabel:new(pad, y, labelH, "Choose from list:", 1, 1, 1, 1, UIFont.Small, true)
-    self:addChild(catLabel)
+    local a = 0.9
 
-    self.categoryCombo = ISComboBox:new(pad, y + labelH, self.width / 2 - pad * 2, inputH)
+    if self.items[item.index].selected then
+        self:drawRect(0, y, self:getWidth(), self.itemheight, 0.3, 0.7, 0.35, 0.15)
+    end
+
+    if alt then
+        self:drawRect(0, y, self:getWidth(), self.itemheight, 0.3, 0.6, 0.5, 0.5)
+    end
+
+    self:drawRectBorder(0, y, self:getWidth(), self.itemheight, a, self.borderColor.r, self.borderColor.g, self.borderColor.b)
+
+    local iconX = 4
+    local iconSize = FONT_HGT_SMALL
+    local xoffset = 10
+
+    self:drawText(item.item:getName(), xoffset, y + 4, 1, 1, 1, a, self.font)
+
+    self:drawText(item.item:getDisplayName(), self.columns[2].size + iconX + iconSize + 4, y + 4, 1, 1, 1, a, self.font)
+
+    self:drawText(tostring(item.item:getItemType()), self.columns[3].size + xoffset, y + 4, 1, 1, 1, a, self.font)
+
+    if item.item:getDisplayCategory() ~= nil then
+        self:drawText(getText("IGUI_ItemCat_" .. item.item:getDisplayCategory()), self.columns[4].size + xoffset, y + 4, 1, 1, 1, a, self.font)
+    else
+        self:drawText("No category", self.columns[4].size + xoffset, y + 4, 1, 1, 1, a, self.font)
+    end
+
+    local icon = item.item:getIcon()
+    if item.item:getIconsForTexture() and not item.item:getIconsForTexture():isEmpty() then
+        icon = item.item:getIconsForTexture():get(0)
+    end
+    if icon then
+        local texture = getTexture("Item_" .. icon)
+        if texture then
+            self:drawTextureScaledAspect2(texture, self.columns[2].size + iconX, y + (self.itemheight - iconSize) / 2, iconSize, iconSize, 1, 1, 1, 1)
+        end
+    end
+
+    return y + self.itemheight
+end
+
+Sorted.ManagerMC = ISCollapsableWindow:derive("Sorted.ManagerMC")
+Sorted.ManagerMC.instance = nil
+
+function Sorted.ManagerMC.UIScaleFactor()
+    local fontSizeMultipliers = { 1, 1, 1.2, 1.4, 1.6 }
+    return fontSizeMultipliers[getCore():getOptionFontSize()] or 1
+end
+
+function Sorted.ManagerMC:new(x, y, width, height)
+    local o = ISCollapsableWindow:new(x, y, width, height)
+    setmetatable(o, self)
+    self.__index = self
+    o.title = "Sorted Category Manager"
+    o.uiScale = Sorted.ManagerMC.UIScaleFactor()
+    o.resizable = false
+    o.module = {}
+    return o
+end
+
+function Sorted.ManagerMC:initialise()
+    ISCollapsableWindow.initialise(self)
+end
+
+function Sorted.ManagerMC:createChildren()
+    ISCollapsableWindow.createChildren(self)
+    self:setInfo(self.title)
+
+    local titleHeight = self:titleBarHeight()
+    local pad = math.max(4, 6 * self.uiScale)
+    local btnHgt = math.max(25, FONT_HGT_SMALL + 6)
+    local btnW = 130 * self.uiScale
+    local btnGap = 6 * self.uiScale
+
+    local bottomHgt = (btnHgt * 2) + (pad * 3)
+    local listHeight = self.height - titleHeight - bottomHgt - pad
+
+    self.advPanel = ISTabPanel:new(pad, titleHeight + pad, self.width - pad * 2, listHeight)
+    self.advPanel:initialise()
+    self.advPanel.equalTabWidth = false
+    self:addChild(self.advPanel)
+
+    self:buildLists()
+
+    local row1Y = self.advPanel:getBottom() + pad
+    local rightX = self.width - pad
+    local resetX = rightX - btnW
+    local applyX = resetX - btnGap - btnW
+
+    local catLabel = "Category:"
+    local catLabelW = getTextManager():MeasureStringX(UIFont.Small, catLabel)
+    self.categoryLabel = ISLabel:new(pad, row1Y + 4, FONT_HGT_SMALL, catLabel, 1, 1, 1, 1, UIFont.Small, true)
+    self:addChild(self.categoryLabel)
+
+    local comboX = pad + catLabelW + 6
+    local comboW = math.max(120, applyX - btnGap - comboX)
+    self.categoryCombo = ISComboBox:new(comboX, row1Y, comboW, btnHgt)
     self.categoryCombo:initialise()
+    self.categoryCombo:instantiate()
+    self.categoryCombo.maxListHeight = 400
     self:addChild(self.categoryCombo)
-    self:populateCategoryCombo()
 
-    local customLabel = ISLabel:new(self.width / 2 + pad, y, labelH, "Or type custom:", 1, 1, 1, 1, UIFont.Small, true)
-    self:addChild(customLabel)
-
-    self.customInput = ISTextEntryBox:new("", self.width / 2 + pad, y + labelH, self.width / 2 - pad * 2, inputH)
-    self.customInput:initialise()
-    self.customInput:instantiate()
-    self:addChild(self.customInput)
-
-    y = y + labelH + inputH + 10
-
-    local btnWidth = (self.width - pad * 3) / 2
-
-    self.applySelectedBtn = ISButton:new(pad, y, btnWidth, btnH, "Apply Selected", self, Sorted.Manager.onApplySelected)
+    self.applySelectedBtn = ISButton:new(applyX, row1Y, btnW, btnHgt, "Apply Selected", self, Sorted.ManagerMC.onApplySelected)
     self.applySelectedBtn.borderColor = {r=0.2, g=0.8, b=0.2, a=1}
     self.applySelectedBtn.backgroundColor = {r=0.1, g=0.3, b=0.1, a=0.5}
     self.applySelectedBtn.backgroundColorMouseOver = {r=0.1, g=0.5, b=0.1, a=0.7}
     self:addChild(self.applySelectedBtn)
 
-    self.applyCustomBtn = ISButton:new(pad * 2 + btnWidth, y, btnWidth, btnH, "Apply Custom", self, Sorted.Manager.onApplyCustom)
-    self.applyCustomBtn.borderColor = {r=0.2, g=0.6, b=0.4, a=1}
-    self.applyCustomBtn.backgroundColor = {r=0.1, g=0.25, b=0.2, a=0.5}
-    self.applyCustomBtn.backgroundColorMouseOver = {r=0.1, g=0.4, b=0.3, a=0.7}
-    self:addChild(self.applyCustomBtn)
-
-    y = y + btnH + 8
-
-
-    self.resetSelectedBtn = ISButton:new(pad, y, btnWidth, btnH, "Reset Selected", self, Sorted.Manager.onResetSelected)
+    self.resetSelectedBtn = ISButton:new(resetX, row1Y, btnW, btnHgt, "Reset Selected", self, Sorted.ManagerMC.onResetSelected)
     self.resetSelectedBtn.borderColor = {r=0.3, g=0.3, b=0.8, a=1}
     self.resetSelectedBtn.backgroundColor = {r=0.15, g=0.15, b=0.4, a=0.5}
     self.resetSelectedBtn.backgroundColorMouseOver = {r=0.2, g=0.2, b=0.6, a=0.7}
     self:addChild(self.resetSelectedBtn)
 
-    self.resetAllBtn = ISButton:new(pad * 2 + btnWidth, y, btnWidth, btnH, "Reset All", self, Sorted.Manager.onResetAll)
+    local row2Y = row1Y + btnHgt + pad
+    local customLabel = "Custom:"
+    local customLabelW = getTextManager():MeasureStringX(UIFont.Small, customLabel)
+    self.customLabel = ISLabel:new(pad, row2Y + 4, FONT_HGT_SMALL, customLabel, 1, 1, 1, 1, UIFont.Small, true)
+    self:addChild(self.customLabel)
+
+    self.customInput = ISTextEntryBox:new("", pad + customLabelW + 6, row2Y, comboW, btnHgt)
+    self.customInput:initialise()
+    self.customInput:instantiate()
+    self:addChild(self.customInput)
+
+    self.applyCustomBtn = ISButton:new(applyX, row2Y, btnW, btnHgt, "Apply Custom", self, Sorted.ManagerMC.onApplyCustom)
+    self.applyCustomBtn.borderColor = {r=0.2, g=0.6, b=0.4, a=1}
+    self.applyCustomBtn.backgroundColor = {r=0.1, g=0.25, b=0.2, a=0.5}
+    self.applyCustomBtn.backgroundColorMouseOver = {r=0.1, g=0.4, b=0.3, a=0.7}
+    self:addChild(self.applyCustomBtn)
+
+    self.resetAllBtn = ISButton:new(resetX, row2Y, btnW, btnHgt, "Reset All", self, Sorted.ManagerMC.onResetAll)
     self.resetAllBtn.borderColor = {r=0.2, g=0.2, b=0.6, a=1}
     self.resetAllBtn.backgroundColor = {r=0.1, g=0.1, b=0.3, a=0.5}
     self.resetAllBtn.backgroundColorMouseOver = {r=0.15, g=0.15, b=0.5, a=0.7}
     self:addChild(self.resetAllBtn)
 
-    y = y + btnH + 8
-
-    self.cancelBtn = ISButton:new(pad, y, self.width - pad * 2, btnH, "Cancel", self, Sorted.Manager.onClose)
-    self.cancelBtn.borderColor = {r=0.6, g=0.2, b=0.2, a=1}
-    self.cancelBtn.backgroundColor = {r=0.25, g=0.1, b=0.1, a=0.5}
-    self.cancelBtn.backgroundColorMouseOver = {r=0.4, g=0.1, b=0.1, a=0.7}
-    self:addChild(self.cancelBtn)
+    self:populateCategoryCombo()
 end
 
+function Sorted.ManagerMC:buildLists()
+    self.items = getAllItems()
+    self.module = {}
+    local moduleNames = {}
+    local allItems = {}
 
-local function getCategoryLabel(rawCategory)
-    if not rawCategory or rawCategory == "" then
-        return "-"
-    end
-    local key = "IGUI_ItemCat_" .. rawCategory
-    local label = getText(key)
-    if label == key then
-        return rawCategory
-    end
-    return label
-end
-
-local function loadSavedCategories()
-    local saved = {}
-    local reader = getFileReader(ASSIGNMENTS_FILE, false)
-    if reader then
-        while true do
-            local line = reader:readLine()
-            if not line then break end
-            local fullType, category = line:match("^(.-)=(.+)$")
-            if fullType and category then
-                saved[fullType] = category
+    for i = 0, self.items:size() - 1 do
+        local item = self.items:get(i)
+        if not item:getObsolete() and not item:isHidden() then
+            local moduleName = item:getModuleName()
+            if not self.module[moduleName] then
+                self.module[moduleName] = {}
+                table.insert(moduleNames, moduleName)
             end
-        end
-        reader:close()
-    end
-    return saved
-end
-
-function Sorted.Manager:loadAllItems()
-    self.fullList = {}
-    self.savedCategories = loadSavedCategories()
-    local items = getAllItems()
-
-    for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        if item and not item:getObsolete() and not item:isHidden() then
-            local rawCategory = item and item.getDisplayCategory and item:getDisplayCategory() or ""
-            local fullType = item and item.getFullName and item:getFullName()
-            local savedRaw = self.savedCategories[fullType] or "none"
-            local defaultRaw = Sorted.defaultCategories and Sorted.defaultCategories[fullType] or "none"
-            local currentRaw = savedRaw ~= "none" and savedRaw or rawCategory
-
-            local savedLabel = savedRaw ~= "none" and getCategoryLabel(savedRaw) or "-"
-            local defaultLabel = defaultRaw and defaultRaw ~= "none" and getCategoryLabel(defaultRaw) or "-"
-            local currentLabel = currentRaw ~= "" and getCategoryLabel(currentRaw) or "-"
-
-            table.insert(self.fullList, {
-                fullType = fullType,
-                displayName = item and item.getDisplayName and item:getDisplayName() or fullType,
-                category = rawCategory,
-                categoryLabel = currentLabel,
-                savedCategory = savedRaw,
-                savedCategoryLabel = savedLabel,
-                defaultCategory = defaultRaw,
-                defaultCategoryLabel = defaultLabel,
-                currentCategory = currentRaw,
-                currentCategoryLabel = currentLabel,
-                scriptItem = item
-            })
+            table.insert(self.module[moduleName], item)
+            table.insert(allItems, item)
         end
     end
 
-    table.sort(self.fullList, function(a, b)
-        return string.lower(a.displayName) < string.lower(b.displayName)
-    end)
-end
+    table.sort(moduleNames, function(a, b) return not string.sort(a, b) end)
 
-function Sorted.Manager:populateCategoryCombo()
-    self.categoryCombo:clear()
+    local listBox = Sorted.CategoryManager:new(0, 0, self.advPanel.width, self.advPanel.height - self.advPanel.tabHeight, self)
+    self.advPanel:addView("All", listBox)
+    listBox:initialise()
+    listBox:initList(allItems)
 
-    if Sorted.categories and #Sorted.categories > 0 then
-        for _, entry in ipairs(Sorted.categories) do
-            self.categoryCombo:addOption(entry.label or entry.key)
-        end
-    else
-        local categories = {}
-        for _, item in ipairs(self.fullList) do
-            if item.category and item.category ~= "" then
-                categories[item.category] = true
-            end
-        end
-
-        local sorted = {}
-        for cat, _ in pairs(categories) do
-            table.insert(sorted, cat)
-        end
-        table.sort(sorted)
-
-        for _, cat in ipairs(sorted) do
-            self.categoryCombo:addOption(cat)
+    for _, moduleName in ipairs(moduleNames) do
+        if moduleName ~= "Moveables" then
+            local modList = Sorted.CategoryManager:new(0, 0, self.advPanel.width, self.advPanel.height - self.advPanel.tabHeight, self)
+            modList:initialise()
+            self.advPanel:addView(moduleName, modList)
+            modList:initList(self.module[moduleName])
         end
     end
+
+    self.advPanel:activateView("All")
 end
 
+function Sorted.ManagerMC:getActiveList()
+    if not self.advPanel or not self.advPanel.activeView then
+        return nil
+    end
+    return self.advPanel.activeView.view
+end
 
-function Sorted.Manager:filterItems(searchText)
-    self.leftList:clear()
-    self.filteredList = {}
-    searchText = string.lower(searchText or "")
+function Sorted.ManagerMC:getSelectedFullTypes()
+    local list = self:getActiveList()
+    if not list or not list.datas then
+        return {}
+    end
 
-    for _, item in ipairs(self.fullList) do
-        if not self.bucketItems[item.fullType] then
-            local matchName = item.displayName and string.find(string.lower(item.displayName), searchText, 1, true)
-            local matchType = item.fullType and string.find(string.lower(item.fullType), searchText, 1, true)
+    local selectedItems = list.datas:getSelectedItems()
+    if not selectedItems or #selectedItems == 0 then
+        return {}
+    end
 
-            if searchText == "" or matchName or matchType then
-                table.insert(self.filteredList, item)
-                self.leftList:addItem(item.displayName, item)
-            end
+    local fullTypes = {}
+    local seen = {}
+    for _, item in ipairs(selectedItems) do
+        local scriptItem = item.item
+        local fullType = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
+        if fullType and not seen[fullType] then
+            seen[fullType] = true
+            table.insert(fullTypes, fullType)
         end
     end
+
+    return fullTypes
 end
 
-function Sorted.Manager.onSearchChange(searchBox)
-    local manager = searchBox.target
-    if not manager then return end
-    local text = searchBox:getInternalText() or ""
-    manager:filterItems(text)
-end
-
-
-function Sorted.Manager.doDrawLeftItem(self, y, item, alt)
-    local itemData = item.item
-    local manager = self.target
-
-    if alt then
-        self:drawRect(0, y, self.width, self.itemheight, 0.08, 0.1, 0.1, 0.1)
-    end
-
-    if self.selected == item.index then
-        self:drawRect(0, y, self.width, self.itemheight, 0.3, 0.3, 0.5, 0.3)
-    end
-
-    self:drawText(itemData.displayName, 6, y + 2, 1, 1, 1, 1, UIFont.Small)
-
-    local shiftingText = itemData.savedCategoryLabel or "-"
-    local sortingText = itemData.defaultCategoryLabel or "-"
-
-    local textManager = getTextManager()
-    local sortingWidth = textManager and textManager.MeasureStringX and textManager:MeasureStringX(UIFont.Small, sortingText) or 0
-    local shiftingWidth = textManager and textManager.MeasureStringX and textManager:MeasureStringX(UIFont.Small, shiftingText) or 0
-
-    local colWidth = (manager and manager.colWidth) or 110
-    local colSortingX = (manager and manager.colSortingX) or (self.width - colWidth - 15)
-    local colShiftingX = (manager and manager.colShiftingX) or (colSortingX - colWidth - 10)
-
-    local shiftingTextX = colShiftingX + (colWidth - shiftingWidth) / 2
-    local sortingTextX = colSortingX + (colWidth - sortingWidth) / 2
-
-    self:drawText(shiftingText, shiftingTextX, y + 2, 1, 0.9, 0.6, 1, UIFont.Small)
-    self:drawText(sortingText, sortingTextX, y + 2, 0.6, 0.6, 0.6, 1, UIFont.Small)
-
-    return y + self.itemheight
-end
-
-function Sorted.Manager.doDrawRightItem(self, y, item, alt)
-    local itemData = item.item
-
-    if alt then
-        self:drawRect(0, y, self.width, self.itemheight, 0.1, 0.1, 0.15, 0.1)
-    else
-        self:drawRect(0, y, self.width, self.itemheight, 0.05, 0.1, 0.12, 0.05)
-    end
-
-    if self.selected == item.index then
-        self:drawRect(0, y, self.width, self.itemheight, 0.3, 0.2, 0.5, 0.2)
-    end
-
-    self:drawText(itemData.displayName, 6, y + 2, 1, 1, 0.8, 1, UIFont.Small)
-
-    return y + self.itemheight
-end
-
-
-function Sorted.Manager.onLeftListClick(self, x, y)
-    local row = self:rowAt(x, y)
-    if row ~= -1 then
-        self.selected = row
-    end
-end
-
-function Sorted.Manager.onLeftListDoubleClick(self, x, y)
-    local manager = self.target
-    if not manager then return end
-
-    local row = self:rowAt(x, y)
-    if row ~= -1 and self.items[row] then
-        local itemData = self.items[row].item
-        manager:addItemToBucket(itemData)
-    end
-end
-
-function Sorted.Manager.onRightListClick(self, x, y)
-    local row = self:rowAt(x, y)
-    if row ~= -1 then
-        self.selected = row
-    end
-end
-
-function Sorted.Manager.onRightListDoubleClick(self, x, y)
-    local manager = self.target
-    if not manager then return end
-
-    local row = self:rowAt(x, y)
-    if row ~= -1 and self.items[row] then
-        local itemData = self.items[row].item
-        manager:removeItemFromBucket(itemData)
-    end
-end
-
-
-function Sorted.Manager:addItemToBucket(itemData)
-    if not itemData or self.bucketItems[itemData.fullType] then
-        return
-    end
-
-    self.bucketItems[itemData.fullType] = itemData
-    self:refreshBucketList()
-    self:filterItems(self.searchBox:getInternalText() or "")
-end
-
-function Sorted.Manager:removeItemFromBucket(itemData)
-    if not itemData then return end
-
-    self.bucketItems[itemData.fullType] = nil
-    self:refreshBucketList()
-    self:filterItems(self.searchBox:getInternalText() or "")
-end
-
-function Sorted.Manager:updateBucketCountLabel(count)
-    self.bucketCount = count
-end
-
-function Sorted.Manager:refreshBucketList()
-    self.rightList:clear()
-
-    local count = 0
-    local sorted = {}
-    for _, itemData in pairs(self.bucketItems) do
-        table.insert(sorted, itemData)
-    end
-    table.sort(sorted, function(a, b)
-        return string.lower(a.displayName) < string.lower(b.displayName)
-    end)
-
-    for _, itemData in ipairs(sorted) do
-        self.rightList:addItem(itemData.displayName, itemData)
-        count = count + 1
-    end
-
-    self:updateBucketCountLabel(count)
-end
-
-function Sorted.Manager:onAddToBucket()
-    local selected = self.leftList.selected
-    if selected and self.leftList.items[selected] then
-        local itemData = self.leftList.items[selected].item
-        self:addItemToBucket(itemData)
-    end
-end
-
-function Sorted.Manager:onRemoveFromBucket()
-    local selected = self.rightList.selected
-    if selected and self.rightList.items[selected] then
-        local itemData = self.rightList.items[selected].item
-        self:removeItemFromBucket(itemData)
-    end
-end
-
-function Sorted.Manager:onClearBucket()
-    self.bucketItems = {}
-    self:refreshBucketList()
-    self:filterItems(self.searchBox:getInternalText() or "")
-end
-
-
-function Sorted.Manager:getBucketCount()
-    local count = 0
-    for _ in pairs(self.bucketItems) do
-        count = count + 1
-    end
-    return count
-end
-
-function Sorted.Manager:applyCategory(category)
+function Sorted.ManagerMC:applyCategoryToFullTypes(fullTypes, category, skipNormalize)
     if not category or category == "" then
         return 0
     end
 
     local count = 0
-    for fullType, _ in pairs(self.bucketItems) do
-        Sorted.writeCategoryToIni(fullType, category)
-        Sorted.applyCategory(fullType, category)
+    for _, fullType in ipairs(fullTypes) do
+        Sorted.writeCategoryToIni(fullType, category, skipNormalize)
+        Sorted.applyCategory(fullType, category, skipNormalize)
         count = count + 1
     end
 
     if count > 0 then
-        if Sorted.Tracker then
+        if Sorted.Tracker and Sorted.Tracker.update then
             Sorted.Tracker.clearAllCache()
             Sorted.Tracker.update()
         end
-        Sorted.collectDisplayCategories()
-        Sorted:log("[Sorted.Manager] Applied category '" .. category .. "' to " .. count .. " item types", 3)
+        if Sorted.collectDisplayCategories then
+            Sorted.collectDisplayCategories()
+        end
     end
 
     return count
 end
 
-function Sorted.Manager:onApplySelected()
-    if self:getBucketCount() == 0 then
-        Sorted:log("[Sorted.Manager] onApplySelected: bucket is empty", 2)
-        return
+function Sorted.ManagerMC:populateCategoryCombo()
+    self.categoryCombo:clear()
+
+    if Sorted.collectDisplayCategories then
+        Sorted.collectDisplayCategories()
     end
 
-    local selected = self.categoryCombo.selected
-    Sorted:log("[Sorted.Manager] onApplySelected: selected index = " .. tostring(selected), 3)
-
-    if not selected or selected < 1 then
-        Sorted:log("[Sorted.Manager] onApplySelected: no selection", 2)
-        return
+    if Sorted.categories and #Sorted.categories > 0 then
+        for _, entry in ipairs(Sorted.categories) do
+            self.categoryCombo:addOptionWithData(entry.label or entry.key, entry.key)
+        end
     end
 
-    local option = self.categoryCombo.options[selected]
-    if not option then
-        Sorted:log("[Sorted.Manager] onApplySelected: option not found at index " .. tostring(selected), 2)
-        return
-    end
-
-    local category = option.text or option
-    Sorted:log("[Sorted.Manager] onApplySelected: category = " .. tostring(category), 3)
-
-    if not category or category == "" then
-        Sorted:log("[Sorted.Manager] onApplySelected: category is empty", 2)
-        return
-    end
-
-    local count = self:applyCategory(category)
-    Sorted:log("[Sorted.Manager] onApplySelected: applied to " .. tostring(count) .. " items", 3)
-    if count > 0 then
-        self:close()
+    if self.categoryCombo.options and #self.categoryCombo.options > 0 then
+        self.categoryCombo.selected = 1
     end
 end
 
-function Sorted.Manager:onApplyCustom()
-    if self:getBucketCount() == 0 then
+function Sorted.ManagerMC:onApplySelected()
+    local selected = self:getSelectedFullTypes()
+    if #selected == 0 then
+        return
+    end
+
+    local option = self.categoryCombo.options[self.categoryCombo.selected]
+    local category = option and (option.data or option.text)
+    if not category or category == "" then
+        return
+    end
+
+    self:applyCategoryToFullTypes(selected, category, false)
+    self:populateCategoryCombo()
+end
+
+function Sorted.ManagerMC:onApplyCustom()
+    local selected = self:getSelectedFullTypes()
+    if #selected == 0 then
         return
     end
 
@@ -573,15 +518,14 @@ function Sorted.Manager:onApplyCustom()
         return
     end
 
-    local count = self:applyCategory(category)
-    if count > 0 then
-        self:close()
-    end
+    self:applyCategoryToFullTypes(selected, category, false)
+    self.customInput:setText("")
+    self:populateCategoryCombo()
 end
 
-
-function Sorted.Manager:onResetSelected()
-    if self:getBucketCount() == 0 then
+function Sorted.ManagerMC:onResetSelected()
+    local selected = self:getSelectedFullTypes()
+    if #selected == 0 then
         return
     end
 
@@ -590,20 +534,25 @@ function Sorted.Manager:onResetSelected()
         getCore():getScreenHeight() / 2 - 50,
         300, 100,
         "Reset selected items to default categories?",
-        true, self, Sorted.Manager.onResetSelectedConfirm
+        true, self, Sorted.ManagerMC.onResetSelectedConfirm
     )
     modal:initialise()
     modal:addToUIManager()
 end
 
-function Sorted.Manager:onResetSelectedConfirm(button)
+function Sorted.ManagerMC:onResetSelectedConfirm(button)
     if button.internal ~= "YES" then
         return
     end
 
+    if Sorted.collectDefaultCategories then
+        Sorted.collectDefaultCategories()
+    end
+
+    local selected = self:getSelectedFullTypes()
     local count = 0
-    for fullType, _ in pairs(self.bucketItems) do
-        local defaultCategory = Sorted.defaultCategories[fullType]
+    for _, fullType in ipairs(selected) do
+        local defaultCategory = Sorted.defaultCategories and Sorted.defaultCategories[fullType]
         if defaultCategory and defaultCategory ~= "none" then
             Sorted.writeCategoryToIni(fullType, defaultCategory, true)
             Sorted.applyCategory(fullType, defaultCategory, true)
@@ -613,32 +562,35 @@ function Sorted.Manager:onResetSelectedConfirm(button)
     end
 
     if count > 0 then
-        if Sorted.Tracker then
+        if Sorted.Tracker and Sorted.Tracker.update then
             Sorted.Tracker.clearAllCache()
             Sorted.Tracker.update()
         end
-        Sorted.collectDisplayCategories()
-        Sorted:log("[Sorted.Manager] Reset " .. count .. " items to default categories", 3)
+        if Sorted.collectDisplayCategories then
+            Sorted.collectDisplayCategories()
+        end
     end
-
-    self:close()
 end
 
-function Sorted.Manager:onResetAll()
+function Sorted.ManagerMC:onResetAll()
     local modal = ISModalDialog:new(
         getCore():getScreenWidth() / 2 - 150,
         getCore():getScreenHeight() / 2 - 50,
         300, 100,
         "Reset ALL items to default categories?\nThis will clear your INI file!",
-        true, self, Sorted.Manager.onResetAllConfirm
+        true, self, Sorted.ManagerMC.onResetAllConfirm
     )
     modal:initialise()
     modal:addToUIManager()
 end
 
-function Sorted.Manager:onResetAllConfirm(button)
+function Sorted.ManagerMC:onResetAllConfirm(button)
     if button.internal ~= "YES" then
         return
+    end
+
+    if Sorted.collectDefaultCategories then
+        Sorted.collectDefaultCategories()
     end
 
     local writer = getFileWriter("Sorted_CategoryAssignments.ini", true, false)
@@ -650,7 +602,7 @@ function Sorted.Manager:onResetAllConfirm(button)
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
         local fullType = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
-        local defaultCategory = Sorted.defaultCategories[fullType]
+        local defaultCategory = Sorted.defaultCategories and Sorted.defaultCategories[fullType]
         if defaultCategory and defaultCategory ~= "none" then
             if scriptItem and scriptItem.DoParam then
                 scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
@@ -659,67 +611,48 @@ function Sorted.Manager:onResetAllConfirm(button)
         end
     end
 
-    if Sorted.Tracker then
+    if Sorted.Tracker and Sorted.Tracker.update then
         Sorted.Tracker.clearAllCache()
         Sorted.Tracker.update()
     end
 
-    Sorted.collectDisplayCategories()
-    Sorted:log("[Sorted.Manager] Reset ALL items to default categories", 3)
-
-    self:close()
-end
-
-
-function Sorted.Manager:render()
-    ISPanel.render(self)
-
-    if self.bucketCountLabelX and self.bucketCountLabelY then
-        local text = "(" .. tostring(self.bucketCount or 0) .. ")"
-        local tm = getTextManager()
-        local textWidth = tm and tm.MeasureStringX and tm:MeasureStringX(UIFont.Small, text) or 0
-        self:drawRect(self.bucketCountLabelX - 2, self.bucketCountLabelY, textWidth + 4, 20, 0.35, 0, 0, 0)
-        self:drawText(text, self.bucketCountLabelX, self.bucketCountLabelY + 2, 1, 1, 0.9, 1, UIFont.Small)
+    if Sorted.collectDisplayCategories then
+        Sorted.collectDisplayCategories()
     end
 end
 
-
-function Sorted.Manager:onClose()
+function Sorted.ManagerMC:close()
     self:setVisible(false)
     self:removeFromUIManager()
-    Sorted.Manager.instance = nil
+    Sorted.ManagerMC.instance = nil
 end
 
-function Sorted.Manager:close()
-    self:onClose()
-end
-
-function Sorted.Manager.toggle()
-    if Sorted.Manager.instance then
-        Sorted.Manager.instance:close()
+function Sorted.ManagerMC.toggle()
+    if Sorted.ManagerMC.instance then
+        Sorted.ManagerMC.instance:close()
         return
     end
 
-    local width = 850
-    local height = 600
+    local scale = Sorted.ManagerMC.UIScaleFactor()
+    local width = 980 * scale
+    local height = 650 * scale
     local x = (getCore():getScreenWidth() - width) / 2
     local y = (getCore():getScreenHeight() - height) / 2
 
-    local manager = Sorted.Manager:new(x, y, width, height)
+    local manager = Sorted.ManagerMC:new(x, y, width, height)
     manager:initialise()
     manager:addToUIManager()
     manager:setVisible(true)
 
-    Sorted.Manager.instance = manager
+    Sorted.ManagerMC.instance = manager
 end
 
-
-function Sorted.openManager()
-    Sorted.Manager.toggle()
+function Sorted.openManagerMC()
+    Sorted.ManagerMC.toggle()
 end
 
 if Sorted and Sorted.log then
-    Sorted:log("[Sorted.Manager] Loaded! Use Sorted.openManager() or right-click menu to open.", 3)
+    Sorted:log("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.", 3)
 else
-    print("[Sorted.Manager] Loaded!")
+    print("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.")
 end
