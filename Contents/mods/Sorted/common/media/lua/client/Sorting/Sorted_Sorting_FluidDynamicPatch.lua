@@ -23,11 +23,11 @@ local function getAlcoholCategoryDetailed(fluidContainer)
       local fluidType = primaryFluid.getFluidTypeString and string.lower(primaryFluid:getFluidTypeString())
 
       if fluidType and string.find(fluidType, "beer", 1, true) then
-        return "FoodAB"
+        return "FoodAlcBeer"
       elseif fluidType and (string.find(fluidType, "wine", 1, true) or string.find(fluidType, "mead", 1, true)) then
-        return "FoodAW"
+        return "FoodAlcWine"
       else
-        return "FoodAL"
+        return "FoodAlcLiquor"
       end
     end
   else
@@ -38,21 +38,21 @@ local function getAlcoholCategoryDetailed(fluidContainer)
       local effectivePercentage = (totalAlcohol / totalAmount) * 100
 
       if effectivePercentage >= ALCOHOL_STRENGTH_THRESHOLD then
-        return "FoodAD"
+        return "FoodAlcDrink"
       else
-        return "FoodABev"
+        return "FoodAlcBeverage"
       end
     end
   end
 
-  return "FoodA"
+  return "FoodAlcohol"
 end
 
 local function getAlcoholCategorySimple(fluidContainer)
   if not fluidContainer or not fluidContainer.isCategory or not fluidContainer:isCategory(FluidCategory.Alcoholic) then
     return nil
   end
-  return "FoodA"
+  return "FoodAlcohol"
 end
 
 local function getAlcoholCategory(fluidContainer, detailed)
@@ -71,7 +71,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
   if item and item.getEvolvedRecipeName then
     local evolvedRecipeName = item:getEvolvedRecipeName()
     if evolvedRecipeName and evolvedRecipeName ~= "" then
-      return "FoodD"
+      return "FoodMeal"
     end
   end
 
@@ -103,7 +103,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.AnimalMilk))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.SheepMilk))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.CowMilk)) then
-    return "FoodM"
+    return "FoodMilk"
   end
 
   local alcoholCategory = getAlcoholCategory(fluidContainer, true)
@@ -112,11 +112,11 @@ local function getDynamicFluidCategory(fluidContainer, item)
   end
 
   if fluidContainer and fluidContainer.isAllCategory and fluidContainer:isAllCategory(FluidCategory.Water) then
-    return "FoodW"
+    return "FoodWater"
   end
 
   if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Beverage) then
-    return "FoodB"
+    return "FoodBeverage"
   end
 
   return nil

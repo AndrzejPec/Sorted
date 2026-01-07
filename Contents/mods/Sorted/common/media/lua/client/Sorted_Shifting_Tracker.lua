@@ -73,6 +73,10 @@ if originalWriteCategoryToIni then
     Sorted.writeCategoryToIni = function(fullType, category)
         originalWriteCategoryToIni(fullType, category)
         Sorted.Tracker.invalidateCategoryCache()
+
+        if Sorted.setUserCategory then
+            Sorted.setUserCategory(fullType, category)
+        end
     end
 end
 

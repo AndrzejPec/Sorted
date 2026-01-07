@@ -141,7 +141,7 @@ local function getAlcoholCategory(item)
   if item.FluidContainer then
     local fluidContainer = item:getFluidcontainer()
     if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Alcoholic) then
-      return "FoodA"
+      return "FoodAlcohol"
     end
   end
 end
@@ -154,14 +154,14 @@ end
 
 local function getBeverageCategory(item)
   if item and item.getDisplayCategory and item:getDisplayCategory() == "Water" then
-    return "FoodB"
+    return "FoodBeverage"
   end
   return nil
 end
 
 local function getFrozenFoodCategory(item)
   if item:hasTag(ItemTag.GOOD_FROZEN) then
-    return "FoodI"
+    return "FoodIceCream"
   end
   return nil
 end
@@ -181,7 +181,7 @@ local function getDishCategory(item)
     local cookwareTypes = {"Pot", "Plate", "2handbowl", "Saucepan"}
     for _, cType in ipairs(cookwareTypes) do
       if eatType == cType then
-        return "FoodD"
+        return "FoodMeal"
       end
     end
   end
@@ -197,16 +197,16 @@ local function isFoodBox(item)
 
   -- Check for wine box
   if recipe == "OpenBoxOfWine" then
-    return "Wine"
+    return "FoodAlcWine"
   end
 
   -- Check for canned food/water boxes
   if recipe == "OpenBoxOfCannedFood" then
     local icon = item:getIcon()
     if icon and string.find(tostring(icon), "CannedWater", 1, true) then
-      return "Water"
+      return "FoodWater"
     end
-    return "Food"
+    return "FoodNonPerish"
   end
 
   return nil
@@ -223,30 +223,24 @@ local function getFoodCategory(item)
 
   local boxType = isFoodBox(item)
   if boxType then
-    local boxes = {
-      ["Food"] = "FoodN",
-      ["Wine"] = "FoodAW",
-      ["Water"] = "FoodW"
-    }
-
-    return boxes[boxType]
+    return boxType
   end
 
 
 
   if isCannedFood(item) then
     if isPerishable(item) then
-      return "FoodP"
+      return "FoodPerishable"
     end
 
     local icon = item:getIcon()
     local name = item:getFullName()
     if icon and string.find(tostring(icon), "CannedWater", 1, true) then
-      return "FoodW"
+      return "FoodWater"
     elseif string.lower(name):find("can") then
-      return "FoodC"
+      return "FoodCanned"
     else
-      return "FoodN"
+      return "FoodNonPerish"
     end
   end
 
@@ -258,14 +252,14 @@ local function getFoodCategory(item)
   local invItem = fullType and instanceItem(fullType) or nil
   if invItem and invItem.isSpice and invItem:isSpice() then
     Sorted:log("Item " .. fullType .. " detected as SPICE by checking its invItem", 3)
-    return "FoodS"
+    return "FoodSpice"
   end
 
   if isPerishable(item) then
-      return "FoodP"
+      return "FoodPerishable"
   end
 
-  return "FoodN"
+  return "FoodNonPerish"
 end
 
 local function getLiteratureCategory(item)
@@ -276,18 +270,18 @@ local function getLiteratureCategory(item)
   if item and item.getItemType and item:getItemType() == ItemType.NORMAL then
     local recipe = item.getDoubleClickRecipe and item:getDoubleClickRecipe()
     if recipe == "UnpackSetOfBooks" then
-      return "LitS"
+      return "LitSkill"
     end
   end
 
   if item and item.getItemType and item:getItemType() == ItemType.CONTAINER then
     if item:getDisplayCategory() == "Literature" then
-      return "LitH"
+      return "LitHolder"
     end
   end
 
   if item and item.getItemType and item:getItemType() == ItemType.MAP then
-    return "LitC"
+    return "LitCartography"
   end
 
   if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
@@ -296,7 +290,7 @@ local function getLiteratureCategory(item)
 
   local recipe = item and item.getLearnedRecipes and item:getLearnedRecipes()
   if recipe and recipe.size and recipe:size() > 0 then
-    return "LitR"
+    return "LitRecipe"
   end
 
   -- Check for skill books (must have actual Perk object)
@@ -305,7 +299,7 @@ local function getLiteratureCategory(item)
     local skillType = type(skill)
     -- Perk objects are userdata, and tostring() gives skill name
     if skillType == "userdata" or (skillType == "string" and skill ~= "") then
-      return "LitS"
+      return "LitSkill"
     end
   end
 
@@ -314,25 +308,25 @@ local function getLiteratureCategory(item)
   local boredomChange = item.getBoredomChange and item:getBoredomChange() or 0
   local unhappyChange = item.getUnhappyChange and item:getUnhappyChange() or 0
   if stressChange ~= 0 or boredomChange ~= 0 or unhappyChange ~= 0 then
-    return "LitE"
+    return "LitEntertainment"
   end
 
   if item and item.canBeWrite then
-    return "LitW"
+    return "LitWriting"
   end
 
   local staticModel = item.getStaticModel and item:getWorldStaticModel()
   local worldStaticModel = item.getWorldStaticModel and item:getWorldStaticModel()
 
   if staticModel and string.find(string.lower(staticModel), "schematic") then
-    return "LitSch"
+    return "LitSchematic"
   end
 
   if worldStaticModel and string.find(string.lower(worldStaticModel), "schematic") then
-    return "LitSch"
+    return "LitSchematic"
   end
 
-  return "LitM"
+  return "LitMisc"
 end
 
 local function getThrowableWeaponCategory(item)
@@ -341,7 +335,7 @@ local function getThrowableWeaponCategory(item)
   end
 
   if item.getSwingAnim and item:getSwingAnim() == "Throw" then
-    return "WepBomb"
+    return "WeaponBomb"
   end
   return nil
 end
@@ -498,13 +492,13 @@ end
 local function getContainerCategory(item)
   local itemType = item.getFullName and item:getFullName()
   if isFannyPack(item) then
-    return "ContFanny"
+    return "ContainerFanny"
   elseif isBackpack(item) then
     Sorted:log("Item " .. itemType or "?" .. " categorized as backpack", 3)
-    return "ContBack"
+    return "ContainerBackpack"
   elseif isBag(item) then
     Sorted:log("Item " .. itemType or "?" .. " categorized as bag", 3)
-    return "ContBag"
+    return "ContainerBag"
   else
     local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
     -- if displayCategory == "Bag" then
@@ -613,13 +607,13 @@ end
 
 local function getRanged(item)
   if item:isRanged() then
-    return "WepFire"
+    return "WeaponFirearm"
   end
 end
 
 local function getAmmo(item)
   if item:hasTag(ItemTag.AMMO_CASE) then
-    return "Ammo"
+    return "Ammunition"
   end
 end
 
@@ -663,7 +657,7 @@ end
 
 local function getMagazines(item)
   if item:hasTag(ItemTag.PISTOL_MAGAZINE) or item:hasTag(ItemTag.RIFLE_MAGAZINE) then
-    return "WepMag"
+    return "WeaponMagazine"
   end
 end
 
@@ -710,121 +704,121 @@ end
 
 
 local BODYLOCATION_MAP = {
-  HAT                   = { simple = "ClothHead", detailed = "ClothHead_Hat" },
-  FULLHAT               = { simple = "ClothHead", detailed = "ClothHead_FullHat" },
-  MASK                  = { simple = "ClothHead", detailed = "ClothHead_Mask" },
-  MASKFULL              = { simple = "ClothHead", detailed = "ClothHead_Mask" },
-  MASKEYES              = { simple = "ClothHead", detailed = "ClothHead_Mask" },
-  EYES                  = { simple = "ClothHead", detailed = "ClothHead_Glasses" },
-  LEFTEYE               = { simple = "ClothHead", detailed = "ClothHead_Glasses" },
-  RIGHTEYE              = { simple = "ClothHead", detailed = "ClothHead_Glasses" },
-  FULLSUITHEAD          = { simple = "ClothHead", detailed = "ClothHead_FullHat" },
+  HAT                   = { simple = "ClothHead", detailed = "ClothHeadHat" },
+  FULLHAT               = { simple = "ClothHead", detailed = "ClothHeadFullHat" },
+  MASK                  = { simple = "ClothHead", detailed = "ClothHeadMask" },
+  MASKFULL              = { simple = "ClothHead", detailed = "ClothHeadMask" },
+  MASKEYES              = { simple = "ClothHead", detailed = "ClothHeadMask" },
+  EYES                  = { simple = "ClothHead", detailed = "ClothHeadGlasses" },
+  LEFTEYE               = { simple = "ClothHead", detailed = "ClothHeadGlasses" },
+  RIGHTEYE              = { simple = "ClothHead", detailed = "ClothHeadGlasses" },
+  FULLSUITHEAD          = { simple = "ClothHead", detailed = "ClothHeadFullHat" },
 
-  NECK                  = { simple = "ClothAcc", detailed = "ClothAcc_Neck" },
-  NECK_TEXTURE          = { simple = "ClothAcc", detailed = "ClothAcc_Neck" },
-  SCARF                 = { simple = "ClothAcc", detailed = "ClothAcc_Scarf" },
+  NECK                  = { simple = "ClothAccessory", detailed = "ClothAccNeck" },
+  NECK_TEXTURE          = { simple = "ClothAccessory", detailed = "ClothAccNeck" },
+  SCARF                 = { simple = "ClothAccessory", detailed = "ClothAccScarf" },
 
-  JACKET                = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  JACKET_BULKY          = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  JACKET_DOWN           = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  JACKETHAT             = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  JACKETHAT_BULKY       = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  JACKETSUIT            = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  SHIRT                 = { simple = "ClothBody", detailed = "ClothBody_Shirt" },
-  SHORTSLEEVESHIRT      = { simple = "ClothBody", detailed = "ClothBody_Shirt" },
-  TSHIRT                = { simple = "ClothBody", detailed = "ClothBody_Tshirt" },
-  TANKTOP               = { simple = "ClothBody", detailed = "ClothBody_TankTop" },
-  SWEATER               = { simple = "ClothBody", detailed = "ClothBody_Sweater" },
-  SWEATERHAT            = { simple = "ClothBody", detailed = "ClothBody_Sweater" },
-  JERSEY                = { simple = "ClothBody", detailed = "ClothBody_Sweater" },
-  TORSOEXTRA            = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  TORSOEXTRAVEST        = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  TORSOEXTRAVESTBULLET  = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  VESTTEXTURE           = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  FULLSUIT              = { simple = "ClothBody", detailed = "ClothBody_FullSuit" },
-  BOILERSUIT            = { simple = "ClothBody", detailed = "ClothBody_FullSuit" },
-  FULLTOP               = { simple = "ClothBody", detailed = "ClothBody_FullTop" },
-  DRESS                 = { simple = "ClothBody", detailed = "ClothBody_FullTop" },
-  LONGDRESS             = { simple = "ClothBody", detailed = "ClothBody_FullTop" },
-  TORSO1LEGS1           = { simple = "ClothBody", detailed = "ClothBody_FullSuit" },
-  BATHROBE              = { simple = "ClothBody", detailed = "ClothBody_Jacket" },
-  CUIRASS               = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  GORGET                = { simple = "ClothBody", detailed = "ClothBody_Extra" },
+  JACKET                = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  JACKET_BULKY          = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  JACKET_DOWN           = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  JACKETHAT             = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  JACKETHAT_BULKY       = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  JACKETSUIT            = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  SHIRT                 = { simple = "ClothBody", detailed = "ClothBodyShirt" },
+  SHORTSLEEVESHIRT      = { simple = "ClothBody", detailed = "ClothBodyShirt" },
+  TSHIRT                = { simple = "ClothBody", detailed = "ClothBodyTshirt" },
+  TANKTOP               = { simple = "ClothBody", detailed = "ClothBodyTank" },
+  SWEATER               = { simple = "ClothBody", detailed = "ClothBodySweater" },
+  SWEATERHAT            = { simple = "ClothBody", detailed = "ClothBodySweater" },
+  JERSEY                = { simple = "ClothBody", detailed = "ClothBodySweater" },
+  TORSOEXTRA            = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  TORSOEXTRAVEST        = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  TORSOEXTRAVESTBULLET  = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  VESTTEXTURE           = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  FULLSUIT              = { simple = "ClothBody", detailed = "ClothBodyFullSuit" },
+  BOILERSUIT            = { simple = "ClothBody", detailed = "ClothBodyFullSuit" },
+  FULLTOP               = { simple = "ClothBody", detailed = "ClothBodyFullTop" },
+  DRESS                 = { simple = "ClothBody", detailed = "ClothBodyFullTop" },
+  LONGDRESS             = { simple = "ClothBody", detailed = "ClothBodyFullTop" },
+  TORSO1LEGS1           = { simple = "ClothBody", detailed = "ClothBodyFullSuit" },
+  BATHROBE              = { simple = "ClothBody", detailed = "ClothBodyJacket" },
+  CUIRASS               = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  GORGET                = { simple = "ClothBody", detailed = "ClothBodyExtra" },
 
-  LEFTARM               = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  RIGHTARM              = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  FOREARM_LEFT          = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  FOREARM_RIGHT         = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  ELBOW_LEFT            = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  ELBOW_RIGHT           = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  SHOULDERPADLEFT       = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  SHOULDERPADRIGHT      = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  SPORTSHOULDERPAD      = { simple = "ClothBody", detailed = "ClothBody_Extra" },
-  SPORTSHOULDERPADONTOP = { simple = "ClothBody", detailed = "ClothBody_Extra" },
+  LEFTARM               = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  RIGHTARM              = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  FOREARM_LEFT          = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  FOREARM_RIGHT         = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  ELBOW_LEFT            = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  ELBOW_RIGHT           = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  SHOULDERPADLEFT       = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  SHOULDERPADRIGHT      = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  SPORTSHOULDERPAD      = { simple = "ClothBody", detailed = "ClothBodyExtra" },
+  SPORTSHOULDERPADONTOP = { simple = "ClothBody", detailed = "ClothBodyExtra" },
 
-  HANDS                 = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
-  HANDSLEFT             = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
-  HANDSRIGHT            = { simple = "ClothHands", detailed = "ClothHands_Gloves" },
-  LEFTWRIST             = { simple = "ClothHands", detailed = "ClothHands_Wrist" },
-  RIGHTWRIST            = { simple = "ClothHands", detailed = "ClothHands_Wrist" },
+  HANDS                 = { simple = "ClothHands", detailed = "ClothHandsGloves" },
+  HANDSLEFT             = { simple = "ClothHands", detailed = "ClothHandsGloves" },
+  HANDSRIGHT            = { simple = "ClothHands", detailed = "ClothHandsGloves" },
+  LEFTWRIST             = { simple = "ClothHands", detailed = "ClothHandsWrist" },
+  RIGHTWRIST            = { simple = "ClothHands", detailed = "ClothHandsWrist" },
 
-  PANTS                 = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  PANTS_SKINNY          = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  PANTS_EXTRA           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  SHORTPANTS            = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  SHORTSSHORT           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  SKIRT                 = { simple = "ClothLegs", detailed = "ClothLegs_Skirt" },
-  LONGSKIRT             = { simple = "ClothLegs", detailed = "ClothLegs_Skirt" },
-  LEGS1                 = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  THIGH_LEFT            = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  THIGH_RIGHT           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  KNEE_LEFT             = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  KNEE_RIGHT            = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  CALF_LEFT             = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  CALF_RIGHT            = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  CALF_LEFT_TEXTURE     = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  CALF_RIGHT_TEXTURE    = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  GAITER_LEFT           = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
-  GAITER_RIGHT          = { simple = "ClothLegs", detailed = "ClothLegs_Pants" },
+  PANTS                 = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  PANTS_SKINNY          = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  PANTS_EXTRA           = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  SHORTPANTS            = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  SHORTSSHORT           = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  SKIRT                 = { simple = "ClothLegs", detailed = "ClothLegsSkirt" },
+  LONGSKIRT             = { simple = "ClothLegs", detailed = "ClothLegsSkirt" },
+  LEGS1                 = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  THIGH_LEFT            = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  THIGH_RIGHT           = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  KNEE_LEFT             = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  KNEE_RIGHT            = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  CALF_LEFT             = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  CALF_RIGHT            = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  CALF_LEFT_TEXTURE     = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  CALF_RIGHT_TEXTURE    = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  GAITER_LEFT           = { simple = "ClothLegs", detailed = "ClothLegsPants" },
+  GAITER_RIGHT          = { simple = "ClothLegs", detailed = "ClothLegsPants" },
 
-  SHOES                 = { simple = "ClothFeet", detailed = "ClothFeet_Shoes" },
-  SOCKS                 = { simple = "ClothFeet", detailed = "ClothFeet_Socks" },
+  SHOES                 = { simple = "ClothFeet", detailed = "ClothFeetShoes" },
+  SOCKS                 = { simple = "ClothFeet", detailed = "ClothFeetSocks" },
 
-  BELT                  = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
-  BELTEXTRA             = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
-  AMMOSTRAP             = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
-  WEBBING               = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
-  SHOULDERHOLSTER       = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
-  ANKLEHOLSTER          = { simple = "ClothAcc", detailed = "ClothAcc_Belt" },
+  BELT                  = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
+  BELTEXTRA             = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
+  AMMOSTRAP             = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
+  WEBBING               = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
+  SHOULDERHOLSTER       = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
+  ANKLEHOLSTER          = { simple = "ClothAccessory", detailed = "ClothAccBelt" },
 
-  BACK                  = { simple = "ClothBag", detailed = "ClothBag_Back" },
-  SATCHEL               = { simple = "ClothBag", detailed = "ClothBag_Belt" },
-  FANNYPACKFRONT        = { simple = "ClothBag", detailed = "ClothBag_Belt" },
-  FANNYPACKBACK         = { simple = "ClothBag", detailed = "ClothBag_Back" },
+  BACK                  = { simple = "ClothBag", detailed = "ClothBagBack" },
+  SATCHEL               = { simple = "ClothBag", detailed = "ClothBagBelt" },
+  FANNYPACKFRONT        = { simple = "ClothBag", detailed = "ClothBagBelt" },
+  FANNYPACKBACK         = { simple = "ClothBag", detailed = "ClothBagBack" },
 
-  UNDERWEAR             = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Bottom" },
-  UNDERWEARTOP          = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Top" },
-  UNDERWEARBOTTOM       = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Bottom" },
-  UNDERWEAREXTRA1       = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Extra" },
-  UNDERWEAREXTRA2       = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Extra" },
-  CODPIECE              = { simple = "ClothUnderwear", detailed = "ClothUnderwear_Extra" },
+  UNDERWEAR             = { simple = "ClothUnderwear", detailed = "ClothUnderBottom" },
+  UNDERWEARTOP          = { simple = "ClothUnderwear", detailed = "ClothUnderTop" },
+  UNDERWEARBOTTOM       = { simple = "ClothUnderwear", detailed = "ClothUnderBottom" },
+  UNDERWEAREXTRA1       = { simple = "ClothUnderwear", detailed = "ClothUnderExtra" },
+  UNDERWEAREXTRA2       = { simple = "ClothUnderwear", detailed = "ClothUnderExtra" },
+  CODPIECE              = { simple = "ClothUnderwear", detailed = "ClothUnderExtra" },
 
-  NECKLACE              = { simple = "ClothJewelry", detailed = "ClothJewelry_Necklace" },
-  NECKLACE_LONG         = { simple = "ClothJewelry", detailed = "ClothJewelry_Necklace" },
-  NOSE                  = { simple = "ClothJewelry", detailed = "ClothJewelry_Nose" },
-  EARS                  = { simple = "ClothJewelry", detailed = "ClothJewelry_Earrings" },
-  EARTOP                = { simple = "ClothJewelry", detailed = "ClothJewelry_Earrings" },
-  RIGHT_RINGFINGER      = { simple = "ClothJewelry", detailed = "ClothJewelry_Rings" },
-  LEFT_RINGFINGER       = { simple = "ClothJewelry", detailed = "ClothJewelry_Rings" },
-  RIGHT_MIDDLEFINGER    = { simple = "ClothJewelry", detailed = "ClothJewelry_Rings" },
-  LEFT_MIDDLEFINGER     = { simple = "ClothJewelry", detailed = "ClothJewelry_Rings" },
-  BELLYBUTTON           = { simple = "ClothJewelry", detailed = "ClothJewelry_Groin" },
-  TAIL                  = { simple = "ClothAcc", detailed = "ClothAcc_Tail" },
-  GROIN                 = { simple = "ClothJewelry", detailed = "ClothJewelry_Groin" },
+  NECKLACE              = { simple = "ClothJewelry", detailed = "ClothJewNeck" },
+  NECKLACE_LONG         = { simple = "ClothJewelry", detailed = "ClothJewNeck" },
+  NOSE                  = { simple = "ClothJewelry", detailed = "ClothJewNose" },
+  EARS                  = { simple = "ClothJewelry", detailed = "ClothJewEar" },
+  EARTOP                = { simple = "ClothJewelry", detailed = "ClothJewEar" },
+  RIGHT_RINGFINGER      = { simple = "ClothJewelry", detailed = "ClothJewRings" },
+  LEFT_RINGFINGER       = { simple = "ClothJewelry", detailed = "ClothJewRings" },
+  RIGHT_MIDDLEFINGER    = { simple = "ClothJewelry", detailed = "ClothJewRings" },
+  LEFT_MIDDLEFINGER     = { simple = "ClothJewelry", detailed = "ClothJewRings" },
+  BELLYBUTTON           = { simple = "ClothJewelry", detailed = "ClothJewGroin" },
+  TAIL                  = { simple = "ClothAccessory", detailed = "ClothAccTail" },
+  GROIN                 = { simple = "ClothJewelry", detailed = "ClothJewGroin" },
 
   BANDAGE               = { simple = "ClothMisc", detailed = "ClothMisc" },
-  SCBA                  = { simple = "ClothHead", detailed = "ClothHead_Mask" },
-  SCBANOTANK            = { simple = "ClothHead", detailed = "ClothHead_Mask" },
+  SCBA                  = { simple = "ClothHead", detailed = "ClothHeadMask" },
+  SCBANOTANK            = { simple = "ClothHead", detailed = "ClothHeadMask" },
   WOUND                 = { simple = "ClothMisc", detailed = "ClothMisc" },
   ZEDDMG                = { simple = "ClothMisc", detailed = "ClothMisc" },
   MAKEUP_FULLFACE       = { simple = "ClothMisc", detailed = "ClothMisc" },
@@ -834,51 +828,51 @@ local BODYLOCATION_MAP = {
 }
 
 local PROTECTIVE_GEAR_MAP = {
-  HAT                   = { simple = "PGearHead", detailed = "PGearHead_Hat" },
-  FULLHAT               = { simple = "PGearHead", detailed = "PGearHead_FullHat" },
-  MASK                  = { simple = "PGearHead", detailed = "PGearHead_Mask" },
-  MASKFULL              = { simple = "PGearHead", detailed = "PGearHead_Mask" },
-  MASKEYES              = { simple = "PGearHead", detailed = "PGearHead_Mask" },
+  HAT                   = { simple = "ProtGearHead", detailed = "ProtGearHead" },
+  FULLHAT               = { simple = "ProtGearHead", detailed = "ProtGearHead" },
+  MASK                  = { simple = "ProtGearHead", detailed = "ProtGearHead" },
+  MASKFULL              = { simple = "ProtGearHead", detailed = "ProtGearHead" },
+  MASKEYES              = { simple = "ProtGearHead", detailed = "ProtGearHead" },
 
-  JACKET                = { simple = "PGearBody", detailed = "PGearBody_Jacket" },
-  TORSOEXTRA            = { simple = "PGearBody", detailed = "PGearBody_Extra" },
-  TORSOEXTRAVEST        = { simple = "PGearBody", detailed = "PGearBody_Extra" },
-  TORSOEXTRAVESTBULLET  = { simple = "PGearBody", detailed = "PGearBody_Extra" },
-  CUIRASS               = { simple = "PGearBody", detailed = "PGearBody_Extra" },
-  GORGET                = { simple = "PGearBody", detailed = "PGearBody_Extra" },
-  CODPIECE              = { simple = "PGearBody", detailed = "PGearBody_Extra" },
+  JACKET                = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  TORSOEXTRA            = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  TORSOEXTRAVEST        = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  TORSOEXTRAVESTBULLET  = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  CUIRASS               = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  GORGET                = { simple = "ProtGearBody", detailed = "ProtGearBody" },
+  CODPIECE              = { simple = "ProtGearBody", detailed = "ProtGearBody" },
 
-  LEFTARM               = { simple = "PGearArms", detailed = "PGearArms_Left" },
-  RIGHTARM              = { simple = "PGearArms", detailed = "PGearArms_Right" },
-  FOREARM_LEFT          = { simple = "PGearArms", detailed = "PGearArms_ForearmLeft" },
-  FOREARM_RIGHT         = { simple = "PGearArms", detailed = "PGearArms_ForearmRight" },
-  ELBOW_LEFT            = { simple = "PGearArms", detailed = "PGearArms_ElbowLeft" },
-  ELBOW_RIGHT           = { simple = "PGearArms", detailed = "PGearArms_ElbowRight" },
-  SHOULDERPADLEFT       = { simple = "PGearArms", detailed = "PGearArms_ShoulderLeft" },
-  SHOULDERPADRIGHT      = { simple = "PGearArms", detailed = "PGearArms_ShoulderRight" },
-  SPORTSHOULDERPAD      = { simple = "PGearArms", detailed = "PGearArms_Shoulder" },
-  SPORTSHOULDERPADONTOP = { simple = "PGearArms", detailed = "PGearArms_Shoulder" },
+  LEFTARM               = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  RIGHTARM              = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  FOREARM_LEFT          = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  FOREARM_RIGHT         = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  ELBOW_LEFT            = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  ELBOW_RIGHT           = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  SHOULDERPADLEFT       = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  SHOULDERPADRIGHT      = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  SPORTSHOULDERPAD      = { simple = "ProtGearArms", detailed = "ProtGearArms" },
+  SPORTSHOULDERPADONTOP = { simple = "ProtGearArms", detailed = "ProtGearArms" },
 
-  HANDS                 = { simple = "PGearHands", detailed = "PGearHands_Gloves" },
-  HANDSLEFT             = { simple = "PGearHands", detailed = "PGearHands_GlovesLeft" },
-  HANDSRIGHT            = { simple = "PGearHands", detailed = "PGearHands_GlovesRight" },
+  HANDS                 = { simple = "ProtGearHands", detailed = "ProtGearHands" },
+  HANDSLEFT             = { simple = "ProtGearHands", detailed = "ProtGearHands" },
+  HANDSRIGHT            = { simple = "ProtGearHands", detailed = "ProtGearHands" },
 
-  PANTS                 = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
-  PANTS_SKINNY          = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
-  PANTS_EXTRA           = { simple = "PGearLegs", detailed = "PGearLegs_Pants" },
-  SHORTPANTS            = { simple = "PGearLegs", detailed = "PGearLegs_Shorts" },
-  THIGH_LEFT            = { simple = "PGearLegs", detailed = "PGearLegs_ThighLeft" },
-  THIGH_RIGHT           = { simple = "PGearLegs", detailed = "PGearLegs_ThighRight" },
-  KNEE_LEFT             = { simple = "PGearLegs", detailed = "PGearLegs_KneeLeft" },
-  KNEE_RIGHT            = { simple = "PGearLegs", detailed = "PGearLegs_KneeRight" },
-  CALF_LEFT             = { simple = "PGearLegs", detailed = "PGearLegs_CalfLeft" },
-  CALF_RIGHT            = { simple = "PGearLegs", detailed = "PGearLegs_CalfRight" },
-  CALF_LEFT_TEXTURE     = { simple = "PGearLegs", detailed = "PGearLegs_CalfLeft" },
-  CALF_RIGHT_TEXTURE    = { simple = "PGearLegs", detailed = "PGearLegs_CalfRight" },
-  GAITER_LEFT           = { simple = "PGearLegs", detailed = "PGearLegs_GaiterLeft" },
-  GAITER_RIGHT          = { simple = "PGearLegs", detailed = "PGearLegs_GaiterRight" },
+  PANTS                 = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  PANTS_SKINNY          = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  PANTS_EXTRA           = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  SHORTPANTS            = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  THIGH_LEFT            = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  THIGH_RIGHT           = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  KNEE_LEFT             = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  KNEE_RIGHT            = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  CALF_LEFT             = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  CALF_RIGHT            = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  CALF_LEFT_TEXTURE     = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  CALF_RIGHT_TEXTURE    = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  GAITER_LEFT           = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
+  GAITER_RIGHT          = { simple = "ProtGearLegs", detailed = "ProtGearLegs" },
 
-  SHOES                 = { simple = "PGearFeet", detailed = "PGearFeet_Shoes" },
+  SHOES                 = { simple = "ProtGearFeet", detailed = "ProtGearFeet" },
 }
 
 local function isClothing(item)
@@ -1011,7 +1005,7 @@ local function getProtectiveGearCategory(item, useDetailed)
   local bodyLoc = item.getBodyLocation and item:getBodyLocation()
   if not bodyLoc or bodyLoc == "" then
     Sorted:log("PGear: No BodyLocation for " .. item:getFullName(), 3)
-    return "PGearMisc"
+    return "ProtGearMisc"
   end
 
   local bodyLocStr = tostring(bodyLoc)
@@ -1032,7 +1026,7 @@ local function getProtectiveGearCategory(item, useDetailed)
   end
 
   Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
-  return "PGearMisc"
+  return "ProtGearMisc"
 end
 
 local function isFirearmLootContainers(item)
@@ -1049,7 +1043,7 @@ end
 
 local function getFirearmContainers(item)
   if isFirearmLootContainers(item) then
-    return "ContFirearm"
+    return "ContainerFirearm"
   end
 end
 
@@ -1154,13 +1148,20 @@ local CATEGORY_DETECTORS = CATEGORY_DETECTORS_DETAILED
 
 
 function Sorted.CategorizeItem(item)
+  local fullName = item:getFullName()
+
   for _, detector in ipairs(CATEGORY_DETECTORS) do
     local category = detector(item)
     if category then
-      TweakItem(item:getFullName(), "DisplayCategory", category)
-      return
+      if Sorted.setAlgorithmCategory then
+        Sorted.setAlgorithmCategory(fullName, category)
+      end
+      TweakItem(fullName, "DisplayCategory", category)
+      return category
     end
   end
+
+  return nil
 end
 
 -- Sorted.categories
@@ -1190,7 +1191,21 @@ end
 
 function Sorted.OnGameBoot()
   Sorted:log("--- Sorted Start (redux) ---", 1)
+
+  if Sorted.initializeDictionary then
+    Sorted.initializeDictionary()
+  end
+
   Sorted.CategorizeAllItems()
+
+  if Sorted.saveDictionary then
+    Sorted.saveDictionary()
+  end
+
+  if Sorted.applyAllCategories then
+    Sorted.applyAllCategories()
+  end
+
   if ItemTweaker and ItemTweaker.tweakItems then
     ItemTweaker.tweakItems()
   end
@@ -1214,6 +1229,7 @@ local overrides = {
 }
 
 require("Sorting/Sorted_FluidDynamicPatch")
+require("Sorting/Sorted_ItemDictionary")
 
 function Sorted.testIsCannedFood()
   local player = getPlayer()

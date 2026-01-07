@@ -20,7 +20,7 @@ function BetterSorting.categorizeFoodBoxes(item)
 
   local model = item and item:getWorldStaticModel()
   if model and string.find(model, "^Parcel_Food", 1, false) then
-    return "FoodN"
+    return "FoodNonPerish"
   end
 
   return nil

@@ -103,8 +103,8 @@ function Sorted.container:getDynamicCategory(container)
 
     -- Empty container
     if not analysis then
-        Sorted:log("[ContainerDynamic] Container is empty, returning ContEmpty", 3)
-        return "ContEmpty"
+        Sorted:log("[ContainerDynamic] Container is empty, returning ContainerEmpty", 3)
+        return "ContainerEmpty"
     end
 
     local categories = analysis.categories
