@@ -299,8 +299,12 @@ function Sorted.getItemsNeedingUserChoice()
 end
 
 function Sorted.applyAllCategories()
+    Sorted:log("[applyAllCategories] START", 1)
     local scripts = getScriptManager():getAllItems()
+    Sorted:log("[applyAllCategories] Total script items: " .. scripts:size(), 1)
+
     local applied = 0
+    local skipped = 0
 
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
@@ -310,10 +314,20 @@ function Sorted.applyAllCategories()
         if category and category ~= "" then
             scriptItem:DoParam("DisplayCategory = " .. category)
             applied = applied + 1
+
+            -- Log first 5 applications for debugging
+            if applied <= 5 then
+                Sorted:log("[applyAllCategories] Applied: " .. fullType .. " -> " .. category, 1)
+            end
+        else
+            skipped = skipped + 1
+            if skipped <= 3 then
+                Sorted:log("[applyAllCategories] SKIPPED (no category): " .. fullType, 1)
+            end
         end
     end
 
-    Sorted:log("[Sorted] Applied categories to " .. applied .. " items", 2)
+    Sorted:log("[applyAllCategories] DONE: Applied " .. applied .. " categories, skipped " .. skipped, 1)
     return applied
 end
 
@@ -351,5 +365,5 @@ else
     print("[Sorted is having a break so I am just printing] ItemDictionary module loaded")
     print("The fuck he gone...")
     print("Damn I hate this job!")
-    PRINT("Rurku... To dobrze że mnie słuchasz...")
+    print("Rurku... To dobrze że mnie słuchasz...")
 end

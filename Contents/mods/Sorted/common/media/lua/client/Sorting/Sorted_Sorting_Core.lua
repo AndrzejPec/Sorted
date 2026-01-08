@@ -1,8 +1,8 @@
-require("Sorting/ItemTweaker_Copy_CC")
+require("Sorting/Sorted_Sorting_ItemTweaker_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
-require("Sorting/_LoL_debug")
-require("Sorting/Sorted_InventoryCategory_DoubleClick")
+require("_LoL_debug")
+-- require("Sorting/Sorted_InventoryCategory_DoubleClick")  -- File doesn't exist
 require("Sorting/Sorted_ModOptions")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
 require("Sorting/Mod Support/TheyKnew_Items")
@@ -1171,7 +1171,12 @@ local function remapCategories()
 end
 
 function Sorted.CategorizeAllItems()
+  Sorted:log("[CategorizeAllItems] START", 1)
   local items = getAllItems()
+  Sorted:log("[CategorizeAllItems] Total items to categorize: " .. items:size(), 1)
+
+  local categorizedCount = 0
+  local skippedCount = 0
 
   for i = 0, items:size() - 1 do
     local item = items:get(i)
@@ -1182,35 +1187,67 @@ function Sorted.CategorizeAllItems()
     end
 
     if not hasManualCategory then
-      Sorted.CategorizeItem(item)
+      local category = Sorted.CategorizeItem(item)
+      if category then
+        categorizedCount = categorizedCount + 1
+        if i < 5 then  -- Log first 5 items for debugging
+          Sorted:log("[CategorizeAllItems] Item " .. i .. ": " .. item:getFullName() .. " -> " .. category, 1)
+        end
+      end
+    else
+      skippedCount = skippedCount + 1
     end
 
     remapCategories()
   end
+
+  Sorted:log("[CategorizeAllItems] DONE: " .. categorizedCount .. " categorized, " .. skippedCount .. " skipped (manual)", 1)
 end
 
 function Sorted.OnGameBoot()
   Sorted:log("--- Sorted Start (redux) ---", 1)
+  Sorted:log("[OnGameBoot] STEP 1: Initialize Dictionary", 1)
 
   local unknownItems = {}
   if Sorted.initializeDictionary then
+    Sorted:log("[OnGameBoot] Calling initializeDictionary...", 1)
     unknownItems = Sorted.initializeDictionary() or {}
+    Sorted:log("[OnGameBoot] initializeDictionary returned " .. #unknownItems .. " unknown items", 1)
+  else
+    Sorted:log("[OnGameBoot] ERROR: initializeDictionary not found!", 1)
   end
 
+  Sorted:log("[OnGameBoot] STEP 2: CategorizeAllItems", 1)
   Sorted.CategorizeAllItems()
+  Sorted:log("[OnGameBoot] CategorizeAllItems DONE", 1)
 
+  Sorted:log("[OnGameBoot] STEP 3: Save Dictionary", 1)
   if Sorted.saveDictionary then
     Sorted.saveDictionary()
+    Sorted:log("[OnGameBoot] Dictionary saved", 1)
+  else
+    Sorted:log("[OnGameBoot] ERROR: saveDictionary not found!", 1)
   end
 
+  Sorted:log("[OnGameBoot] STEP 4: Apply All Categories", 1)
   if Sorted.applyAllCategories then
     Sorted.applyAllCategories()
+    Sorted:log("[OnGameBoot] applyAllCategories DONE", 1)
+  else
+    Sorted:log("[OnGameBoot] ERROR: applyAllCategories not found!", 1)
   end
 
+  Sorted:log("[OnGameBoot] STEP 5: ItemTweaker", 1)
   if ItemTweaker and ItemTweaker.tweakItems then
+    Sorted:log("[OnGameBoot] Running ItemTweaker.tweakItems", 1)
     ItemTweaker.tweakItems()
+  else
+    Sorted:log("[OnGameBoot] ItemTweaker not available", 2)
   end
+
+  Sorted:log("[OnGameBoot] STEP 6: orphanTheUnfit", 1)
   orphanTheUnfit()
+  Sorted:log("[OnGameBoot] orphanTheUnfit DONE", 1)
 
   if #unknownItems > 0 then
     Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
@@ -1219,9 +1256,23 @@ function Sorted.OnGameBoot()
   Sorted:log("--- Sorted End (redux) ---", 1)
 
   if Sorted and Sorted.collectDefaultCategories then
+    Sorted:log("[OnGameBoot] Calling collectDefaultCategories", 1)
     Sorted.collectDefaultCategories()
-    Sorted:log("[Sorted] Sorted.collectDefaultCategories() called", 1)
+    Sorted:log("[OnGameBoot] collectDefaultCategories DONE", 1)
   end
+
+  Sorted:log("[OnGameBoot] ===== TESTING: Check sample item categories =====", 1)
+  local testItems = {"Base.Axe", "Base.Shirt_LumberjackGREEN", "Base.Apple"}
+  for _, itemName in ipairs(testItems) do
+    local scriptItem = ScriptManager.instance:getItem(itemName)
+    if scriptItem then
+      local category = scriptItem:getDisplayCategory()
+      Sorted:log("[OnGameBoot] TEST: " .. itemName .. " -> Category: " .. tostring(category), 1)
+    else
+      Sorted:log("[OnGameBoot] TEST: " .. itemName .. " NOT FOUND", 1)
+    end
+  end
+  Sorted:log("[OnGameBoot] ===== END TESTING =====", 1)
 end
 
 Events.OnGameBoot.Add(Sorted.OnGameBoot)
@@ -1234,7 +1285,7 @@ local overrides = {
   Hat_HazmatSuit = "Breathing",
 }
 
-require("Sorting/Sorted_FluidDynamicPatch")
+require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("Sorting/Sorted_ItemDictionary")
 
 function Sorted.testIsCannedFood()
