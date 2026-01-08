@@ -8,15 +8,39 @@ Sorted.USER_BACKUP_PREFIX = "Sorted_UserAssignments_BACKUP_"
 Sorted.DeprecatedCategories = {
     RENAMED = {
         ["VehicleMaintenance"] = "Mechanics",
+        ["First Aid"] = "FirstAid",
+        ["Cartography"] = "LitCartography",
+    },
+    ORPHANED = {
+        ["Frog"] = true,
+        ["Bear"] = true,
+        ["Spider"] = true,
+        ["Accessory"] = true,
+        ["Appear"] = true,
+        ["Appearance"] = true,
+        ["BrokenWeapon"] = true,
+        ["Bug"] = true,
+        ["Chainsaw"] = true,
+        ["Communications"] = true,
+        ["FishingWeapon"] = true,
+        ["Teddy Bear"] = true,
     },
 }
 
 local function isDeprecated(category)
+    if not category or category == "" then
+        return false
+    end
     return Sorted.DeprecatedCategories.RENAMED[category] ~= nil
+        or Sorted.DeprecatedCategories.ORPHANED[category] == true
 end
 
 local function getDeprecatedMapping(category)
     return Sorted.DeprecatedCategories.RENAMED[category]
+end
+
+local function isOrphaned(category)
+    return Sorted.DeprecatedCategories.ORPHANED[category] == true
 end
 
 function Sorted.buildItemDictionary()
@@ -24,6 +48,7 @@ function Sorted.buildItemDictionary()
 
     local scripts = getScriptManager():getAllItems()
     local count = 0
+    local orphanedCount = 0
 
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
@@ -37,15 +62,17 @@ function Sorted.buildItemDictionary()
             user = nil,
         }
 
-        if isDeprecated(originalCategory) then
+        if getDeprecatedMapping(originalCategory) then
             entry.mapped = getDeprecatedMapping(originalCategory)
+        elseif isOrphaned(originalCategory) then
+            orphanedCount = orphanedCount + 1
         end
 
         Sorted.ItemDictionary[fullType] = entry
         count = count + 1
     end
 
-    Sorted:log("[Sorted] Item Dictionary built with " .. count .. " items", 2)
+    Sorted:log("[Sorted] Item Dictionary built with " .. count .. " items (" .. orphanedCount .. " orphaned)", 2)
     return count
 end
 
@@ -199,8 +226,9 @@ function Sorted.findNewItems()
                 user = nil,
             }
 
-            if isDeprecated(originalCategory) then
+            if getDeprecatedMapping(originalCategory) then
                 entry.mapped = getDeprecatedMapping(originalCategory)
+                Sorted:log("[Sorted] New item '" .. fullType .. "' has deprecated category '" .. originalCategory .. "' -> mapped to '" .. entry.mapped .. "'", 3)
             end
 
             Sorted.ItemDictionary[fullType] = entry
@@ -217,6 +245,38 @@ function Sorted.findNewItems()
     end
 
     return newItems
+end
+
+function Sorted.categorizeNewItems(newItems)
+    if not newItems or #newItems == 0 then
+        return {}
+    end
+
+    local unknownItems = {}
+
+    for _, itemData in ipairs(newItems) do
+        local fullType = itemData.fullType
+        local scriptItem = itemData.scriptItem
+
+        local category = nil
+        if Sorted.CategorizeItem then
+            category = Sorted.CategorizeItem(scriptItem)
+        end
+
+        if category and category ~= "" then
+            Sorted.setAlgorithmCategory(fullType, category)
+            Sorted:log("[Sorted] New item '" .. fullType .. "' auto-categorized as: " .. category, 3)
+        else
+            Sorted:log("[Sorted] New item '" .. fullType .. "' could not be categorized - needs user input", 2)
+            table.insert(unknownItems, {
+                fullType = fullType,
+                displayName = scriptItem:getDisplayName() or fullType,
+                scriptItem = scriptItem
+            })
+        end
+    end
+
+    return unknownItems
 end
 
 function Sorted.getItemsNeedingUserChoice()
@@ -268,12 +328,21 @@ function Sorted.initializeDictionary()
 
         if #newItems > 0 then
             Sorted:log("[Sorted] Processing " .. #newItems .. " new items...", 2)
+            local unknownItems = Sorted.categorizeNewItems(newItems)
+
+            if #unknownItems > 0 then
+                Sorted:log("[Sorted] WARNING: " .. #unknownItems .. " new items need user categorization!", 1)
+            end
+
+            return unknownItems
         end
     else
+        Sorted:log("[Sorted] First run - building complete dictionary from scratch", 2)
         Sorted.buildItemDictionary()
     end
 
     Sorted:log("[Sorted] === Item Dictionary Ready ===", 2)
+    return {}
 end
 
 if Sorted.log then

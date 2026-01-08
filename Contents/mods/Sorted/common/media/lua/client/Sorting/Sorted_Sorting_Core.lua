@@ -1192,8 +1192,9 @@ end
 function Sorted.OnGameBoot()
   Sorted:log("--- Sorted Start (redux) ---", 1)
 
+  local unknownItems = {}
   if Sorted.initializeDictionary then
-    Sorted.initializeDictionary()
+    unknownItems = Sorted.initializeDictionary() or {}
   end
 
   Sorted.CategorizeAllItems()
@@ -1210,6 +1211,11 @@ function Sorted.OnGameBoot()
     ItemTweaker.tweakItems()
   end
   orphanTheUnfit()
+
+  if #unknownItems > 0 then
+    Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
+  end
+
   Sorted:log("--- Sorted End (redux) ---", 1)
 
   if Sorted and Sorted.collectDefaultCategories then
