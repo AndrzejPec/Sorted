@@ -3,7 +3,7 @@ require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("_LoL_debug")
 -- require("Sorting/Sorted_InventoryCategory_DoubleClick")  -- File doesn't exist
-require("Sorting/Sorted_ModOptions")
+require("Sorted_ModOptions")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
 require("Sorting/Mod Support/TheyKnew_Items")
 
@@ -70,14 +70,10 @@ local function getScriptItemBooleanField(item, fieldName)
   return false
 end
 
-function LoL.getAllItems()
-  return getScriptManager():getAllItems()
-end
-
 function LoL:getAllItemsPredicate(predicate)
   local result = {}
   local count = 0
-  local items = self.getAllItems() 
+  local items = getScriptManager():getAllItems()
   for i = 0, items:size() - 1 do
     local item = items:get(i)
     if predicate(item) == true then

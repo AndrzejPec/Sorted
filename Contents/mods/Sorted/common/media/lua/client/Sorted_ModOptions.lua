@@ -10,12 +10,6 @@ Sorted.ModOptions.config = Sorted.ModOptions.config or {
 }
 local config = Sorted.ModOptions.config
 
-Sorted:log("[ModOptions] Module loading...", 2)
-Sorted:log("[ModOptions] Checking if PZAPI exists: " .. tostring(PZAPI ~= nil), 2)
-if PZAPI then
-    Sorted:log("[ModOptions] PZAPI.ModOptions exists: " .. tostring(PZAPI.ModOptions ~= nil), 2)
-end
-
 -- Category grouping map - condenses long category names into shorter group names
 Sorted.ModOptions.CategoryGroups = {
     -- Clothing - all subcategories → "Clothing"
@@ -135,8 +129,6 @@ Sorted.ModOptions.CategoryGroups = {
     ["Weapon - Shield"] = "Weapons",
 }
 
-Sorted:log("[ModOptions] CategoryGroups loaded", 3)
-
 -- Get grouped category name (or return original if not grouped)
 function Sorted.ModOptions:getGroupedCategory(categoryName)
     if not categoryName then
@@ -253,54 +245,34 @@ function Sorted.ModOptions:buildContainerName(categories)
 end
 
 -- Initialize B42 ModOptions
-function InitializeModOptions()
-    Sorted:log("[ModOptions] InitializeModOptions called", 2)
-
+local function InitializeModOptions()
     -- Check if PZAPI is available
     if not PZAPI then
-        Sorted:log("[ModOptions] ERROR: PZAPI not found! B42 ModOptions not loaded?", 1)
         return
     end
 
     if not PZAPI.ModOptions then
-        Sorted:log("[ModOptions] ERROR: PZAPI.ModOptions not found! B42 ModOptions not loaded?", 1)
         return
     end
 
-    Sorted:log("[ModOptions] PZAPI.ModOptions found, creating options...", 2)
-
     local options = PZAPI.ModOptions:create("Sorted", "Sorted - Container Display")
-    Sorted:log("[ModOptions] Options object created", 2)
 
     options:addTitle("Container Naming Options")
     options:addDescription("Customize how dynamic container names are displayed")
     options:addSeparator()
-    Sorted:log("[ModOptions] Added title, description, separator", 3)
 
     -- Separator style dropdown
-    Sorted:log("[ModOptions] Adding separatorStyle combobox...", 3)
     config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
     config.separatorStyle:addItem("w/ (Container w/ Food)", true)  -- Default
     config.separatorStyle:addItem("with (Container with Food)", false)
     config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", false)
-    Sorted:log("[ModOptions] separatorStyle added: " .. tostring(config.separatorStyle), 3)
 
     -- Use "and" instead of "&"
-    Sorted:log("[ModOptions] Adding useAndInsteadOfAmpersand tickbox...", 3)
     config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
-    Sorted:log("[ModOptions] useAndInsteadOfAmpersand added: " .. tostring(config.useAndInsteadOfAmpersand), 3)
 
     -- Show container prefix
-    Sorted:log("[ModOptions] Adding showContainerPrefix tickbox...", 3)
     config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
-    Sorted:log("[ModOptions] showContainerPrefix added: " .. tostring(config.showContainerPrefix), 3)
-
-    Sorted:log("[ModOptions] B42 ModOptions initialized successfully!", 2)
 end
 
 -- Call initialization
-Sorted:log("[ModOptions] About to call InitializeModOptions()...", 2)
 InitializeModOptions()
-Sorted:log("[ModOptions] InitializeModOptions() returned", 2)
-
-Sorted:log("[ModOptions] Module loaded", 2)

@@ -1,4 +1,4 @@
-require("Sorting/Sorted_ModOptions")
+require("Sorted_ModOptions")
 
 Sorted = Sorted or {}
 Sorted.container = {}
