@@ -203,6 +203,12 @@ function Sorted.ModOptions:buildContainerName(categories)
         Sorted:log("[ModOptions] No showContainerPrefix config, using default true", 3)
     end
 
+    if not showPrefix then
+        -- Avoid category-only labels that look like item categories.
+        showPrefix = true
+        Sorted:log("[ModOptions] showPrefix disabled; forcing container prefix to avoid category-only labels", 2)
+    end
+
     local useBrackets = false
     if config.separatorStyle then
         useBrackets = config.separatorStyle:getValue() == 3

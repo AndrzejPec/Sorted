@@ -164,9 +164,18 @@ local function applyFluidCategoriesToAllInventories()
     return
   end
 
-  local playerInv = player:getInventory()
+  local playernum = player:getPlayerNum()
+  local playerInv = getPlayerInventory(playernum)
   if playerInv then
     local items = playerInv:getItems()
+    for i = 0, items:size() - 1 do
+      BetterSorting.ApplyFluidCategory(items:get(i))
+    end
+  end
+
+  local playerLoot = getPlayerLoot(playernum)
+  if playerLoot then
+    local items = playerLoot:getItems()
     for i = 0, items:size() - 1 do
       BetterSorting.ApplyFluidCategory(items:get(i))
     end
@@ -191,7 +200,7 @@ local function applyFluidWithThrottle()
 end
 
 if Events and Events.OnPlayerUpdate then
-  Events.OnPlayerUpdate.Add(applyFluidWithThrottle)
+  Events.OnTickEvenPaused.Add(applyFluidWithThrottle)
   if Sorted and Sorted.log then
     Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end
