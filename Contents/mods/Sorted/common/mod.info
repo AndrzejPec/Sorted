@@ -1,6 +1,9 @@
-name=α version test - Sorted.
-id=αSorted.
+name=Sorted.
+id=Sorted.
 author=pimatstudio
-modversion=0.1
+modversion=0.2
 poster=Sorted-α.png
+poster=Sorted-α.png
+poster=features.png
+poster=maya.png
 icon=Sorted-icon.png

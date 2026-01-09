@@ -1,0 +1,14 @@
+[ 8 I 2026 ]
+- Initial alpha release
+[ ------ ]
+
+[ 9 I 2026 ]
+- Added ModOptions settings panel for customizing container names, clothing categories, and shortcuts
+- Added Ctrl+Alt shortcut to open Sorted Manager window
+- Added Alt+LMB shortcut to quickly change item categories
+- Added automatic item dictionary that remembers all items and their categories
+- Fixed ManageContainers mod integration - now shows all Sorted categories in filter list
+- Fixed ManageContainers window width to better display long category names
+- Fixed preset loading to clean up dead categories from removed mods
+- Improved category naming consistency across the mod
+[ ------ ]

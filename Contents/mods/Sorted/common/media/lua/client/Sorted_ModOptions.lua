@@ -131,34 +131,7 @@ Sorted.ModOptions.CategoryGroups = {
     ["Weapon - Shield"] = "Weapons",
 }
 
-Sorted.ModOptions.ManagerKeyOptions = Sorted.ModOptions.ManagerKeyOptions or {
-    { label = "A", key = Keyboard.KEY_A },
-    { label = "B", key = Keyboard.KEY_B },
-    { label = "C", key = Keyboard.KEY_C },
-    { label = "D", key = Keyboard.KEY_D },
-    { label = "E", key = Keyboard.KEY_E },
-    { label = "F", key = Keyboard.KEY_F },
-    { label = "G", key = Keyboard.KEY_G },
-    { label = "H", key = Keyboard.KEY_H },
-    { label = "I", key = Keyboard.KEY_I },
-    { label = "J", key = Keyboard.KEY_J },
-    { label = "K", key = Keyboard.KEY_K },
-    { label = "L", key = Keyboard.KEY_L },
-    { label = "M", key = Keyboard.KEY_M },
-    { label = "N", key = Keyboard.KEY_N },
-    { label = "O", key = Keyboard.KEY_O },
-    { label = "P", key = Keyboard.KEY_P },
-    { label = "Q", key = Keyboard.KEY_Q },
-    { label = "R", key = Keyboard.KEY_R },
-    { label = "S", key = Keyboard.KEY_S },
-    { label = "T", key = Keyboard.KEY_T },
-    { label = "U", key = Keyboard.KEY_U },
-    { label = "V", key = Keyboard.KEY_V },
-    { label = "W", key = Keyboard.KEY_W },
-    { label = "X", key = Keyboard.KEY_X },
-    { label = "Y", key = Keyboard.KEY_Y },
-    { label = "Z", key = Keyboard.KEY_Z },
-}
+Sorted.ModOptions.DEFAULT_MANAGER_KEY = Keyboard.KEY_M
 
 -- Get grouped category name (or return original if not grouped)
 function Sorted.ModOptions:getGroupedCategory(categoryName)
@@ -237,17 +210,17 @@ function Sorted.ModOptions:getManagerKeyCode()
 
     if not config.managerKey then
         Sorted:log("[ModOptions] No managerKey config, using default M", 3)
-        return Keyboard.KEY_M
+        return self.DEFAULT_MANAGER_KEY
     end
 
-    local idx = config.managerKey:getValue()
-    Sorted:log("[ModOptions] managerKey getValue() = " .. tostring(idx), 3)
-    local entry = self.ManagerKeyOptions[idx]
-    if entry and entry.key then
-        return entry.key
+    local keyCode = config.managerKey:getValue()
+    Sorted:log("[ModOptions] managerKey getValue() = " .. tostring(keyCode), 3)
+
+    if keyCode and keyCode > 0 then
+        return keyCode
     end
 
-    return Keyboard.KEY_M
+    return self.DEFAULT_MANAGER_KEY
 end
 
 -- Build container name with settings
@@ -355,10 +328,7 @@ local function InitializeModOptions()
     config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)  -- Default
 
     -- Manager keybinding
-    config.managerKey = options:addComboBox("managerKey", "Open Sorted Manager key", "Key to open the Sorted Manager window")
-    for _, entry in ipairs(Sorted.ModOptions.ManagerKeyOptions) do
-        config.managerKey:addItem(entry.label, entry.label == "M")
-    end
+    config.managerKey = options:addKeyBind("managerKey", "Open Sorted Manager key", Sorted.ModOptions.DEFAULT_MANAGER_KEY, "Key to open the Sorted Manager window")
 end
 
 -- Call initialization
