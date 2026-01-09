@@ -1,8 +1,8 @@
-if not BetterSorting then
-  BetterSorting = {}
+if not Sorted then
+  Sorted = {}
 end
 
-if BetterSorting._fluidDynamicPatch then
+if Sorted._fluidDynamicPatch then
   return
 end
 
@@ -122,7 +122,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
   return nil
 end
 
-function BetterSorting.ApplyFluidCategory(item)
+function Sorted.ApplyFluidCategory(item)
   if not item or not item.getFluidContainer or not item.setDisplayCategory then
     return
   end
@@ -159,32 +159,57 @@ function BetterSorting.ApplyFluidCategory(item)
 end
 
 local function applyFluidCategoriesToAllInventories()
+  -- print("=== [FLUID DYNAMIC] applyFluidCategoriesToAllInventories CALLED ===")
+
   local player = getPlayer()
   if not player then
+    -- print("[FLUID DYNAMIC] NO PLAYER!")
     return
   end
 
-  local playernum = player:getPlayerNum()
-  local playerInv = getPlayerInventory(playernum)
+  -- PLAYER INVENTORY (left panel - w rece)
+  local playerInv = player:getInventory()
   if playerInv then
     local items = playerInv:getItems()
+    -- print("[FLUID DYNAMIC] PLAYER INV: " .. items:size() .. " items")
     for i = 0, items:size() - 1 do
-      BetterSorting.ApplyFluidCategory(items:get(i))
+      local item = items:get(i)
+      -- print("[FLUID DYNAMIC] - Player item: " .. (item:getDisplayName() or "???"))
+      Sorted.ApplyFluidCategory(item)
     end
+  else
+    -- print("[FLUID DYNAMIC] NO PLAYER INV!")
   end
 
-  local playerLoot = getPlayerLoot(playernum)
+  -- LOOT WINDOW (right panel - kontenery jak fridge, backpack)
+  local playerLoot = getPlayerLoot(0)
+  -- print("[FLUID DYNAMIC] playerLoot = " .. tostring(playerLoot))
+
   if playerLoot then
-    local items = playerLoot:getItems()
-    for i = 0, items:size() - 1 do
-      BetterSorting.ApplyFluidCategory(items:get(i))
+    -- print("[FLUID DYNAMIC] playerLoot.inventory = " .. tostring(playerLoot.inventory))
+
+    if playerLoot.inventory then
+      local items = playerLoot.inventory:getItems()
+      -- print("[FLUID DYNAMIC] LOOT WINDOW: " .. items:size() .. " items")
+
+      for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        -- print("[FLUID DYNAMIC] - Loot item: " .. (item:getDisplayName() or "???"))
+        Sorted.ApplyFluidCategory(item)
+      end
+    else
+      -- print("[FLUID DYNAMIC] playerLoot.inventory is NIL!")
     end
+  else
+    -- print("[FLUID DYNAMIC] NO LOOT WINDOW OPEN (playerLoot is nil)")
   end
+
+  -- print("=== [FLUID DYNAMIC] DONE ===")
 end
 
 if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(applyFluidCategoriesToAllInventories)
-  BetterSorting._fluidDynamicPatch = true
+  Sorted._fluidDynamicPatch = true
   if Sorted and Sorted.log then
     Sorted:log("FluidDynamicPatch: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
   end
@@ -200,7 +225,7 @@ local function applyFluidWithThrottle()
 end
 
 if Events and Events.OnPlayerUpdate then
-  Events.OnTickEvenPaused.Add(applyFluidWithThrottle)
+  Events.OnPlayerUpdate.Add(applyFluidWithThrottle)
   if Sorted and Sorted.log then
     Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end

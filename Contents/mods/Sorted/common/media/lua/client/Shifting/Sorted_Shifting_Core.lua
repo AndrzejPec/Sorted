@@ -17,7 +17,7 @@ Sorted.Config = Sorted.Config or {
 
     MRU_LIMIT = 6,
 
-    bettersorting_enabled = true,
+    Sorted_enabled = true,
 }
 
 local CATEGORY_PREFIX = Sorted.Config.CATEGORY_PREFIX
