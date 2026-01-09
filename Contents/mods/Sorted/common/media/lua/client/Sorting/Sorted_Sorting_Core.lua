@@ -4,6 +4,7 @@ require("Sorting/Sorted_Sorting_FluidDynamicPatch")
 require("_LoL_debug")
 -- require("Sorting/Sorted_InventoryCategory_DoubleClick")  -- File doesn't exist
 require("Sorted_ModOptions")
+require("Sorted_Input")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
 require("Sorting/Mod Support/TheyKnew_Items")
 
@@ -1140,13 +1141,15 @@ local CATEGORY_DETECTORS_SIMPLE = {
   Sorted.getZomboxCategory,
 }
 
-local CATEGORY_DETECTORS = CATEGORY_DETECTORS_DETAILED
-
-
 function Sorted.CategorizeItem(item)
   local fullName = item:getFullName()
+  local useDetailed = true
+  if Sorted.ModOptions and Sorted.ModOptions.useDetailedClothing then
+    useDetailed = Sorted.ModOptions:useDetailedClothing()
+  end
+  local categoryDetectors = useDetailed and CATEGORY_DETECTORS_DETAILED or CATEGORY_DETECTORS_SIMPLE
 
-  for _, detector in ipairs(CATEGORY_DETECTORS) do
+  for _, detector in ipairs(categoryDetectors) do
     local category = detector(item)
     if category then
       if Sorted.setAlgorithmCategory then

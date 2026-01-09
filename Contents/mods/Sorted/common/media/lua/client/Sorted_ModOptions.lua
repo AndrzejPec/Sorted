@@ -7,6 +7,8 @@ Sorted.ModOptions.config = Sorted.ModOptions.config or {
     separatorStyle = nil,
     useAndInsteadOfAmpersand = nil,
     showContainerPrefix = nil,
+    clothingCategoryMode = nil,
+    managerKey = nil,
 }
 local config = Sorted.ModOptions.config
 
@@ -129,6 +131,35 @@ Sorted.ModOptions.CategoryGroups = {
     ["Weapon - Shield"] = "Weapons",
 }
 
+Sorted.ModOptions.ManagerKeyOptions = Sorted.ModOptions.ManagerKeyOptions or {
+    { label = "A", key = Keyboard.KEY_A },
+    { label = "B", key = Keyboard.KEY_B },
+    { label = "C", key = Keyboard.KEY_C },
+    { label = "D", key = Keyboard.KEY_D },
+    { label = "E", key = Keyboard.KEY_E },
+    { label = "F", key = Keyboard.KEY_F },
+    { label = "G", key = Keyboard.KEY_G },
+    { label = "H", key = Keyboard.KEY_H },
+    { label = "I", key = Keyboard.KEY_I },
+    { label = "J", key = Keyboard.KEY_J },
+    { label = "K", key = Keyboard.KEY_K },
+    { label = "L", key = Keyboard.KEY_L },
+    { label = "M", key = Keyboard.KEY_M },
+    { label = "N", key = Keyboard.KEY_N },
+    { label = "O", key = Keyboard.KEY_O },
+    { label = "P", key = Keyboard.KEY_P },
+    { label = "Q", key = Keyboard.KEY_Q },
+    { label = "R", key = Keyboard.KEY_R },
+    { label = "S", key = Keyboard.KEY_S },
+    { label = "T", key = Keyboard.KEY_T },
+    { label = "U", key = Keyboard.KEY_U },
+    { label = "V", key = Keyboard.KEY_V },
+    { label = "W", key = Keyboard.KEY_W },
+    { label = "X", key = Keyboard.KEY_X },
+    { label = "Y", key = Keyboard.KEY_Y },
+    { label = "Z", key = Keyboard.KEY_Z },
+}
+
 -- Get grouped category name (or return original if not grouped)
 function Sorted.ModOptions:getGroupedCategory(categoryName)
     if not categoryName then
@@ -186,6 +217,37 @@ function Sorted.ModOptions:getConjunction()
     else
         return " & "
     end
+end
+
+function Sorted.ModOptions:useDetailedClothing()
+    Sorted:log("[ModOptions] useDetailedClothing: config.clothingCategoryMode = " .. tostring(config.clothingCategoryMode), 3)
+
+    if not config.clothingCategoryMode then
+        Sorted:log("[ModOptions] No clothingCategoryMode config, using default detailed", 3)
+        return true
+    end
+
+    local mode = config.clothingCategoryMode:getValue()
+    Sorted:log("[ModOptions] clothingCategoryMode getValue() = " .. tostring(mode), 3)
+    return mode == 2
+end
+
+function Sorted.ModOptions:getManagerKeyCode()
+    Sorted:log("[ModOptions] getManagerKeyCode: config.managerKey = " .. tostring(config.managerKey), 3)
+
+    if not config.managerKey then
+        Sorted:log("[ModOptions] No managerKey config, using default M", 3)
+        return Keyboard.KEY_M
+    end
+
+    local idx = config.managerKey:getValue()
+    Sorted:log("[ModOptions] managerKey getValue() = " .. tostring(idx), 3)
+    local entry = self.ManagerKeyOptions[idx]
+    if entry and entry.key then
+        return entry.key
+    end
+
+    return Keyboard.KEY_M
 end
 
 -- Build container name with settings
@@ -267,6 +329,14 @@ local function InitializeModOptions()
     options:addDescription("Customize how dynamic container names are displayed")
     options:addSeparator()
 
+    options:addTitle("Clothing Categorization")
+    options:addDescription("Choose whether clothing uses basic or detailed categories")
+    options:addSeparator()
+
+    options:addTitle("Shortcuts")
+    options:addDescription("Configure Sorted shortcut keys")
+    options:addSeparator()
+
     -- Separator style dropdown
     config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
     config.separatorStyle:addItem("w/ (Container w/ Food)", true)  -- Default
@@ -278,6 +348,17 @@ local function InitializeModOptions()
 
     -- Show container prefix
     config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
+
+    -- Clothing category detail level
+    config.clothingCategoryMode = options:addComboBox("clothingCategoryMode", "Clothing category detail", "Basic or detailed clothing categories")
+    config.clothingCategoryMode:addItem("Basic (ClothHead/ClothBody/ClothLegs)", false)
+    config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)  -- Default
+
+    -- Manager keybinding
+    config.managerKey = options:addComboBox("managerKey", "Open Sorted Manager key", "Key to open the Sorted Manager window")
+    for _, entry in ipairs(Sorted.ModOptions.ManagerKeyOptions) do
+        config.managerKey:addItem(entry.label, entry.label == "M")
+    end
 end
 
 -- Call initialization
