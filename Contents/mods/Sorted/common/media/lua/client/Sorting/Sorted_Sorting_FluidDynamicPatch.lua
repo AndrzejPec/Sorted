@@ -6,7 +6,7 @@ if Sorted._fluidDynamicPatch then
   return
 end
 
-local THROTTLE_MS = 1000
+local THROTTLE_MS = 0
 local lastApplyTime = 0
 local ALCOHOL_STRENGTH_THRESHOLD = 10
 

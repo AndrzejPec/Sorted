@@ -1,4 +1,4 @@
----@diagnostic disable: undefined-global
+---@diagnostic disable: undefined-global, inject-field, duplicate-set-field
 
 if not getActivatedMods():contains("ManageContainers") then
   return
@@ -14,6 +14,21 @@ end
 
 sortedLog("[Sorted] ManageContainers patch loading...")
 
+local function getSortedCategoryKeys()
+  local keys = {}
+  if Sorted and Sorted.collectDisplayCategories then
+    Sorted.collectDisplayCategories()
+  end
+  if Sorted and Sorted.categories then
+    for _, entry in ipairs(Sorted.categories) do
+      if entry.key then
+        keys[entry.key] = true
+      end
+    end
+  end
+  return keys
+end
+
 local function patchManageContainers()
   if not ISItemsIncludeExclude then
     sortedLog("[Sorted] ManageContainers: ISItemsIncludeExclude not loaded yet, waiting...")
@@ -23,6 +38,31 @@ local function patchManageContainers()
   if not ISConfigureContainerWindow then
     sortedLog("[Sorted] ManageContainers: ISConfigureContainerWindow not loaded yet, waiting...")
     return false
+  end
+
+  if not ISConfigureContainerWindow._sorted_fetchCategories then
+    ISConfigureContainerWindow._sorted_fetchCategories = ISConfigureContainerWindow.fetchCategories
+
+    function ISConfigureContainerWindow:fetchCategories(items)
+      local cats = ISConfigureContainerWindow:_sorted_fetchCategories(items)
+
+      local sortedKeys = getSortedCategoryKeys()
+      local added = 0
+      for key, _ in pairs(sortedKeys) do
+        if not cats:contains(key) then
+          cats:add(key)
+          added = added + 1
+        end
+      end
+
+      if added > 0 then
+        sortedLog("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to main list")
+      end
+
+      return cats
+    end
+
+    sortedLog("[Sorted] ManageContainers: fetchCategories() patch installed")
   end
 
   if not ISItemsIncludeExclude._original_populate then
@@ -36,10 +76,6 @@ local function patchManageContainers()
         return
       end
 
-      if Sorted and Sorted.collectDisplayCategories then
-        Sorted.collectDisplayCategories()
-      end
-
       local existingOptions = {}
       for i = 1, combo:getOptionCount() do
         local optionText = combo:getOptionText(i)
@@ -49,14 +85,12 @@ local function patchManageContainers()
       end
 
       local added = 0
-      if Sorted and Sorted.categories then
-        for _, entry in ipairs(Sorted.categories) do
-          local categoryKey = entry.key
-          if categoryKey and not existingOptions[categoryKey] then
-            combo:addOption(categoryKey)
-            existingOptions[categoryKey] = true
-            added = added + 1
-          end
+      local sortedKeys = getSortedCategoryKeys()
+      for key, _ in pairs(sortedKeys) do
+        if not existingOptions[key] then
+          combo:addOption(key)
+          existingOptions[key] = true
+          added = added + 1
         end
       end
 

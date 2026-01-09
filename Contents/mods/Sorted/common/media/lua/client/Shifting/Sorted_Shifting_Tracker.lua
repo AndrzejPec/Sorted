@@ -16,7 +16,7 @@ Sorted.Tracker._categoryCache = nil
 Sorted.Tracker._categoryCacheTime = 0
 
 local CACHE_LIFETIME = 300 * 1000
-local THROTTLE_MS = 1000
+local THROTTLE_MS = 0
 local lastApplyTime = 0
 
 local function tableSize(t)
