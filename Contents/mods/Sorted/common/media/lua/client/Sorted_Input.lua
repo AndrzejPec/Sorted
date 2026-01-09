@@ -36,18 +36,25 @@ local function getClickedItem(pane)
     return nil
 end
 
-local function isLeftCtrlDown()
-    if isKeyDown and Keyboard and Keyboard.KEY_LCONTROL then
-        return isKeyDown(Keyboard.KEY_LCONTROL)
-    end
-    return isCtrlKeyDown and isCtrlKeyDown() or false
-end
-
 local function isLeftAltDown()
     if isKeyDown and Keyboard and Keyboard.KEY_LALT then
         return isKeyDown(Keyboard.KEY_LALT)
     end
     return isAltKeyDown and isAltKeyDown() or false
+end
+
+local function isModifierKeyDown()
+    local modifierKey = Keyboard.KEY_LCONTROL
+
+    if Sorted.ModOptions and Sorted.ModOptions.getManagerModifierKey then
+        modifierKey = Sorted.ModOptions:getManagerModifierKey()
+    end
+
+    if isKeyDown and Keyboard and modifierKey then
+        return isKeyDown(modifierKey)
+    end
+
+    return isCtrlKeyDown and isCtrlKeyDown() or false
 end
 
 local function tryOpenCategoryChanger(pane, x, y)
@@ -84,20 +91,29 @@ local lastManagerKeyTime = 0
 local MANAGER_KEY_COOLDOWN_MS = 200
 
 local function onKeyPressed(key)
-    if not (isLeftCtrlDown() and isLeftAltDown()) then
+    local modifierKey = Sorted.ModOptions and Sorted.ModOptions.getManagerModifierKey
+        and Sorted.ModOptions:getManagerModifierKey()
+        or Keyboard.KEY_LCONTROL
+
+    Sorted:log("[Input] onKeyPressed: key=" .. tostring(key) .. ", modifierKey=" .. tostring(modifierKey) .. ", isModifier=" .. tostring(isModifierKeyDown()) .. ", isAlt=" .. tostring(isLeftAltDown()), 3)
+
+    if not (isModifierKeyDown() and isLeftAltDown()) then
         return
     end
 
-    if not (Keyboard and (key == Keyboard.KEY_LCONTROL or key == Keyboard.KEY_LALT)) then
+    if not (Keyboard and (key == modifierKey or key == Keyboard.KEY_LALT)) then
+        Sorted:log("[Input] Key mismatch: key=" .. tostring(key) .. " vs modifierKey=" .. tostring(modifierKey) .. " or LALT=" .. tostring(Keyboard.KEY_LALT), 3)
         return
     end
 
     local now = getTimestampMs()
     if (now - lastManagerKeyTime) < MANAGER_KEY_COOLDOWN_MS then
+        Sorted:log("[Input] Cooldown active, ignoring", 3)
         return
     end
     lastManagerKeyTime = now
 
+    Sorted:log("[Input] Opening manager!", 2)
     openManager()
 end
 

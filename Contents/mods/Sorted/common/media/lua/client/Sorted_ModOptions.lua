@@ -8,7 +8,7 @@ Sorted.ModOptions.config = Sorted.ModOptions.config or {
     useAndInsteadOfAmpersand = nil,
     showContainerPrefix = nil,
     clothingCategoryMode = nil,
-    managerKey = nil,
+    managerModifierKey = nil,
 }
 local config = Sorted.ModOptions.config
 
@@ -131,8 +131,6 @@ Sorted.ModOptions.CategoryGroups = {
     ["Weapon - Shield"] = "Weapons",
 }
 
-Sorted.ModOptions.DEFAULT_MANAGER_KEY = Keyboard.KEY_M
-
 -- Get grouped category name (or return original if not grouped)
 function Sorted.ModOptions:getGroupedCategory(categoryName)
     if not categoryName then
@@ -205,22 +203,25 @@ function Sorted.ModOptions:useDetailedClothing()
     return mode == 2
 end
 
-function Sorted.ModOptions:getManagerKeyCode()
-    Sorted:log("[ModOptions] getManagerKeyCode: config.managerKey = " .. tostring(config.managerKey), 3)
+function Sorted.ModOptions:getManagerModifierKey()
+    Sorted:log("[ModOptions] getManagerModifierKey: config.managerModifierKey = " .. tostring(config.managerModifierKey), 3)
 
-    if not config.managerKey then
-        Sorted:log("[ModOptions] No managerKey config, using default M", 3)
-        return self.DEFAULT_MANAGER_KEY
+    if not config.managerModifierKey then
+        Sorted:log("[ModOptions] No managerModifierKey config, using default Ctrl", 3)
+        return Keyboard.KEY_LCONTROL
     end
 
-    local keyCode = config.managerKey:getValue()
-    Sorted:log("[ModOptions] managerKey getValue() = " .. tostring(keyCode), 3)
+    local modifierType = config.managerModifierKey:getValue()
+    Sorted:log("[ModOptions] managerModifierKey getValue() = " .. tostring(modifierType), 3)
 
-    if keyCode and keyCode > 0 then
-        return keyCode
+    if modifierType == 1 then
+        return Keyboard.KEY_LCONTROL
+    elseif modifierType == 2 then
+        return Keyboard.KEY_LSHIFT
+    else
+        Sorted:log("[ModOptions] Unknown modifier type, defaulting to Ctrl", 2)
+        return Keyboard.KEY_LCONTROL
     end
-
-    return self.DEFAULT_MANAGER_KEY
 end
 
 -- Build container name with settings
@@ -298,37 +299,37 @@ local function InitializeModOptions()
 
     local options = PZAPI.ModOptions:create("Sorted", "Sorted - Container Display")
 
+    -- Container Naming Options section
     options:addTitle("Container Naming Options")
     options:addDescription("Customize how dynamic container names are displayed")
     options:addSeparator()
 
+    config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
+    config.separatorStyle:addItem("w/ (Container w/ Food)", true)
+    config.separatorStyle:addItem("with (Container with Food)", false)
+    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", false)
+
+    config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
+
+    config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
+
+    -- Clothing Categorization section
     options:addTitle("Clothing Categorization")
     options:addDescription("Choose whether clothing uses basic or detailed categories")
     options:addSeparator()
 
-    options:addTitle("Shortcuts")
-    options:addDescription("Configure Sorted shortcut keys")
-    options:addSeparator()
-
-    -- Separator style dropdown
-    config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
-    config.separatorStyle:addItem("w/ (Container w/ Food)", true)  -- Default
-    config.separatorStyle:addItem("with (Container with Food)", false)
-    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", false)
-
-    -- Use "and" instead of "&"
-    config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
-
-    -- Show container prefix
-    config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
-
-    -- Clothing category detail level
     config.clothingCategoryMode = options:addComboBox("clothingCategoryMode", "Clothing category detail", "Basic or detailed clothing categories")
     config.clothingCategoryMode:addItem("Basic (ClothHead/ClothBody/ClothLegs)", false)
-    config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)  -- Default
+    config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)
 
-    -- Manager keybinding
-    config.managerKey = options:addKeyBind("managerKey", "Open Sorted Manager key", Sorted.ModOptions.DEFAULT_MANAGER_KEY, "Key to open the Sorted Manager window")
+    -- Shortcuts section
+    options:addTitle("Shortcuts")
+    options:addDescription("Configure Sorted shortcut keys. LeftAlt is always used as the base modifier.")
+    options:addSeparator()
+
+    config.managerModifierKey = options:addComboBox("managerModifierKey", "Manager modifier key", "Choose which key works with LeftAlt to open the Sorted Manager (LeftAlt + this key)")
+    config.managerModifierKey:addItem("Ctrl (LeftAlt + Ctrl)", true)
+    config.managerModifierKey:addItem("Shift (LeftAlt + Shift)", false)
 end
 
 -- Call initialization

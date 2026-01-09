@@ -10,4 +10,4 @@ poster=sorted5.png
 icon=Sorted-icon.png
 versionMin=42.13.1
 require=\ModLoadOrderSorter_b42,\ModLoadOrderExporterB42,\3019672735/ModComparer
-incompatibleWith=\BetterSortCC42,\organizedCategories_core
+incompatible=\BetterSortCC42,\organizedCategories_core
