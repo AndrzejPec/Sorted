@@ -68,10 +68,17 @@ function Sorted.container.analyzeContents(containerItem)
     for i = 0, items:size() - 1 do
         local item = items:get(i)
         if item and item.getDisplayCategory then
-            totalItems = totalItems + 1
             local category = item:getDisplayCategory() or "Uncategorized"
-            categoryCounts[category] = (categoryCounts[category] or 0) + 1
-            -- Sorted:log("[ContainerDynamic] analyzeContents:   Item " .. i .. ": " .. tostring(item:getFullType()) .. " -> Category: " .. category, 3)
+
+            -- BULLETPROOF FIX: Ignore nested containers to avoid recursive/nonsensical naming
+            -- We don't care that there's a bag inside a bag - we care what's IN the bags!
+            if not category:match("^Container") then
+                totalItems = totalItems + 1
+                categoryCounts[category] = (categoryCounts[category] or 0) + 1
+                -- Sorted:log("[ContainerDynamic] analyzeContents:   Item " .. i .. ": " .. tostring(item:getFullType()) .. " -> Category: " .. category, 3)
+            else
+                -- Sorted:log("[ContainerDynamic] analyzeContents:   Item " .. i .. ": SKIPPED container category: " .. category, 3)
+            end
         end
     end
 
