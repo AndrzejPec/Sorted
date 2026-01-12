@@ -17,4 +17,5 @@
 - ADDED: "Food - Non-Perishable - Cans" category now properly appears as subcategory of Non-Perishable
 - FIXED: Container dynamic naming now includes all new Food subcategories in grouping map
 - FIXED: Recursive container naming bug - nested containers no longer create nonsensical names like "Container (FirstAid & ContainerEmpty)"
+- FIXED: CategoryGroups mapping was using translated names instead of dictionary keys - containers now properly group categories (e.g., "Container w/ Medical & Protective Gear" instead of "Container (FirstAid & ProtGearArms)")
 [ ------ ]
