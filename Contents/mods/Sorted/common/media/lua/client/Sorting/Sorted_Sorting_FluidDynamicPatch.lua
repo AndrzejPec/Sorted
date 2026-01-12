@@ -6,6 +6,32 @@ if Sorted._fluidDynamicPatch then
   return
 end
 
+Sorted.DynamicCategories = Sorted.DynamicCategories or {}
+local function registerDynamicCategory(category)
+  if not category or category == "" then
+    return
+  end
+  Sorted.DynamicCategories[category] = true
+end
+
+for _, category in ipairs({
+  "Appearance",
+  "Cleaning",
+  "FoodMeal",
+  "FoodMilk",
+  "FoodWater",
+  "FoodBeverage",
+  "FoodAlcohol",
+  "FoodAlcBeer",
+  "FoodAlcWine",
+  "FoodAlcLiquor",
+  "FoodAlcDrink",
+  "FoodAlcBeverage",
+  "Fuel",
+}) do
+  registerDynamicCategory(category)
+end
+
 local THROTTLE_MS = 0
 local lastApplyTime = 0
 local ALCOHOL_STRENGTH_THRESHOLD = 10

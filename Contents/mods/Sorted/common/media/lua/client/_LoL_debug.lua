@@ -1717,3 +1717,96 @@ function LoL.checkScriptItemProperty(propertyName)
   Sorted:log("Total items checked: " .. totalCount, 3)
   Sorted:log("Items with property '" .. propertyName .. "': " .. foundCount, 3)
 end
+
+function loopOverItemsInGame(predicate)
+  local items = getScriptManager():getAllItems()
+  local result = {}
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if predicate(item) then
+      table.insert(result, item)
+    end
+  end
+  return result
+end
+
+function getAllDisplayCategories()
+  local cats = {}
+  local seen = {}
+
+  local items = getScriptManager():getAllItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local cat = item:getDisplayCategory()
+    if cat and cat ~= "" and not seen[cat] then
+      seen[cat] = true
+      table.insert(cats, cat)
+    end
+  end
+
+  return cats
+end
+
+function addToInvOneOfEach()
+  local player = getSpecificPlayer(0)
+  if not player then return end
+
+  local items = getScriptManager():getAllItems()
+  local byCat = {}
+
+  -- zbierz itemy per kategoria
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local cat = item:getDisplayCategory()
+    if cat and cat ~= "" then
+      byCat[cat] = byCat[cat] or {}
+      table.insert(byCat[cat], item)
+    end
+  end
+
+  -- po jednym losowym z kazdej kategorii
+  for cat, list in pairs(byCat) do
+    local idx = ZombRand(#list) + 1
+    local item = list[idx]
+    if item then
+      player:getInventory():AddItem(item:getFullName())
+    end
+  end
+end
+
+
+function printDictionaryCategories()
+  local counts = {}
+  for fullType, _ in pairs(Sorted.ItemDictionary) do
+    local cat = Sorted.getEffectiveCategory(fullType)
+    if cat and cat ~= "" then
+      counts[cat] = (counts[cat] or 0) + 1
+    end
+  end
+
+  for cat, count in pairs(counts) do
+    print(cat .. " = " .. count)
+  end
+end
+
+function addOneRandomPerCategory()
+  local byCat = {}
+
+  for fullType, _ in pairs(Sorted.ItemDictionary) do
+    local cat = Sorted.getEffectiveCategory(fullType)
+    if cat and cat ~= "" and cat ~= "_Sorted.Uncategorized" then
+      byCat[cat] = byCat[cat] or {}
+      table.insert(byCat[cat], fullType)
+    end
+  end
+
+  local player = getSpecificPlayer(0)
+  if not player then return end
+
+  for cat, list in pairs(byCat) do
+    if #list > 0 then
+      local fullType = list[ZombRand(#list) + 1]
+      player:getInventory():AddItem(fullType)
+    end
+  end
+end

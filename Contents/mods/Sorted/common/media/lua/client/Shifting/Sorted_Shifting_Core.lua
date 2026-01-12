@@ -264,6 +264,22 @@ function Sorted.collectDisplayCategories()
             raw[category] = true
         end
     end
+
+    if Sorted and Sorted.DynamicCategories then
+        for key, value in pairs(Sorted.DynamicCategories) do
+            local category
+            if type(key) == "number" then
+                category = value
+            elseif value then
+                category = key
+            end
+            category = normalizeCategoryKey(category)
+            if category and category ~= "" then
+                raw[category] = true
+            end
+        end
+    end
+
     Sorted.categories = buildCategoryList(raw)
 end
 

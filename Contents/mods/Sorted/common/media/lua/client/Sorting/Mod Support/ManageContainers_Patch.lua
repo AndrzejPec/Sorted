@@ -4,14 +4,6 @@ if not getActivatedMods():contains("ManageContainers") then
   return
 end
 
-local function sortedLog(msg, lvl)
-  if Sorted and Sorted.log then
-    Sorted:log(msg, lvl or 3)
-    return
-  end
-  print(msg)
-end
-
 sortedLog("[Sorted] ManageContainers patch loading...")
 
 local function getSortedCategoryKeys()
@@ -161,25 +153,60 @@ local function patchManageContainers()
     sortedLog("[Sorted] ManageContainers: loadPreset() patch installed (with dead category cleanup)")
   end
 
-  local SORTED_WINDOW_WIDTH = 500
+  local SORTED_WINDOW_WIDTH = 650
+
+  local function applySimpleViewWidth(self)
+    if not self then
+      return
+    end
+
+    self.simpleViewWidth = SORTED_WINDOW_WIDTH
+    self:setWidth(SORTED_WINDOW_WIDTH)
+
+    if self.simplePanel then
+      self.simplePanel:setWidth(SORTED_WINDOW_WIDTH)
+    end
+
+    if self.textBoxName then
+      local inset = 4
+      local lblNameText = getText("IGUI_Name") .. ":"
+      local textboxNameX = getTextManager():MeasureStringX(UIFont.Small, lblNameText) + (inset * 2)
+      self.textBoxName:setWidth(SORTED_WINDOW_WIDTH - textboxNameX)
+    end
+
+    if self.containerPresetDropdown then
+      local inset = 4
+      self.containerPresetDropdown:setWidth(SORTED_WINDOW_WIDTH - (inset * 2))
+    end
+
+    if self.panel then
+      self.panel:setWidth(SORTED_WINDOW_WIDTH)
+    end
+
+    if self.categoryListBox then
+      self.categoryListBox:setWidth(SORTED_WINDOW_WIDTH)
+    end
+
+    if self.advancePanel then
+      self.advancePanel:setX(SORTED_WINDOW_WIDTH)
+    end
+
+    if self.advPanel then
+      self.advPanel:setX(SORTED_WINDOW_WIDTH + 10)
+    end
+  end
 
   if not ISConfigureContainerWindow._original_createChildren then
     ISConfigureContainerWindow._original_createChildren = ISConfigureContainerWindow.createChildren
 
     function ISConfigureContainerWindow:createChildren()
-      self.simpleViewWidth = SORTED_WINDOW_WIDTH
-      self:setWidth(SORTED_WINDOW_WIDTH)
+      applySimpleViewWidth(self)
 
       sortedLog("[Sorted] ManageContainers: Widened simple view to " .. SORTED_WINDOW_WIDTH .. "px (in createChildren)")
 
       self:_original_createChildren()
 
-      if self.categoryListBox then
-        self.categoryListBox:setWidth(SORTED_WINDOW_WIDTH)
-      end
-      if self.panel then
-        self.panel:setWidth(SORTED_WINDOW_WIDTH)
-      end
+      applySimpleViewWidth(self)
     end
 
     sortedLog("[Sorted] ManageContainers: createChildren patch installed")
@@ -191,8 +218,7 @@ local function patchManageContainers()
     function ISConfigureContainerWindow:new(x, y, character, containers)
       local instance = ISConfigureContainerWindow:_original_new(x, y, character, containers)
 
-      instance.simpleViewWidth = SORTED_WINDOW_WIDTH
-      instance:setWidth(SORTED_WINDOW_WIDTH)
+      applySimpleViewWidth(instance)
 
       sortedLog("[Sorted] ManageContainers: Set initial width to " .. SORTED_WINDOW_WIDTH .. "px (in new)")
 

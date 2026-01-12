@@ -14,6 +14,12 @@ local function openManager()
     end
 end
 
+local function log(msg, level)
+    if Sorted and Sorted.log then
+        Sorted:log(msg, level)
+    end
+end
+
 local function getClickedItem(pane)
     local index = pane and pane.mouseOverOption or 0
     if index == 0 or not pane or not pane.items then
@@ -90,33 +96,36 @@ end
 local lastManagerKeyTime = 0
 local MANAGER_KEY_COOLDOWN_MS = 200
 
-local function onKeyPressed(key)
+local function onManagerHotkey(key)
     local modifierKey = Sorted.ModOptions and Sorted.ModOptions.getManagerModifierKey
         and Sorted.ModOptions:getManagerModifierKey()
         or Keyboard.KEY_LCONTROL
 
-    Sorted:log("[Input] onKeyPressed: key=" .. tostring(key) .. ", modifierKey=" .. tostring(modifierKey) .. ", isModifier=" .. tostring(isModifierKeyDown()) .. ", isAlt=" .. tostring(isLeftAltDown()), 3)
+    log("[Input] onManagerHotkey: key=" .. tostring(key) .. ", modifierKey=" .. tostring(modifierKey) .. ", isModifier=" .. tostring(isModifierKeyDown()) .. ", isAlt=" .. tostring(isLeftAltDown()), 3)
 
     if not (isModifierKeyDown() and isLeftAltDown()) then
         return
     end
 
-    if not (Keyboard and (key == modifierKey or key == Keyboard.KEY_LALT)) then
-        Sorted:log("[Input] Key mismatch: key=" .. tostring(key) .. " vs modifierKey=" .. tostring(modifierKey) .. " or LALT=" .. tostring(Keyboard.KEY_LALT), 3)
-        return
-    end
-
     local now = getTimestampMs()
     if (now - lastManagerKeyTime) < MANAGER_KEY_COOLDOWN_MS then
-        Sorted:log("[Input] Cooldown active, ignoring", 3)
+        log("[Input] Cooldown active, ignoring", 3)
         return
     end
     lastManagerKeyTime = now
 
-    Sorted:log("[Input] Opening manager!", 2)
+    log("[Input] Opening manager!", 2)
     openManager()
 end
 
 if Events and Events.OnKeyPressed then
-    Events.OnKeyPressed.Add(onKeyPressed)
+    Events.OnKeyPressed.Add(onManagerHotkey)
+end
+
+if Events and Events.OnKeyStartPressed then
+    Events.OnKeyStartPressed.Add(onManagerHotkey)
+end
+
+function Sorted.consoleOpenManager()
+    openManager()
 end

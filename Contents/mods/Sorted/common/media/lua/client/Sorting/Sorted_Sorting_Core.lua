@@ -227,7 +227,7 @@ local function getFoodCategory(item)
 
   if isCannedFood(item) then
     if isPerishable(item) then
-      return "FoodPerishable"
+      return "FoodPerish"
     end
 
     local icon = item:getIcon()
@@ -245,18 +245,25 @@ local function getFoodCategory(item)
     return nil
   end
 
+  local isSpice
   local fullType = item.getFullName and item:getFullName() or "?"
   local invItem = fullType and instanceItem(fullType) or nil
   if invItem and invItem.isSpice and invItem:isSpice() then
     Sorted:log("Item " .. fullType .. " detected as SPICE by checking its invItem", 3)
-    return "FoodSpice"
+    isSpice = true
+  else
+    isSpice = false
   end
 
   if isPerishable(item) then
-      return "FoodPerishable"
+    if isSpice then
+      return "FoodPerishSpice"
+    else
+      return "FoodPerish"
+    end
   end
 
-  return "FoodNonPerish"
+  return isSpice and "FoodNonPerishSpice" or "FoodNonPerish"
 end
 
 local function getLiteratureCategory(item)
