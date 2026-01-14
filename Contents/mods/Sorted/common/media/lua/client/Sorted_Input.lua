@@ -6,6 +6,9 @@ if Sorted._inputHooksInstalled then
 end
 Sorted._inputHooksInstalled = true
 
+-- Load UpdateWizard
+require "LoL_UpdateWizard/Main"
+
 local function openManager()
     if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
         Sorted.ManagerMC.toggle()

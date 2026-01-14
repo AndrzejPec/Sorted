@@ -138,7 +138,9 @@ function Sorted.container:getDynamicCategory(container)
     local seenGroups = {}
 
     for _, catData in ipairs(categoryList) do
+        Sorted:log("[ContainerDynamic] Before grouping: category = '" .. tostring(catData.name) .. "'", 1)
         local groupedName = Sorted.ModOptions:getGroupedCategory(catData.name)
+        Sorted:log("[ContainerDynamic] After grouping: '" .. tostring(catData.name) .. "' -> '" .. tostring(groupedName) .. "'", 1)
 
         if groupedName then
             if not seenGroups[groupedName] then

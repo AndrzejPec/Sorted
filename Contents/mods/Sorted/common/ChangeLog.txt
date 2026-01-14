@@ -4,12 +4,10 @@
 
 [ 12 I 2026 ]
 - Added ModOptions settings panel for customizing container names, clothing categories, and shortcuts
-- There is a "modifier" key currently hardcoded on left alt (would like feedback if that set binding is problematic)
-- Alt + CTRL opens Sorted Manager window
-- Alt + LMB(on an inventory item) quickly opens single item modification window
+- There is a "modifier" key currently hardcoded on [LEFT ALT] (would like feedback if that set binding is problematic)
+- [Alt + CTRL] opens Sorted Manager window
+- [Alt + LMB(on an inventory item)] quickly opens single item modification window
 - Added automatic item dictionary that remembers all items and their categories
-- Fixed ManageContainers mod integration - now shows all Sorted categories in filter list
-- Fixed ManageContainers window width to better display long category names
 - Fixed preset loading to clean up dead categories from removed mods
 - Improved category naming consistency across the mod
 - FIXED: Inverted ternary logic in perishable/spice food categorization (spice was wrongly mapped)

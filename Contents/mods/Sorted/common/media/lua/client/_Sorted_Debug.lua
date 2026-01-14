@@ -40,23 +40,23 @@ function Sorted:log(msg, level)
     print(prefix .. " -------> " .. tostring(msg))
 end
 
-local function stopLog()
+function stopLog()
     Sorted:setLogging(false)
 end
 
-local function logErrors()
+function logErrors()
     Sorted:setLogging(true, 1)
 end
 
-local function logWarns()
+function logWarns()
     Sorted:setLogging(true, 2)
 end
 
-local function logAll()
+function logAll()
     Sorted:setLogging(true, 3)
 end
 
-local function doDebug()
+function doDebug()
     Sorted:setLogging(selectedDebugScenario == true, 0)
 end
 
