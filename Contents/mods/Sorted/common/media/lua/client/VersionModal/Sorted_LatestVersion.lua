@@ -5,7 +5,7 @@ require "VersionModal/Sorted_VersionPanel"
 Sorted = Sorted or {}
 
 -- !!! UWAGA: Ta wartość będzie automatycznie aktualizowana przez skrypt update-version.js
-CURRENT_VERSION = "11.11"
+CURRENT_VERSION = "0.2"
 
 Events.OnGameStart.Add(function()
     local ticks = 0
