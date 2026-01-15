@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const { execSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const paths = {
@@ -45,7 +46,62 @@ function prompt(question) {
   });
 }
 
+function stageFiles(filePaths) {
+  const relPaths = filePaths.map((filePath) => path.relative(root, filePath));
+  const quoted = relPaths.map((p) => `"${p}"`).join(" ");
+  run(`git add ${quoted}`);
+}
+
+function run(command) {
+  execSync(command, { stdio: "inherit", cwd: root });
+}
+
+function getOutput(command) {
+  return execSync(command, { cwd: root }).toString().trim();
+}
+
+function requireCleanWorkingTree() {
+  const status = getOutput("git status --porcelain");
+  if (status) {
+    console.error("ERROR: Working tree is not clean. Commit or stash changes first.");
+    process.exit(1);
+  }
+}
+
+function getArgValue(args, name) {
+  const idx = args.indexOf(name);
+  if (idx === -1 || idx + 1 >= args.length) {
+    return null;
+  }
+  return args[idx + 1];
+}
+
+function buildTag(version) {
+  if (!version) return null;
+  return version.startsWith("v") ? version : `v${version}`;
+}
+
+function runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage }) {
+  if (sourceBranch === stableBranch) {
+    console.error(`ERROR: source branch '${sourceBranch}' is the same as stable branch.`);
+    process.exit(1);
+  }
+
+  const currentBranch = getOutput("git rev-parse --abbrev-ref HEAD");
+  if (currentBranch !== sourceBranch) {
+    console.error(`ERROR: Current branch is '${currentBranch}', expected '${sourceBranch}'.`);
+    process.exit(1);
+  }
+
+  run(`git checkout ${stableBranch}`);
+  run(`git merge --no-ff ${sourceBranch} -m "${mergeMessage}"`);
+  run(`git tag -a ${tagName} -m "${tagName}"`);
+  run(`git checkout ${sourceBranch}`);
+}
+
 async function main() {
+  const args = process.argv.slice(2);
+  const doRelease = !args.includes("--no-release");
   console.log("🚀 Sorted Version Update Script\n");
 
   // Sprawdź czy pliki istnieją
@@ -66,6 +122,10 @@ async function main() {
   }
 
   // Aktualizuj mod.info
+  if (doRelease) {
+    requireCleanWorkingTree();
+  }
+
   let modInfo = readFile(paths.modInfo);
   modInfo = replaceLineValue(modInfo, "modversion", newVersion);
   writeFile(paths.modInfo, modInfo);
@@ -79,6 +139,22 @@ async function main() {
     process.exit(1);
   }
   writeFile(paths.latestVersionLua, updatedLua);
+  if (doRelease) {
+    const sourceBranch = getArgValue(args, "--source-branch") || getOutput("git rev-parse --abbrev-ref HEAD");
+    const stableBranch = getArgValue(args, "--stable-branch") || "stable";
+    const tagName = getArgValue(args, "--tag") || buildTag(newVersion);
+    const mergeMessage = getArgValue(args, "--merge-message") || `release: ${tagName}`;
+    const commitMessage = getArgValue(args, "--commit-message") || `chore: bump version to ${tagName}`;
+
+    if (!tagName) {
+      console.error("ERROR: Tag name is required for release workflow.");
+      process.exit(1);
+    }
+
+    stageFiles([paths.modInfo, paths.latestVersionLua]);
+    run(`git commit -m "${commitMessage}"`);
+    runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage });
+  }
   console.log(`✅ Updated CURRENT_VERSION in Sorted_LatestVersion.lua → "${newVersion}"`);
 
   console.log("\n🎉 Done! Version updated successfully.");
