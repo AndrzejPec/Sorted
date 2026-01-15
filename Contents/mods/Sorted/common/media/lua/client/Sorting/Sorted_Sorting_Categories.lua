@@ -1,4 +1,4 @@
-require("ItemTweaker_Copy_CC");
+require("Sorting/Sorted_Sorting_ItemTweaker_CC");
 
 --APPEARANCE
 -- TweakItem("Base.HairDyeBlack","DisplayCategory","Appear");
@@ -344,8 +344,8 @@ require("ItemTweaker_Copy_CC");
 -- TweakItem("Base.CameraDisposable","DisplayCategory","Elec");
 -- TweakItem("Base.CameraExpensive","DisplayCategory","Elec");
 --FUEL
--- TweakItem("Base.RubberHose","DisplayCategory","Fuel");
--- TweakItem("Base.PetrolCan","DisplayCategory","Fuel");
+TweakItem("Base.RubberHose","DisplayCategory","Fuel");
+
 -- TweakItem("Base.PetrolBleachBottle","DisplayCategory","Fuel");
 -- TweakItem("Base.PetrolPopBottle","DisplayCategory","Fuel");
 -- TweakItem("Base.WaterBottlePetrol","DisplayCategory","Fuel");

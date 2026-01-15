@@ -1,0 +1,11 @@
+{
+  "name": "sorted-mod",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Project Zomboid mod - Sorted inventory management system",
+  "scripts": {
+    "update-version": "node scripts/update-version.js"
+  },
+  "author": "pimatstudio",
+  "license": "UNLICENSED"
+}

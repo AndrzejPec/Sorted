@@ -1,19 +1,103 @@
-if not BetterSorting then
-  BetterSorting = {}
+if not Sorted then
+  Sorted = {}
 end
 
-if BetterSorting._fluidDynamicPatch then
+if Sorted._fluidDynamicPatch then
   return
 end
 
-local THROTTLE_MS = 1000
-local lastApplyTime = 0
+Sorted.DynamicCategories = Sorted.DynamicCategories or {}
+local function registerDynamicCategory(category)
+  if not category or category == "" then
+    return
+  end
+  Sorted.DynamicCategories[category] = true
+end
 
+for _, category in ipairs({
+  "Appearance",
+  "Cleaning",
+  "FoodMeal",
+  "FoodMilk",
+  "FoodWater",
+  "FoodBeverage",
+  "FoodAlcohol",
+  "FoodAlcBeer",
+  "FoodAlcWine",
+  "FoodAlcLiquor",
+  "FoodAlcDrink",
+  "FoodAlcBeverage",
+  "Fuel",
+}) do
+  registerDynamicCategory(category)
+end
+
+local THROTTLE_MS = 0
+local lastApplyTime = 0
+local ALCOHOL_STRENGTH_THRESHOLD = 10
+
+local function getAlcoholCategoryDetailed(fluidContainer)
+  if not fluidContainer or not fluidContainer.isCategory or not fluidContainer:isCategory(FluidCategory.Alcoholic) then
+    return nil
+  end
+
+  local isMixture = fluidContainer.isMixture and fluidContainer:isMixture()
+
+  if not isMixture then
+    local primaryFluid = fluidContainer.getPrimaryFluid and fluidContainer:getPrimaryFluid()
+    if primaryFluid then
+      local fluidType = primaryFluid.getFluidTypeString and string.lower(primaryFluid:getFluidTypeString())
+
+      if fluidType and string.find(fluidType, "beer", 1, true) then
+        return "FoodAlcBeer"
+      elseif fluidType and (string.find(fluidType, "wine", 1, true) or string.find(fluidType, "mead", 1, true)) then
+        return "FoodAlcWine"
+      else
+        return "FoodAlcLiquor"
+      end
+    end
+  else
+    local totalAlcohol = fluidContainer.getProperties and fluidContainer:getProperties():getAlcohol() or 0
+    local totalAmount = fluidContainer.getAmount and fluidContainer:getAmount() or 0
+
+    if totalAmount > 0 then
+      local effectivePercentage = (totalAlcohol / totalAmount) * 100
+
+      if effectivePercentage >= ALCOHOL_STRENGTH_THRESHOLD then
+        return "FoodAlcDrink"
+      else
+        return "FoodAlcBeverage"
+      end
+    end
+  end
+
+  return "FoodAlcohol"
+end
+
+local function getAlcoholCategorySimple(fluidContainer)
+  if not fluidContainer or not fluidContainer.isCategory or not fluidContainer:isCategory(FluidCategory.Alcoholic) then
+    return nil
+  end
+  return "FoodAlcohol"
+end
+
+local function getAlcoholCategory(fluidContainer, detailed)
+  if detailed then
+    return getAlcoholCategoryDetailed(fluidContainer)
+  else
+    return getAlcoholCategorySimple(fluidContainer)
+  end
+end
+
+---comment
+---@param fluidContainer FluidContainer
+---@param item InventoryItem
+---@return string|nil
 local function getDynamicFluidCategory(fluidContainer, item)
   if item and item.getEvolvedRecipeName then
     local evolvedRecipeName = item:getEvolvedRecipeName()
     if evolvedRecipeName and evolvedRecipeName ~= "" then
-      return "FoodD"
+      return "FoodMeal"
     end
   end
 
@@ -24,6 +108,15 @@ local function getDynamicFluidCategory(fluidContainer, item)
   local amount = fluidContainer:getAmount()
   if not amount or amount <= 0 then
     return nil
+  end
+  
+  if fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.HairDye) then
+    return "Appearance"
+  end
+
+  if fluidContainer.contains and
+    (fluidContainer:contains(Fluid.Bleach) or fluidContainer:contains(Fluid.CleaningLiquid)) then
+    return "Cleaning"
   end
 
   if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Fuel) then
@@ -36,25 +129,26 @@ local function getDynamicFluidCategory(fluidContainer, item)
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.AnimalMilk))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.SheepMilk))
       or (fluidContainer.isPureFluid and fluidContainer:isPureFluid(Fluid.CowMilk)) then
-    return "FoodM"
+    return "FoodMilk"
   end
 
-  if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Alcoholic) then
-    return "FoodA"
+  local alcoholCategory = getAlcoholCategory(fluidContainer, true)
+  if alcoholCategory then
+    return alcoholCategory
   end
 
   if fluidContainer and fluidContainer.isAllCategory and fluidContainer:isAllCategory(FluidCategory.Water) then
-    return "FoodW"
+    return "FoodWater"
   end
 
   if fluidContainer.isCategory and fluidContainer:isCategory(FluidCategory.Beverage) then
-    return "FoodB"
+    return "FoodBeverage"
   end
 
   return nil
 end
 
-function BetterSorting.ApplyFluidCategory(item)
+function Sorted.ApplyFluidCategory(item)
   if not item or not item.getFluidContainer or not item.setDisplayCategory then
     return
   end
@@ -91,23 +185,57 @@ function BetterSorting.ApplyFluidCategory(item)
 end
 
 local function applyFluidCategoriesToAllInventories()
+  -- print("=== [FLUID DYNAMIC] applyFluidCategoriesToAllInventories CALLED ===")
+
   local player = getPlayer()
   if not player then
+    -- print("[FLUID DYNAMIC] NO PLAYER!")
     return
   end
 
+  -- PLAYER INVENTORY (left panel - w rece)
   local playerInv = player:getInventory()
   if playerInv then
     local items = playerInv:getItems()
+    -- print("[FLUID DYNAMIC] PLAYER INV: " .. items:size() .. " items")
     for i = 0, items:size() - 1 do
-      BetterSorting.ApplyFluidCategory(items:get(i))
+      local item = items:get(i)
+      -- print("[FLUID DYNAMIC] - Player item: " .. (item:getDisplayName() or "???"))
+      Sorted.ApplyFluidCategory(item)
     end
+  else
+    -- print("[FLUID DYNAMIC] NO PLAYER INV!")
   end
+
+  -- LOOT WINDOW (right panel - kontenery jak fridge, backpack)
+  local playerLoot = getPlayerLoot(0)
+  -- print("[FLUID DYNAMIC] playerLoot = " .. tostring(playerLoot))
+
+  if playerLoot then
+    -- print("[FLUID DYNAMIC] playerLoot.inventory = " .. tostring(playerLoot.inventory))
+
+    if playerLoot.inventory then
+      local items = playerLoot.inventory:getItems()
+      -- print("[FLUID DYNAMIC] LOOT WINDOW: " .. items:size() .. " items")
+
+      for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        -- print("[FLUID DYNAMIC] - Loot item: " .. (item:getDisplayName() or "???"))
+        Sorted.ApplyFluidCategory(item)
+      end
+    else
+      -- print("[FLUID DYNAMIC] playerLoot.inventory is NIL!")
+    end
+  else
+    -- print("[FLUID DYNAMIC] NO LOOT WINDOW OPEN (playerLoot is nil)")
+  end
+
+  -- print("=== [FLUID DYNAMIC] DONE ===")
 end
 
 if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(applyFluidCategoriesToAllInventories)
-  BetterSorting._fluidDynamicPatch = true
+  Sorted._fluidDynamicPatch = true
   if Sorted and Sorted.log then
     Sorted:log("FluidDynamicPatch: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
   end

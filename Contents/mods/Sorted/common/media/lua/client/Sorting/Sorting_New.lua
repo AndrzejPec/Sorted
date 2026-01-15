@@ -1,5 +1,5 @@
 
-if not BetterSorting then BetterSorting = {} end
+if not Sorted then Sorted = {} end
 
 local function sortedLog(msg, lvl)
   if Sorted and Sorted.log then
@@ -9,7 +9,7 @@ local function sortedLog(msg, lvl)
   print(msg)
 end
 
-function BetterSorting.categorizeFoodBoxes(item)
+function Sorted.categorizeFoodBoxes(item)
   if not item or not item.getItemType or item:getItemType() ~= ItemType.FOOD then
     return nil
   end
@@ -20,7 +20,7 @@ function BetterSorting.categorizeFoodBoxes(item)
 
   local model = item and item:getWorldStaticModel()
   if model and string.find(model, "^Parcel_Food", 1, false) then
-    return "FoodN"
+    return "FoodNonPerish"
   end
 
   return nil
@@ -30,7 +30,7 @@ end
 -- @param doReturn - if true, returns table of matching items
 -- @param doPrint - if true, prints matching items to console
 -- @param param - if provided, prints the value of item[param] or calls item:param() if it's a function
-function BetterSorting.iterateAllItems(predicate, doReturn, doPrint, param)
+function Sorted.iterateAllItems(predicate, doReturn, doPrint, param)
   local results = doReturn and {} or nil
   local allItems = getScriptManager():getAllItems()
 
@@ -66,8 +66,8 @@ function BetterSorting.iterateAllItems(predicate, doReturn, doPrint, param)
   return results
 end
 
-function BetterSorting.findCookwareLootItems()
-  return BetterSorting.iterateAllItems(
+function Sorted.findCookwareLootItems()
+  return Sorted.iterateAllItems(
     function(item)
       return item.isCookwareLoot and item:isCookwareLoot()
     end,

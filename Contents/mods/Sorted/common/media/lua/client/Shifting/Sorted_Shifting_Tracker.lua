@@ -16,7 +16,7 @@ Sorted.Tracker._categoryCache = nil
 Sorted.Tracker._categoryCacheTime = 0
 
 local CACHE_LIFETIME = 300 * 1000
-local THROTTLE_MS = 1000
+local THROTTLE_MS = 0
 local lastApplyTime = 0
 
 local function tableSize(t)
@@ -73,6 +73,10 @@ if originalWriteCategoryToIni then
     Sorted.writeCategoryToIni = function(fullType, category)
         originalWriteCategoryToIni(fullType, category)
         Sorted.Tracker.invalidateCategoryCache()
+
+        if Sorted.setUserCategory then
+            Sorted.setUserCategory(fullType, category)
+        end
     end
 end
 

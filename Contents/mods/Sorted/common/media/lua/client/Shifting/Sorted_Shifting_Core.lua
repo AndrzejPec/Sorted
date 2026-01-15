@@ -17,7 +17,7 @@ Sorted.Config = Sorted.Config or {
 
     MRU_LIMIT = 6,
 
-    bettersorting_enabled = true,
+    Sorted_enabled = true,
 }
 
 local CATEGORY_PREFIX = Sorted.Config.CATEGORY_PREFIX
@@ -264,6 +264,22 @@ function Sorted.collectDisplayCategories()
             raw[category] = true
         end
     end
+
+    if Sorted and Sorted.DynamicCategories then
+        for key, value in pairs(Sorted.DynamicCategories) do
+            local category
+            if type(key) == "number" then
+                category = value
+            elseif value then
+                category = key
+            end
+            category = normalizeCategoryKey(category)
+            if category and category ~= "" then
+                raw[category] = true
+            end
+        end
+    end
+
     Sorted.categories = buildCategoryList(raw)
 end
 
@@ -296,15 +312,18 @@ function Sorted.addContextMenu(player, context, items)
     end
 
     local managerOption = context:addOption(getText("UI_Sorted_openManager"), nil, function()
-        if Sorted.Manager and Sorted.Manager.toggle then
-            Sorted.Manager.toggle()
+        if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
+            Sorted.ManagerMC.toggle()
         end
     end)
     managerOption.iconTexture = iconTex
 end
 
+---@class SortedModal : ISPanel
+---@type SortedModal
 Sorted.Modal = ISPanel:derive("Sorted.Modal")
 
+---@return SortedModal
 function Sorted.Modal:new(x, y, width, height, item)
     local o = ISPanel:new(x, y, width, height)
     setmetatable(o, self)
