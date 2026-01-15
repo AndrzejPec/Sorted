@@ -116,7 +116,6 @@ IGUI_EN = {
 	IGUI_ItemCat_Tool = "Tool",
 	IGUI_ItemCat_WeaponMagazine = "Weapon - Magazine",
 	IGUI_ItemCat_WeaponBomb = "Weapon - Bomb",
-	IGUI_ItemCat_WeaponBow = "Weapon - Bow",
 	IGUI_ItemCat_WeaponFirearm = "Weapon - Firearm",
 	IGUI_ItemCat_WeaponMelee = "Weapon - Melee",
 	IGUI_ItemCat_WeaponPart = "Weapon - Part",

@@ -46,12 +46,6 @@ Sorted.ModOptions.CategoryGroups = {
     ["ClothHeadHat"] = "Clothing",
     ["ClothHeadMask"] = "Clothing",
     ["ClothHead"] = "Clothing",
-    ["ClothJewEar"] = "Clothing",
-    ["ClothJewGroin"] = "Clothing",
-    ["ClothJewNeck"] = "Clothing",
-    ["ClothJewNose"] = "Clothing",
-    ["ClothJewRings"] = "Clothing",
-    ["ClothJewelry"] = "Clothing",
     ["ClothLegsFull"] = "Clothing",
     ["ClothLegsPants"] = "Clothing",
     ["ClothLegsSkirt"] = "Clothing",
@@ -61,6 +55,14 @@ Sorted.ModOptions.CategoryGroups = {
     ["ClothUnderExtra"] = "Clothing",
     ["ClothUnderTop"] = "Clothing",
     ["ClothUnderwear"] = "Clothing",
+    
+    -- Jewelry - all subcategories → "Jewelry"
+    ["ClothJewEar"] = "Jewelry",
+    ["ClothJewGroin"] = "Jewelry",
+    ["ClothJewNeck"] = "Jewelry",
+    ["ClothJewNose"] = "Jewelry",
+    ["ClothJewRings"] = "Jewelry",
+    ["ClothJewelry"] = "Jewelry",
 
     -- Crafting - all subcategories → "Crafting"
     ["CraftAmmo"] = "Crafting",
@@ -132,6 +134,20 @@ Sorted.ModOptions.CategoryGroups = {
     ["WeaponBow"] = "Weapons",
     ["WeaponMelee"] = "Weapons",
     ["WeaponShield"] = "Weapons",
+    ["SportsWeapon"] = "Weapons",
+    ["ToolWeapon"] = "Weapons",
+    ["WeaponFirearm"] = "Weapon - Firearm",
+    ["AnimalPartWeapon"] = "Weapons",
+    ["CookingWeapon"] = "Weapons",
+    ["BrokenWeapon"] = "Weapons",
+    ["FirstAidWeapon"] = "Weapons",
+    ["FishingWeapon"] = "Weapons",
+    ["GardeningWeapon"] = "Weapons",
+    ["HouseholdWeapon"] = "Weapons",
+    ["InstrumentWeapon"] = "Weapons",
+    ["JunkWeapon"] = "Weapons",
+    ["MaterialWeapon"] = "Weapons",
+    ["VehicleMaintenanceWeapon"] = "Weapons",
 }
 
 -- Get grouped category name (or return original if not grouped)
