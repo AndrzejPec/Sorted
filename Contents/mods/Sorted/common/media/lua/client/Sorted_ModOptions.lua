@@ -207,29 +207,24 @@ function Sorted.ModOptions:useDetailedClothing()
 end
 
 function Sorted.ModOptions:getManagerModifierKey()
-    Sorted:log("[ModOptions] getManagerModifierKey: config.managerModifierKey = " .. tostring(config.managerModifierKey), 3)
 
     if not config.managerModifierKey then
-        Sorted:log("[ModOptions] No managerModifierKey config, using default Ctrl", 3)
         return Keyboard.KEY_LCONTROL
     end
 
     local modifierType = config.managerModifierKey:getValue()
-    Sorted:log("[ModOptions] managerModifierKey getValue() = " .. tostring(modifierType), 3)
 
     if modifierType == 1 then
         return Keyboard.KEY_LCONTROL
     elseif modifierType == 2 then
         return Keyboard.KEY_LSHIFT
     else
-        Sorted:log("[ModOptions] Unknown modifier type, defaulting to Ctrl", 2)
         return Keyboard.KEY_LCONTROL
     end
 end
 
 -- Build container name with settings
 function Sorted.ModOptions:buildContainerName(categories)
-    Sorted:log("[ModOptions] buildContainerName: " .. #categories .. " categories", 3)
 
     local separator = self:getSeparator()
     local conjunction = self:getConjunction()
@@ -237,21 +232,16 @@ function Sorted.ModOptions:buildContainerName(categories)
 
     if config.showContainerPrefix then
         showPrefix = config.showContainerPrefix:getValue()
-        Sorted:log("[ModOptions] showPrefix getValue() = " .. tostring(showPrefix), 3)
-    else
-        Sorted:log("[ModOptions] No showContainerPrefix config, using default true", 3)
     end
 
     if not showPrefix then
         -- Avoid category-only labels that look like item categories.
         showPrefix = true
-        Sorted:log("[ModOptions] showPrefix disabled; forcing container prefix to avoid category-only labels", 2)
     end
 
     local useBrackets = false
     if config.separatorStyle then
         useBrackets = config.separatorStyle:getValue() == 3
-        Sorted:log("[ModOptions] useBrackets = " .. tostring(useBrackets), 3)
     end
 
     local result = ""
@@ -260,14 +250,11 @@ function Sorted.ModOptions:buildContainerName(categories)
     local categoryPart = ""
     if #categories == 1 then
         categoryPart = categories[1]
-        Sorted:log("[ModOptions] Single category: '" .. categoryPart .. "'", 3)
     elseif #categories == 2 then
         categoryPart = categories[1] .. conjunction .. categories[2]
-        Sorted:log("[ModOptions] Two categories: '" .. categories[1] .. "' + '" .. categories[2] .. "'", 3)
     else
         -- More than 2 categories - shouldn't happen with current logic
         categoryPart = categories[1]
-        Sorted:log("[ModOptions] WARNING: " .. #categories .. " categories, using first only", 2)
     end
 
     -- Combine with prefix/separator
@@ -285,7 +272,6 @@ function Sorted.ModOptions:buildContainerName(categories)
         end
     end
 
-    Sorted:log("[ModOptions] Built container name: '" .. result .. "'", 3)
     return result
 end
 

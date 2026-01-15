@@ -6,20 +6,14 @@ if Sorted._inputHooksInstalled then
 end
 Sorted._inputHooksInstalled = true
 
--- Load UpdateWizard
-require "LoL_UpdateWizard/Main"
+-- Load VersionModal
+require "VersionModal/Sorted_LatestVersion"
 
 local function openManager()
     if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
         Sorted.ManagerMC.toggle()
     elseif Sorted.openManagerMC then
         Sorted.openManagerMC()
-    end
-end
-
-local function log(msg, level)
-    if Sorted and Sorted.log then
-        Sorted:log(msg, level)
     end
 end
 
@@ -104,20 +98,16 @@ local function onManagerHotkey(key)
         and Sorted.ModOptions:getManagerModifierKey()
         or Keyboard.KEY_LCONTROL
 
-    log("[Input] onManagerHotkey: key=" .. tostring(key) .. ", modifierKey=" .. tostring(modifierKey) .. ", isModifier=" .. tostring(isModifierKeyDown()) .. ", isAlt=" .. tostring(isLeftAltDown()), 3)
-
     if not (isModifierKeyDown() and isLeftAltDown()) then
         return
     end
 
     local now = getTimestampMs()
     if (now - lastManagerKeyTime) < MANAGER_KEY_COOLDOWN_MS then
-        log("[Input] Cooldown active, ignoring", 3)
         return
     end
     lastManagerKeyTime = now
 
-    log("[Input] Opening manager!", 2)
     openManager()
 end
 
