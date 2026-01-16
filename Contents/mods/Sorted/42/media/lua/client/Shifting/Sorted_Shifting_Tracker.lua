@@ -85,15 +85,18 @@ local function applyToInventory(inventory, categories)
     return
   end
 
-  local item = inventory:getItems()
-  local fullType = item and item.getFullType and item:getFullType()
-  local savedCategory = categories[fullType]
+  local items = inventory:getItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local fullType = item and item.getFullType and item:getFullType()
+    local savedCategory = categories[fullType]
 
-  if savedCategory then
-    local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-    if currentCategory ~= savedCategory then
-      if item and item.setDisplayCategory then
-        item:setDisplayCategory(savedCategory)
+    if savedCategory then
+      local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+      if currentCategory ~= savedCategory then
+        if item and item.setDisplayCategory then
+          item:setDisplayCategory(savedCategory)
+        end
       end
     end
   end
