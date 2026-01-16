@@ -4,7 +4,7 @@ require "VersionModal/Sorted_VersionPanel"
 
 Sorted = Sorted or {}
 
-CURRENT_VERSION = "0.2"
+CURRENT_VERSION = "0.2.1"
 
 Events.OnGameStart.Add(function()
     local ticks = 0
