@@ -1,0 +1,19 @@
+Hello my dear Testers!
+
+Hope you are doing well, and sorry for the late update - I was ill for a few days.
+This release fixes major issues and adds the ModOptions tab, so please check it out :)
+
+The mod is moving toward 0.2 and I would love your feedback.
+I focused on the update instead of Discord, but I am setting up proper DM notifications.
+
+I am truly sorry for zero presence on Discord.
+IMPORTANT: Please message me directly if you have anything urgent or important. I'll set up Discord notifications on only for DM's.
+
+=========== Changelog (ONLY THE JUICY STUFF) ===========
+- FEATURE: Added ModOptions settings panel for customizing container names, clothing categories, and shortcuts
+- FEATURE: There is a "modifier" key currently hardcoded on [LEFT ALT] (would like feedback if that set binding is problematic)
+- SHORTCUT [Alt + CTRL] opens Sorted Manager window
+- SHORTCUT [Alt + LMB(on an inventory item)] quickly opens single item modification window
+- CHORE: Improved category naming consistency across the mod
+- FIXED: "Food - Non-Perishable - Cans" category now properly appears as subcategory of Non-Perishable
+=======================================================

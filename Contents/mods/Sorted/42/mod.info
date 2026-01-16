@@ -1,0 +1,13 @@
+name=Sorted.
+id=Sorted.
+author=pimatstudio
+modversion=0.2
+poster=Sorted-α.png
+poster=Sorted-α.png
+poster=containers.png
+poster=modoptions.png
+poster=sorted5.png
+icon=Sorted-icon.png
+versionMin=42.13.1
+require=\ModLoadOrderSorter_b42,\ModLoadOrderExporterB42,\3019672735/ModComparer
+incompatible=\BetterSortCC42,\organizedCategories_core
