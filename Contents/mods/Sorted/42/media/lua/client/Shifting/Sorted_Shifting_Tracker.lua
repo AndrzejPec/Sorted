@@ -103,21 +103,21 @@ local function applyToInventory(inventory, categories)
 end
 
 function Sorted.Tracker.applyShiftingCategoriesToInventories()
-  local player = getPlayer()
-  if not player then
-    return
-  end
-
   local categories = Sorted.Tracker.getSavedCategories()
   if not categories or tableSize(categories) == 0 then
     return
   end
 
-  applyToInventory(player:getInventory(), categories)
+  for playerNum = 0, getNumActivePlayers() - 1 do
+    local player = getPlayer(playerNum)
+    if player then
+      applyToInventory(player:getInventory(), categories)
+    end
 
-  local playerLoot = getPlayerLoot(0)
-  if playerLoot and playerLoot.inventory then
-    applyToInventory(playerLoot.inventory, categories)
+    local playerLoot = getPlayerLoot(playerNum)
+    if playerLoot and playerLoot.inventory then
+      applyToInventory(playerLoot.inventory, categories)
+    end
   end
 end
 
