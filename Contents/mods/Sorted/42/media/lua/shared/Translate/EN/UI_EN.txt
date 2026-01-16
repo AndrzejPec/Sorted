@@ -20,17 +20,4 @@ UI_EN = {
     UI_Sorted_selectedItems = "Selected Items",
     UI_Sorted_clearSelection = "Clear",
     UI_Sorted_applyToSelected = "Apply to Selected",
-
-    UI_quick_tip1 = "Sorted tip: Alt + Ctrl opens the Category Manager.",
-    UI_quick_tip2 = "Sorted tip: Alt + LMB on an item opens quick category edit.",
-    UI_quick_tip3 = "Sorted tip: Category changes apply after reloading your save.",
-    UI_quick_tip4 = "Sorted tip: A new category needs a full game restart.",
-    UI_quick_tip5 = "Sorted tip: ModOptions lets you rename containers and set shortcuts.",
-    UI_quick_tip6 = "Sorted tip: The mod remembers item categories automatically.",
-    UI_quick_tip7 = "Sorted tip: ManageContainers now shows all Sorted categories.",
-    UI_quick_tip8 = "Sorted tip: Non-perishable cans live under Food - Non-Perishable - Cans.",
-    UI_quick_tip9 = "Sorted tip: Perishable and spice food categories were fixed.",
-    UI_quick_tip10 = "Sorted tip: Long category names fit better in ManageContainers now.",
-    UI_quick_tip11 = "Sorted tip: Preset loading cleans up dead categories from removed mods.",
-    UI_quick_tip12 = "Sorted tip: Container naming covers all new Food subcategories.",
 }

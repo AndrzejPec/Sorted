@@ -185,52 +185,28 @@ function Sorted.ApplyFluidCategory(item)
 end
 
 local function applyFluidCategoriesToAllInventories()
-  -- print("=== [FLUID DYNAMIC] applyFluidCategoriesToAllInventories CALLED ===")
-
-  local player = getPlayer()
-  if not player then
-    -- print("[FLUID DYNAMIC] NO PLAYER!")
-    return
-  end
-
-  -- PLAYER INVENTORY (left panel - w rece)
-  local playerInv = player:getInventory()
-  if playerInv then
-    local items = playerInv:getItems()
-    -- print("[FLUID DYNAMIC] PLAYER INV: " .. items:size() .. " items")
-    for i = 0, items:size() - 1 do
-      local item = items:get(i)
-      -- print("[FLUID DYNAMIC] - Player item: " .. (item:getDisplayName() or "???"))
-      Sorted.ApplyFluidCategory(item)
-    end
-  else
-    -- print("[FLUID DYNAMIC] NO PLAYER INV!")
-  end
-
-  -- LOOT WINDOW (right panel - kontenery jak fridge, backpack)
-  local playerLoot = getPlayerLoot(0)
-  -- print("[FLUID DYNAMIC] playerLoot = " .. tostring(playerLoot))
-
-  if playerLoot then
-    -- print("[FLUID DYNAMIC] playerLoot.inventory = " .. tostring(playerLoot.inventory))
-
-    if playerLoot.inventory then
-      local items = playerLoot.inventory:getItems()
-      -- print("[FLUID DYNAMIC] LOOT WINDOW: " .. items:size() .. " items")
-
-      for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        -- print("[FLUID DYNAMIC] - Loot item: " .. (item:getDisplayName() or "???"))
-        Sorted.ApplyFluidCategory(item)
+  for playerNum = 0, getNumActivePlayers() - 1 do
+    local player = getPlayer(playerNum)
+    if player then
+      local playerInv = player:getInventory()
+      if playerInv then
+        local items = playerInv:getItems()
+        for i = 0, items:size() - 1 do
+          local item = items:get(i)
+          Sorted.ApplyFluidCategory(item)
+        end
       end
-    else
-      -- print("[FLUID DYNAMIC] playerLoot.inventory is NIL!")
-    end
-  else
-    -- print("[FLUID DYNAMIC] NO LOOT WINDOW OPEN (playerLoot is nil)")
-  end
 
-  -- print("=== [FLUID DYNAMIC] DONE ===")
+      local playerLoot = getPlayerLoot(playerNum)
+      if playerLoot and playerLoot.inventory then
+        local items = playerLoot.inventory:getItems()
+        for i = 0, items:size() - 1 do
+          local item = items:get(i)
+          Sorted.ApplyFluidCategory(item)
+        end
+      end
+    end
+  end
 end
 
 if Events and Events.OnRefreshInventoryWindowContainers then

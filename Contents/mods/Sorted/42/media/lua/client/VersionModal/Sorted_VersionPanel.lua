@@ -12,7 +12,7 @@ local function loadChangelogLines()
         "Welcome to Sorted mod.",
         " ",
         "This is the default changelog message.",
-        "Please edit Content.md and run the update script to customize this.",
+        "Please edit Content.txt and run the update script to customize this.",
     }
 
     local reader = nil

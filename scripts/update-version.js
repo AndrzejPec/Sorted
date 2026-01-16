@@ -4,10 +4,23 @@ const readline = require("readline");
 const { execSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
-const paths = {
-  modInfo: path.join(root, "Contents", "mods", "Sorted", "common", "mod.info"),
-  latestVersionLua: path.join(root, "Contents", "mods", "Sorted", "common", "media", "lua", "client", "VersionModal", "Sorted_LatestVersion.lua"),
+const contentRoot = path.join(root, "Contents", "mods", "Sorted");
+const searchBases = ["common", "42"];
+const pathSpecs = {
+  modInfo: ["mod.info"],
+  latestVersionLua: ["media", "lua", "client", "VersionModal", "Sorted_LatestVersion.lua"],
+  changelog: ["ChangeLog.txt"],
 };
+
+function resolveFirstPath(relativeParts) {
+  const tried = searchBases.map((base) => path.join(contentRoot, base, ...relativeParts));
+  for (const candidate of tried) {
+    if (fs.existsSync(candidate)) {
+      return { path: candidate, tried };
+    }
+  }
+  return { path: null, tried };
+}
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -31,6 +44,40 @@ function replaceLuaStringValue(content, key, value) {
     return null;
   }
   return content.replace(lineRe, `$1${value}$3`);
+}
+
+function monthToRoman(month) {
+  const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+  return roman[month - 1] || String(month);
+}
+
+function updateChangelogWithCommits(changelogPath, commitLines) {
+  if (!changelogPath || commitLines.length === 0) {
+    return;
+  }
+
+  const now = new Date();
+  const day = now.getDate();
+  const month = monthToRoman(now.getMonth() + 1);
+  const year = now.getFullYear();
+  const header = `[ ${day} ${month} ${year} ]`;
+  const separator = "[ ------ ]";
+
+  const blockLines = [header, ...commitLines.map((line) => `- ${line}`), separator];
+  const block = `${blockLines.join("\n")}\n`;
+
+  let content = "";
+  if (fs.existsSync(changelogPath)) {
+    content = readFile(changelogPath);
+  }
+
+  if (content.trim().length === 0) {
+    content = block;
+  } else {
+    content = `${content.replace(/\s*$/, "")}\n\n${block}`;
+  }
+
+  writeFile(changelogPath, content);
 }
 
 function prompt(question) {
@@ -60,6 +107,14 @@ function getOutput(command) {
   return execSync(command, { cwd: root }).toString().trim();
 }
 
+function tryGetOutput(command) {
+  try {
+    return getOutput(command);
+  } catch (err) {
+    return null;
+  }
+}
+
 function requireCleanWorkingTree() {
   const status = getOutput("git status --porcelain");
   if (status) {
@@ -81,9 +136,13 @@ function buildTag(version) {
   return version.startsWith("v") ? version : `v${version}`;
 }
 
-function runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage }) {
+function runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage, sourceTagName }) {
   if (sourceBranch === stableBranch) {
     console.error(`ERROR: source branch '${sourceBranch}' is the same as stable branch.`);
+    process.exit(1);
+  }
+  if (sourceTagName && sourceTagName === tagName) {
+    console.error("ERROR: sourceTagName must be different from tagName.");
     process.exit(1);
   }
 
@@ -97,6 +156,9 @@ function runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage 
   run(`git merge --no-ff ${sourceBranch} -m "${mergeMessage}"`);
   run(`git tag -a ${tagName} -m "${tagName}"`);
   run(`git checkout ${sourceBranch}`);
+  if (sourceTagName) {
+    run(`git tag -a ${sourceTagName} -m "${sourceTagName}"`);
+  }
 }
 
 async function main() {
@@ -105,12 +167,16 @@ async function main() {
   console.log("🚀 Sorted Version Update Script\n");
 
   // Sprawdź czy pliki istnieją
-  if (!fs.existsSync(paths.modInfo)) {
-    console.error(`❌ Missing mod.info: ${paths.modInfo}`);
+  const modInfoResolved = resolveFirstPath(pathSpecs.modInfo);
+  const latestVersionResolved = resolveFirstPath(pathSpecs.latestVersionLua);
+  const changelogResolved = resolveFirstPath(pathSpecs.changelog);
+
+  if (!modInfoResolved.path) {
+    console.error(`❌ Missing mod.info. Tried: ${modInfoResolved.tried.join(", ")}`);
     process.exit(1);
   }
-  if (!fs.existsSync(paths.latestVersionLua)) {
-    console.error(`❌ Missing Sorted_LatestVersion.lua: ${paths.latestVersionLua}`);
+  if (!latestVersionResolved.path) {
+    console.error(`❌ Missing Sorted_LatestVersion.lua. Tried: ${latestVersionResolved.tried.join(", ")}`);
     process.exit(1);
   }
 
@@ -126,23 +192,35 @@ async function main() {
     requireCleanWorkingTree();
   }
 
-  let modInfo = readFile(paths.modInfo);
+  let modInfo = readFile(modInfoResolved.path);
   modInfo = replaceLineValue(modInfo, "modversion", newVersion);
-  writeFile(paths.modInfo, modInfo);
+  writeFile(modInfoResolved.path, modInfo);
   console.log(`✅ Updated modversion in mod.info → ${newVersion}`);
 
   // Aktualizuj CURRENT_VERSION w Lua
-  let latestVersionLua = readFile(paths.latestVersionLua);
+  let latestVersionLua = readFile(latestVersionResolved.path);
   const updatedLua = replaceLuaStringValue(latestVersionLua, "CURRENT_VERSION", newVersion);
   if (!updatedLua) {
     console.error('❌ Could not find CURRENT_VERSION = "..." in Sorted_LatestVersion.lua');
     process.exit(1);
   }
-  writeFile(paths.latestVersionLua, updatedLua);
+  writeFile(latestVersionResolved.path, updatedLua);
+  if (changelogResolved.path) {
+    const lastTag = tryGetOutput("git describe --tags --abbrev=0");
+    const logRange = lastTag ? `${lastTag}..HEAD` : "";
+    const logCommand = `git log ${logRange} --pretty=format:%s`;
+    const commitLines = getOutput(logCommand).split(/\r?\n/).filter(Boolean);
+    if (commitLines.length > 0) {
+      updateChangelogWithCommits(changelogResolved.path, commitLines);
+    }
+  } else {
+    console.warn(`WARN: ChangeLog.txt not found. Tried: ${changelogResolved.tried.join(", ")}`);
+  }
   if (doRelease) {
     const sourceBranch = getArgValue(args, "--source-branch") || getOutput("git rev-parse --abbrev-ref HEAD");
     const stableBranch = getArgValue(args, "--stable-branch") || "stable";
     const tagName = getArgValue(args, "--tag") || buildTag(newVersion);
+    const sourceTagName = getArgValue(args, "--source-tag") || `${tagName}-source`;
     const mergeMessage = getArgValue(args, "--merge-message") || `release: ${tagName}`;
     const commitMessage = getArgValue(args, "--commit-message") || `chore: bump version to ${tagName}`;
 
@@ -151,9 +229,9 @@ async function main() {
       process.exit(1);
     }
 
-    stageFiles([paths.modInfo, paths.latestVersionLua]);
+    stageFiles([modInfoResolved.path, latestVersionResolved.path, changelogResolved.path].filter(Boolean));
     run(`git commit -m "${commitMessage}"`);
-    runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage });
+    runReleaseWorkflow({ sourceBranch, stableBranch, tagName, mergeMessage, sourceTagName });
   }
   console.log(`✅ Updated CURRENT_VERSION in Sorted_LatestVersion.lua → "${newVersion}"`);
 

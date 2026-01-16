@@ -1,0 +1,73 @@
+[ 8 I 2026 ]
+- Initial alpha release
+[ ------ ]
+
+[ 12 I 2026 ]
+- Added ModOptions settings panel for customizing container names, clothing categories, and shortcuts
+- There is a "modifier" key currently hardcoded on [LEFT ALT] (would like feedback if that set binding is problematic)
+- [Alt + CTRL] opens Sorted Manager window
+- [Alt + LMB(on an inventory item)] quickly opens single item modification window
+- Added automatic item dictionary that remembers all items and their categories
+- Fixed preset loading to clean up dead categories from removed mods
+- Improved category naming consistency across the mod
+- FIXED: Inverted ternary logic in perishable/spice food categorization (spice was wrongly mapped)
+- FIXED: Food category naming inconsistency (FoodPerishable → FoodPerish)
+- ADDED: "Food - Non-Perishable - Cans" category now properly appears as subcategory of Non-Perishable
+- FIXED: Container dynamic naming now includes all new Food subcategories in grouping map
+- FIXED: Recursive container naming bug - nested containers no longer create nonsensical names like "Container (FirstAid & ContainerEmpty)"
+- FIXED: CategoryGroups mapping was using translated names instead of dictionary keys - containers now properly group categories (e.g., "Container w/ Medical & Protective Gear" instead of "Container (FirstAid & ProtGearArms)")
+[ ------ ]
+
+[ 16 I 2026 ]
+- (feature) adjusted persistent custom categories render for all players in MP co-op (4)
+- (feature) adjusted persistent custom categories render for all players in MP co-op (3)
+- (feature) adjusted persistent custom categories render for all players in MP co-op (2)
+- (feature) adjusted persistent custom categories render for all players in MP co-op
+- (hotfix) added the loop in applyToInventory
+- (fix) player loot window gets updated with custom categories as well
+- (chore) Files shifted between folders
+- chore: bump version to v0.2
+- Auto-commiter-and-merger update-script improvement
+- fix: normalize container grouping for weapon hybrids
+- Version modal in place
+- (fix) Manage Containers patch applied correctly
+- (fix) CategoryGroups now uses dictionary keys instead of translated values
+- (chore) Pre-refactor snapshot - CategoryGroups mapping fix incoming
+- Preparing fgor 0.2 release
+- (chore) manager opening
+- git push
+- Introduced changelog to mod manager view
+- Updated input shortcuts to a more general, ergonomic scheme for opening the manager and item category change.
+- - Add ModOptions for clothing category mode and manager keybinding - Hook Ctrl+LMB item click to open category changer - Add keypress handler to toggle the Sorted manager - Select category detectors based on clothing mode
+- Unify Sorted namespace and silence noisy event logging, also Replace BetterSorting refs with Sorted in sorting helpers
+- (fix) container naming and expand fluid category refresh
+- (Fix) fixed module loading order crash in ModOptions initialization (chore) remove all Sorted:log() calls from InitializeModOptions() function
+- (chore) changed folders structure and imports
+- feat: implement item dictionary system with category migration
+- Co tu sie dzieje ja niestety nie rozumiem
+- Stripping the contents for the initial release
+- minor changes to translation file
+- Categories
+- Spices segregated with perishables
+- Patched manage containers
+- A commit
+- Dynamic container introduced
+- firearm container category
+- firearm loot
+- memento/clothing
+- Sorting chestrigs
+- sorting bags almost ready
+- Separated bags from backpacks
+- fix: correct container detection functions return types
+- fix: correct container detection functions return types (need testing)
+- fix: food boxes now appear an Non-Perish
+- Add comprehensive LoL debug utilities for item testing
+- Integrate FluidDynamicPatch module into core initialization
+- Fix isFoodBox function string matching and add debug utilities
+- Alcohol sorted into advanced category
+- alcohol category added
+- Got rid of errors
+- Initial commit
+- Initial commit
+- Initial commit
+[ ------ ]

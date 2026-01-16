@@ -80,33 +80,43 @@ if originalWriteCategoryToIni then
     end
 end
 
-function Sorted.Tracker.applyShiftingCategoriesToInventories()
-  local player = getPlayer()
-  if not player then
+local function applyToInventory(inventory, categories)
+  if not inventory then
     return
   end
 
+  local items = inventory:getItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local fullType = item and item.getFullType and item:getFullType()
+    local savedCategory = categories[fullType]
+
+    if savedCategory then
+      local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+      if currentCategory ~= savedCategory then
+        if item and item.setDisplayCategory then
+          item:setDisplayCategory(savedCategory)
+        end
+      end
+    end
+  end
+end
+
+function Sorted.Tracker.applyShiftingCategoriesToInventories()
   local categories = Sorted.Tracker.getSavedCategories()
   if not categories or tableSize(categories) == 0 then
     return
   end
 
-  local playerInv = player:getInventory()
-  if playerInv then
-    local items = playerInv:getItems()
-    for i = 0, items:size() - 1 do
-      local item = items:get(i)
-      local fullType = item and item.getFullType and item:getFullType()
-      local savedCategory = categories[fullType]
+  for playerNum = 0, getNumActivePlayers() - 1 do
+    local player = getPlayer(playerNum)
+    if player then
+      applyToInventory(player:getInventory(), categories)
+    end
 
-      if savedCategory then
-        local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-        if currentCategory ~= savedCategory then
-          if item and item.setDisplayCategory then
-            item:setDisplayCategory(savedCategory)
-          end
-        end
-      end
+    local playerLoot = getPlayerLoot(playerNum)
+    if playerLoot and playerLoot.inventory then
+      applyToInventory(playerLoot.inventory, categories)
     end
   end
 end
