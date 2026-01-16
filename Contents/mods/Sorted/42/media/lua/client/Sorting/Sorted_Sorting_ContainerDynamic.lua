@@ -214,7 +214,7 @@ function Sorted.container:updateAllPlayerContainers()
             end
         end
     end
-ends
+end
 
 -- OVERKILL MODE: Update on every tick
 local tickCounter = 0
