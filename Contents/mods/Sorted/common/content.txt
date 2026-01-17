@@ -1,0 +1,6 @@
+Just a quick hotfix for Sorted. Thanks to your feedback, now:
+- (fix) player loot window gets updated with custom categories as well
+Rest of the changes are meta. Full changelog sits in the mod selection menu / Mod Manager.
+
+Thank you for pointing that out. Check the Discord to have a say on what categories should be expanded :)
+There's a thread in α-info-kiosk channel. See you there!
