@@ -38,12 +38,15 @@ end
 local originalWriteCategoryToIni = Sorted.writeCategoryToIni
 if originalWriteCategoryToIni then
     Sorted.writeCategoryToIni = function(fullType, category)
-        originalWriteCategoryToIni(fullType, category)
-        Sorted.Tracker.invalidateCategoryCache()
+      originalWriteCategoryToIni(fullType, category)
+      Sorted.Tracker.invalidateCategoryCache()
 
-        if Sorted.setUserCategory then
-            Sorted.setUserCategory(fullType, category)
-        end
+      if Sorted.setUserCategory then
+          Sorted.setUserCategory(fullType, category)
+      end
+      if Sorted.Tracker.syncItemTypeInWorld then
+        Sorted.Tracker.syncItemTypeInWorld(fullType)
+      end
     end
 end
 
