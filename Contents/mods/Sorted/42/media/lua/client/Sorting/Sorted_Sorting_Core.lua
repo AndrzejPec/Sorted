@@ -36,6 +36,7 @@ local function isPerishable(item)
 end
 
 local cannedFoodCache = {}
+local cannedMarkerCache = {}
 
 local function getScriptItemBooleanField(item, fieldName)
   if not item or not item.getFullName then
@@ -92,6 +93,72 @@ function Sorted:getAllItemsPredicate(predicate)
   return result
 end
 
+local function hasCannedMarkers(item)
+  if not item or not item.getFullName then
+    return false
+  end
+
+  local fullType = item:getFullName()
+  if not fullType then
+    return false
+  end
+
+  local cached = cannedMarkerCache[fullType]
+  if cached ~= nil then
+    return cached
+  end
+
+  local function normalize(value)
+    if value == nil then
+      return ""
+    end
+    return string.lower(tostring(value))
+  end
+
+  local function containsMarker(value)
+    if value == "" then
+      return false
+    end
+
+    if value:find("opencannedfood", 1, true) then return true end
+    if value:find("tincanempty", 1, true) then return true end
+    if value:find("canopener", 1, true) then return true end
+    if value:find("canned", 1, true) then return true end
+    if value:find("canof", 1, true) then return true end
+    if value:find("canclosed", 1, true) then return true end
+    if value:find("canopen", 1, true) then return true end
+    if value:find("tinned", 1, true) then return true end
+    if value:find("tinof", 1, true) then return true end
+    if value:find("tincan", 1, true) then return true end
+    if value:sub(1, 3) == "tin" then return true end
+    if value:find("_tin", 1, true) or value:find("-tin", 1, true) or value:find(" tin", 1, true) then
+      return true
+    end
+
+    return false
+  end
+
+  local fields = {
+    normalize(fullType),
+    normalize(item.getIcon and item:getIcon()),
+    normalize(item.getStaticModel and item:getStaticModel()),
+    normalize(item.getWorldStaticModel and item:getWorldStaticModel()),
+    normalize(item.getTooltip and item:getTooltip()),
+    normalize(item.getOpeningRecipe and item:getOpeningRecipe()),
+    normalize(item.getReplaceOnUse and item:getReplaceOnUse()),
+  }
+
+  for _, value in ipairs(fields) do
+    if containsMarker(value) then
+      cannedMarkerCache[fullType] = true
+      return true
+    end
+  end
+
+  cannedMarkerCache[fullType] = false
+  return false
+end
+
 local function isCannedFood(item)
   if not item then
     return false
@@ -116,6 +183,10 @@ local function isCannedFood(item)
 
   local fullType = item.getFullName and item:getFullName() or ""
   if fullType ~= "" and string.find(fullType, "Canned", 1, true) then
+    return true
+  end
+
+  if hasCannedMarkers(item) then
     return true
   end
 
@@ -949,13 +1020,13 @@ local function getClothingCategory(item, useDetailed)
     local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
     if bloodLoc and bloodLoc ~= "" then
       bodyLoc = bloodLoc
-      logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
+      -- logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
     else
-      logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
+      -- logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
       return "ClothMisc"
     end
   else
-    logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
+    -- logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
   end
 
   local bodyLocStr = tostring(bodyLoc)
