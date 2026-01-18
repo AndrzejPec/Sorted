@@ -316,7 +316,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     return
   end
 
-  local items = container:getItems()
+  local items = container:items()
   if not items then
     return
   end

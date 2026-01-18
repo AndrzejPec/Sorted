@@ -73,7 +73,7 @@ local function getScriptItemBooleanField(item, fieldName)
   return false
 end
 
-function LoL:getAllItemsPredicate(predicate)
+function Sorted:getAllItemsPredicate(predicate)
   local result = {}
   local count = 0
   local items = getScriptManager():getAllItems()
@@ -123,7 +123,7 @@ local function isCannedFood(item)
 end
 
 function Sorted:getAllCans()
-  return LoL:getAllItemsPredicate(function(item)
+  return self:getAllItemsPredicate(function(item)
     return isCannedFood(item) and not isPerishable(item)
   end)
 end
