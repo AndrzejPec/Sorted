@@ -62,18 +62,23 @@ local function applyToInventory(inventory)
 
   for i = 0, items:size() - 1 do
     local item = items:get(i)
-    local fullType = item and item.getFullType and item:getFullType()
 
-    if fullType then
-      -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
-      local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+    -- SKIP fluid containers - they have dynamic categories handled by FluidDynamicPatch
+    local hasFluidContainer = item and item.getFluidContainer and item:getFluidContainer()
+    if not hasFluidContainer then
+      local fullType = item and item.getFullType and item:getFullType()
 
-      if effectiveCategory then
-        local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-        if currentCategory ~= effectiveCategory then
-          if item and item.setDisplayCategory then
-            item:setDisplayCategory(effectiveCategory)
-            appliedCount = appliedCount + 1
+      if fullType then
+        -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
+        local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+
+        if effectiveCategory then
+          local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+          if currentCategory ~= effectiveCategory then
+            if item and item.setDisplayCategory then
+              item:setDisplayCategory(effectiveCategory)
+              appliedCount = appliedCount + 1
+            end
           end
         end
       end
@@ -163,18 +168,23 @@ function Sorted.Tracker.applyCategoriesToWorldContainers()
                     if items then
                       for j = 0, items:size() - 1 do
                         local item = items:get(j)
-                        local fullType = item and item.getFullType and item:getFullType()
 
-                        if fullType then
-                          totalItems = totalItems + 1
-                          local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+                        -- SKIP fluid containers - handled by FluidDynamicPatch
+                        local hasFluidContainer = item and item.getFluidContainer and item:getFluidContainer()
+                        if not hasFluidContainer then
+                          local fullType = item and item.getFullType and item:getFullType()
 
-                          if effectiveCategory then
-                            local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-                            if currentCategory ~= effectiveCategory then
-                              if item and item.setDisplayCategory then
-                                item:setDisplayCategory(effectiveCategory)
-                                totalApplied = totalApplied + 1
+                          if fullType then
+                            totalItems = totalItems + 1
+                            local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+
+                            if effectiveCategory then
+                              local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+                              if currentCategory ~= effectiveCategory then
+                                if item and item.setDisplayCategory then
+                                  item:setDisplayCategory(effectiveCategory)
+                                  totalApplied = totalApplied + 1
+                                end
                               end
                             end
                           end
@@ -316,7 +326,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     return
   end
 
-  local items = container:items()
+  local items = container.items and container:items()
   if not items then
     return
   end
