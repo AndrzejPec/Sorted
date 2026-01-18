@@ -121,10 +121,59 @@ function Sorted.Tracker.applyShiftingCategoriesToInventories()
   end
 end
 
+-- ========================================
+-- OnFillContainer: Aplikuj custom kategorie gdy kontener się tworzy
+-- ========================================
+
+local function applyShiftingCategoriesToContainer(roomType, containerType, container)
+  if not container then
+    return
+  end
+
+  local categories = Sorted.Tracker.getSavedCategories()
+  if not categories or tableSize(categories) == 0 then
+    return
+  end
+
+  local items = container:getItems()
+  if not items then
+    return
+  end
+
+  local appliedCount = 0
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    local fullType = item and item.getFullType and item:getFullType()
+    local savedCategory = categories[fullType]
+
+    if savedCategory then
+      if item and item.setDisplayCategory then
+        item:setDisplayCategory(savedCategory)
+        appliedCount = appliedCount + 1
+      end
+    end
+  end
+
+  if appliedCount > 0 and Sorted and Sorted.log then
+    Sorted:log("[Tracker] OnFillContainer: Applied " .. appliedCount .. " custom categories in " .. tostring(containerType), 3)
+  end
+end
+
+if Events and Events.OnFillContainer then
+  Events.OnFillContainer.Add(applyShiftingCategoriesToContainer)
+  if Sorted and Sorted.log then
+    Sorted:log("Tracker: OnFillContainer registered - will apply custom categories at spawn time!", 2)
+  end
+end
+
+-- ========================================
+-- OnRefreshInventoryWindowContainers: Backup dla już istniejących itemów
+-- ========================================
+
 if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(Sorted.Tracker.applyShiftingCategoriesToInventories)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
+    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered (backup for existing items)", 3)
   end
 end
 

@@ -2,6 +2,86 @@
 -- Expects a real item from player inventory
 LoL = LoL or {}
 
+-- Event probe for finding which events fire during loot/container interactions.
+local function eventProbeLog(message, level)
+  if Sorted and Sorted.log then
+    Sorted:log(message, level or 3)
+  else
+    print(message)
+  end
+end
+
+local function eventProbeHandler(eventName)
+  return function(...)
+    local args = { ... }
+    local parts = {}
+    for i = 1, #args do
+      parts[#parts + 1] = tostring(args[i])
+    end
+    eventProbeLog("[EventProbe] " .. eventName .. " fired (" .. #args .. " args): " .. table.concat(parts, ", "), 3)
+  end
+end
+
+local function registerEventProbe(eventName)
+  if not Events or not Events[eventName] or not Events[eventName].Add then
+    eventProbeLog("[EventProbe] Event not available: " .. tostring(eventName), 2)
+    return
+  end
+
+  LoL._eventProbeHandlers = LoL._eventProbeHandlers or {}
+  if LoL._eventProbeHandlers[eventName] then
+    return
+  end
+
+  local handler = eventProbeHandler(eventName)
+  Events[eventName].Add(handler)
+  LoL._eventProbeHandlers[eventName] = handler
+  eventProbeLog("[EventProbe] Registered: " .. eventName, 3)
+end
+
+function LoL.enableEventProbe(customEvents)
+  if LoL._eventProbeEnabled then
+    eventProbeLog("[EventProbe] Already enabled", 3)
+    return
+  end
+  LoL._eventProbeEnabled = true
+
+  local eventsToProbe = customEvents or {
+    "OnRefreshInventoryWindowContainers",
+    "OnContainerUpdate",
+    "OnFillContainer",
+    "OnFillInventoryObjectContextMenu",
+    "OnFillWorldObjectContextMenu",
+    "OnFillSearchIconContextMenu",
+    "OnPreFillInventoryObjectContextMenu",
+    "OnPreFillWorldObjectContextMenu",
+  }
+
+  for _, eventName in ipairs(eventsToProbe) do
+    registerEventProbe(eventName)
+  end
+end
+
+function LoL.disableEventProbe()
+  if not LoL._eventProbeEnabled then
+    eventProbeLog("[EventProbe] Not enabled", 3)
+    return
+  end
+  LoL._eventProbeEnabled = false
+
+  if not LoL._eventProbeHandlers then
+    return
+  end
+
+  for eventName, handler in pairs(LoL._eventProbeHandlers) do
+    if Events and Events[eventName] and Events[eventName].Remove then
+      Events[eventName].Remove(handler)
+      eventProbeLog("[EventProbe] Unregistered: " .. eventName, 3)
+    end
+  end
+  LoL._eventProbeHandlers = nil
+end
+
 local function debugAlcoholInfo(item)
   if not item then
     Sorted:log("ERROR: No item provided", 3)
