@@ -15,9 +15,6 @@ Sorted.Tracker.Config = {
 Sorted.Tracker._categoryCache = nil
 Sorted.Tracker._categoryCacheTime = 0
 
-local THROTTLE_MS = 1000  -- 1 second throttle for OnPlayerUpdate backup
-local lastApplyTime = 0
-
 function Sorted.Tracker.getSavedCategories()
   -- DEPRECATED: Tracker now uses ItemDictionary.getEffectiveCategory() per-item
   -- This function remains for backward compatibility but returns empty table
@@ -355,33 +352,13 @@ if Events and Events.OnFillContainer then
 end
 
 -- ========================================
--- OnRefreshInventoryWindowContainers: Backup for already existing items
+-- OnRefreshInventoryWindowContainers: Apply categories when inventory opens
 -- ========================================
 
 if Events and Events.OnRefreshInventoryWindowContainers then
   Events.OnRefreshInventoryWindowContainers.Add(Sorted.Tracker.applyShiftingCategoriesToInventories)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered (backup for existing items)", 3)
-  end
-end
-
-local function applyWithThrottle()
-  local now = getTimestampMs()
-  if (now - lastApplyTime) < THROTTLE_MS then
-    return
-  end
-  lastApplyTime = now
-  Sorted.Tracker.applyShiftingCategoriesToInventories()
-end
-
-if Events and Events.OnPlayerUpdate then
-  Events.OnPlayerUpdate.Add(applyWithThrottle)
-  if Sorted and Sorted.log then
-    Sorted:log("Tracker: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
-  end
-else
-  if Sorted and Sorted.log then
-    Sorted:log("OnPlayerUpdate event not found!", 2)
+    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered - applies on inventory open", 3)
   end
 end
 
@@ -430,9 +407,9 @@ end
 function Sorted.trackerStats()
     Sorted:log(table.concat({
         "=== Sorted.Tracker Stats ===",
-        "  Mode: Hybrid (INSTANT + BACKUP)",
-        "  INSTANT: OnRefreshInventoryWindowContainers (container open)",
-        "  BACKUP: OnPlayerUpdate with 1s throttle (edge cases)",
+        "  Mode: Event-driven (efficient, no polling)",
+        "  OnFillContainer: Applies categories when loot spawns",
+        "  OnRefreshInventoryWindowContainers: Applies when inventory opens",
         "  Integration: ItemDictionary (hierarchical categories)",
         "  Enabled: " .. tostring(Sorted.Tracker.Config.enabled),
         "  Debug: " .. tostring(Sorted.Tracker.Config.debug),

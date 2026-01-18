@@ -58,8 +58,21 @@ function Sorted.container.analyzeContents(containerItem)
 
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        if item and item.getDisplayCategory then
-            local category = item:getDisplayCategory() or "Uncategorized"
+        if item then
+            local category = nil
+
+            -- Use ItemDictionary for hierarchical category resolution
+            local fullType = item.getFullType and item:getFullType()
+            if fullType and Sorted and Sorted.getEffectiveCategory then
+                category = Sorted.getEffectiveCategory(fullType)
+            end
+
+            -- Fallback to display category if ItemDictionary not available
+            if not category and item.getDisplayCategory then
+                category = item:getDisplayCategory()
+            end
+
+            category = category or "Uncategorized"
 
             -- BULLETPROOF FIX: Ignore nested containers to avoid recursive/nonsensical naming
             -- We don't care that there's a bag inside a bag - we care what's IN the bags!

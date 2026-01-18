@@ -159,22 +159,26 @@ function Sorted.ApplyFluidCategory(item)
   end
 
   local fullType = item and item.getFullType and item:getFullType()
-  local userCategory = nil
-  if Sorted and Sorted.getSavedCategory then
-    userCategory = Sorted.getSavedCategory(fullType)
+
+  -- Use ItemDictionary for hierarchical category resolution
+  local effectiveCategory = nil
+  if Sorted and Sorted.getEffectiveCategory and fullType then
+    effectiveCategory = Sorted.getEffectiveCategory(fullType)
   end
 
   local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
 
+  -- Priority: dynamic (fluid-based) > effective (user/algorithm/mapped/original)
   if dynamicCategory then
     if item and item.setDisplayCategory then
       item:setDisplayCategory(dynamicCategory)
     end
-  elseif userCategory and userCategory ~= "none" then
+  elseif effectiveCategory and effectiveCategory ~= "none" then
     if item and item.setDisplayCategory then
-      item:setDisplayCategory(userCategory)
+      item:setDisplayCategory(effectiveCategory)
     end
   else
+    -- Fallback: empty containers go to "Container"
     local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
     if amount <= 0 then
       if item and item.setDisplayCategory then
