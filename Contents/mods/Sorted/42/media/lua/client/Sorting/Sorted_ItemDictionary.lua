@@ -101,6 +101,75 @@ function Sorted.getEffectiveCategory(fullType)
     return "_Sorted.Uncategorized"
 end
 
+function Sorted.getItemAlgorithmCategory(item)
+    if not item or not item.getModData then
+        return nil
+    end
+
+    local modData = item:getModData()
+    if not modData then
+        return nil
+    end
+
+    return modData.SortedAlgorithmCategory
+end
+
+function Sorted.setItemAlgorithmCategory(item, category)
+    if not item or not item.getModData then
+        return
+    end
+
+    local modData = item:getModData()
+    if not modData then
+        return
+    end
+
+    if category and category ~= "" then
+        modData.SortedAlgorithmCategory = category
+    else
+        modData.SortedAlgorithmCategory = nil
+    end
+end
+
+function Sorted.getEffectiveCategoryForItem(item)
+    if not item or not item.getFullType then
+        return nil
+    end
+
+    local fullType = item:getFullType()
+    if not fullType then
+        return nil
+    end
+
+    local entry = Sorted.ItemDictionary[fullType]
+    if not entry then
+        return nil
+    end
+
+    if entry.user and entry.user ~= "" then
+        return entry.user
+    end
+
+    local instanceAlgorithm = Sorted.getItemAlgorithmCategory and Sorted.getItemAlgorithmCategory(item)
+    if instanceAlgorithm and instanceAlgorithm ~= "" and not isDeprecated(instanceAlgorithm) then
+        return instanceAlgorithm
+    end
+
+    if entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
+        return entry.algorithm
+    end
+
+    if entry.mapped and entry.mapped ~= "" then
+        return entry.mapped
+    end
+
+    if entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
+        return entry.original
+    end
+
+    return "_Sorted.Uncategorized"
+end
+
 function Sorted.setAlgorithmCategory(fullType, category)
     if not Sorted.ItemDictionary[fullType] then
         Sorted.ItemDictionary[fullType] = {

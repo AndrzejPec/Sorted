@@ -149,7 +149,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
 end
 
 function Sorted.ApplyFluidCategory(item)
-  if not item or not item.getFluidContainer or not item.setDisplayCategory then
+  if not item or not item.getFluidContainer then
     return
   end
 
@@ -159,32 +159,44 @@ function Sorted.ApplyFluidCategory(item)
   end
 
   local fullType = item and item.getFullType and item:getFullType()
+  local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
+  local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
+  local instanceCategory = dynamicCategory
 
-  -- Use ItemDictionary for hierarchical category resolution
+  if not instanceCategory and amount <= 0 then
+    instanceCategory = "Container"
+  end
+
+  if Sorted and Sorted.setItemAlgorithmCategory then
+    Sorted.setItemAlgorithmCategory(item, instanceCategory)
+  elseif item.getModData then
+    local modData = item:getModData()
+    if modData then
+      modData.SortedAlgorithmCategory = instanceCategory
+    end
+  end
+
+  -- Persist dynamic category into ItemDictionary so Tracker applies it consistently.
+  if dynamicCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+    Sorted.setAlgorithmCategory(fullType, dynamicCategory)
+  end
+
+  if not item.setDisplayCategory then
+    return
+  end
+
+  -- Use ItemDictionary for hierarchical category resolution.
   local effectiveCategory = nil
-  if Sorted and Sorted.getEffectiveCategory and fullType then
+  if Sorted and Sorted.getEffectiveCategoryForItem then
+    effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
+  elseif Sorted and Sorted.getEffectiveCategory and fullType then
     effectiveCategory = Sorted.getEffectiveCategory(fullType)
   end
 
-  local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
-
-  -- Priority: dynamic (fluid-based) > effective (user/algorithm/mapped/original)
-  if dynamicCategory then
-    if item and item.setDisplayCategory then
-      item:setDisplayCategory(dynamicCategory)
-    end
-  elseif effectiveCategory and effectiveCategory ~= "none" then
-    if item and item.setDisplayCategory then
-      item:setDisplayCategory(effectiveCategory)
-    end
-  else
-    -- Fallback: empty containers go to "Container"
-    local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
-    if amount <= 0 then
-      if item and item.setDisplayCategory then
-        item:setDisplayCategory("Container")
-      end
-    end
+  if effectiveCategory and effectiveCategory ~= "none" then
+    item:setDisplayCategory(effectiveCategory)
+  elseif instanceCategory then
+    item:setDisplayCategory(instanceCategory)
   end
 end
 

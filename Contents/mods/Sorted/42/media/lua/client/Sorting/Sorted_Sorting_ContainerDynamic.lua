@@ -63,8 +63,12 @@ function Sorted.container.analyzeContents(containerItem)
 
             -- Use ItemDictionary for hierarchical category resolution
             local fullType = item.getFullType and item:getFullType()
-            if fullType and Sorted and Sorted.getEffectiveCategory then
-                category = Sorted.getEffectiveCategory(fullType)
+            if fullType and Sorted then
+                if Sorted.getEffectiveCategoryForItem then
+                    category = Sorted.getEffectiveCategoryForItem(item)
+                elseif Sorted.getEffectiveCategory then
+                    category = Sorted.getEffectiveCategory(fullType)
+                end
             end
 
             -- Fallback to display category if ItemDictionary not available
@@ -198,6 +202,15 @@ function Sorted.container:applyDynamicCategory(container)
     local category = self:getDynamicCategory(container)
 
     if category then
+        if Sorted and Sorted.setItemAlgorithmCategory then
+            Sorted.setItemAlgorithmCategory(container, category)
+        elseif container.getModData then
+            local modData = container:getModData()
+            if modData then
+                modData.SortedAlgorithmCategory = category
+            end
+        end
+
         -- Directly set the display category on the item instance
         if container.setDisplayCategory then
             container:setDisplayCategory(category)

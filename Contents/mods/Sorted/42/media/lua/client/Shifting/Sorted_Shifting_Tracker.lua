@@ -63,22 +63,19 @@ local function applyToInventory(inventory)
   for i = 0, items:size() - 1 do
     local item = items:get(i)
 
-    -- SKIP fluid containers - they have dynamic categories handled by FluidDynamicPatch
-    local hasFluidContainer = item and item.getFluidContainer and item:getFluidContainer()
-    if not hasFluidContainer then
-      local fullType = item and item.getFullType and item:getFullType()
+    local fullType = item and item.getFullType and item:getFullType()
 
-      if fullType then
-        -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
-        local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+    if fullType then
+      -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
+      local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
+        or Sorted.getEffectiveCategory(fullType)
 
-        if effectiveCategory then
-          local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-          if currentCategory ~= effectiveCategory then
-            if item and item.setDisplayCategory then
-              item:setDisplayCategory(effectiveCategory)
-              appliedCount = appliedCount + 1
-            end
+      if effectiveCategory then
+        local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+        if currentCategory ~= effectiveCategory then
+          if item and item.setDisplayCategory then
+            item:setDisplayCategory(effectiveCategory)
+            appliedCount = appliedCount + 1
           end
         end
       end
@@ -169,22 +166,19 @@ function Sorted.Tracker.applyCategoriesToWorldContainers()
                       for j = 0, items:size() - 1 do
                         local item = items:get(j)
 
-                        -- SKIP fluid containers - handled by FluidDynamicPatch
-                        local hasFluidContainer = item and item.getFluidContainer and item:getFluidContainer()
-                        if not hasFluidContainer then
-                          local fullType = item and item.getFullType and item:getFullType()
+                        local fullType = item and item.getFullType and item:getFullType()
 
-                          if fullType then
-                            totalItems = totalItems + 1
-                            local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+                        if fullType then
+                          totalItems = totalItems + 1
+                          local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
+                            or Sorted.getEffectiveCategory(fullType)
 
-                            if effectiveCategory then
-                              local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-                              if currentCategory ~= effectiveCategory then
-                                if item and item.setDisplayCategory then
-                                  item:setDisplayCategory(effectiveCategory)
-                                  totalApplied = totalApplied + 1
-                                end
+                          if effectiveCategory then
+                            local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+                            if currentCategory ~= effectiveCategory then
+                              if item and item.setDisplayCategory then
+                                item:setDisplayCategory(effectiveCategory)
+                                totalApplied = totalApplied + 1
                               end
                             end
                           end
@@ -338,7 +332,8 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
 
     if fullType then
       -- Use ItemDictionary hierarchy
-      local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+      local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
+        or Sorted.getEffectiveCategory(fullType)
 
       if effectiveCategory then
         if item and item.setDisplayCategory then
