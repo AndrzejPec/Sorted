@@ -199,6 +199,14 @@ end
 ---Apply dynamic categorization to a container
 ---@param container InventoryItem
 function Sorted.container:applyDynamicCategory(container)
+    local fullType = container.getFullType and container:getFullType()
+    
+    if fullType and Sorted.ItemDictionary[fullType] then
+        local entry = Sorted.ItemDictionary[fullType]
+        if entry.user and entry.user ~= "" then
+            return
+        end
+    end
     local category = self:getDynamicCategory(container)
 
     if category then

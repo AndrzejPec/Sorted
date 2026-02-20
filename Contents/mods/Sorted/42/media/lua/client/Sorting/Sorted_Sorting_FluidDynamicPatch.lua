@@ -164,7 +164,7 @@ function Sorted.ApplyFluidCategory(item)
   local instanceCategory = dynamicCategory
 
   if not instanceCategory and amount <= 0 then
-    instanceCategory = "Container"
+    instanceCategory = "Fluid Container"
   end
 
   if Sorted and Sorted.setItemAlgorithmCategory then
@@ -176,16 +176,21 @@ function Sorted.ApplyFluidCategory(item)
     end
   end
 
-  -- Persist dynamic category into ItemDictionary so Tracker applies it consistently.
   if dynamicCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
     Sorted.setAlgorithmCategory(fullType, dynamicCategory)
   end
+
+  if instanceCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+    if not dynamicCategory then
+        Sorted.setAlgorithmCategory(fullType, instanceCategory)
+    end
+  end
+
 
   if not item.setDisplayCategory then
     return
   end
 
-  -- Use ItemDictionary for hierarchical category resolution.
   local effectiveCategory = nil
   if Sorted and Sorted.getEffectiveCategoryForItem then
     effectiveCategory = Sorted.getEffectiveCategoryForItem(item)

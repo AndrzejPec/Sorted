@@ -12,6 +12,19 @@ Sorted.Tracker.Config = {
     syncWorldItems = true,
 }
 
+-- Helper: Ensure fluid items have their dynamic category set on instance modData
+-- This must be called BEFORE getEffectiveCategoryForItem to ensure consistent behavior
+-- regardless of where the item is (world container vs player inventory)
+local function ensureFluidCategoryApplied(item)
+  if not item then return end
+  if Sorted.ApplyFluidCategory and item.getFluidContainerFromSelfOrWorldItem then
+    local fluidContainer = item:getFluidContainerFromSelfOrWorldItem()
+    if fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() > 0 then
+      Sorted.ApplyFluidCategory(item)
+    end
+  end
+end
+
 Sorted.Tracker._categoryCache = nil
 Sorted.Tracker._categoryCacheTime = 0
 
@@ -69,6 +82,9 @@ local function applyToInventory(inventory)
     local fullType = item and item.getFullType and item:getFullType()
 
     if fullType then
+      -- Ensure fluid containers have their dynamic category applied to modData first
+      ensureFluidCategoryApplied(item)
+
       -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
       local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
         or Sorted.getEffectiveCategory(fullType)
@@ -173,6 +189,10 @@ function Sorted.Tracker.applyCategoriesToWorldContainers()
 
                         if fullType then
                           totalItems = totalItems + 1
+
+                          -- Ensure fluid containers have their dynamic category applied to modData first
+                          ensureFluidCategoryApplied(item)
+
                           local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
                             or Sorted.getEffectiveCategory(fullType)
 
@@ -323,27 +343,63 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     return
   end
 
-  local items = container.items and container:items()
+  -- OnFillContainer sometimes passes ItemContainer object, sometimes ArrayList directly
+  local items
+  if container.getItems then
+    items = container:getItems()  -- ItemContainer object
+  elseif container.size then
+    items = container  -- ArrayList directly
+  else
+    return
+  end
+
   if not items then
     return
   end
 
   local appliedCount = 0
+
+  if Sorted and Sorted.log then
+    Sorted:log("[DEBUG] OnFillContainer: " .. tostring(containerType) .. " has " .. tostring(items:size()) .. " items, items type: " .. tostring(items), 1)
+  end
+
   for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    local fullType = item and item.getFullType and item:getFullType()
+    local success, err = pcall(function()
+      local item = items:get(i)
 
-    if fullType then
-      -- Use ItemDictionary hierarchy
-      local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
-        or Sorted.getEffectiveCategory(fullType)
+      if Sorted and Sorted.log then
+        Sorted:log("[DEBUG] Item[" .. tostring(i) .. "] = " .. tostring(item) .. " (type: " .. tostring(type(item)) .. ")", 1)
+      end
 
-      if effectiveCategory then
-        if item and item.setDisplayCategory then
-          item:setDisplayCategory(effectiveCategory)
-          appliedCount = appliedCount + 1
+      local fullType = item and item.getFullType and item:getFullType()
+
+      if fullType then
+        if Sorted and Sorted.log then
+          Sorted:log("[DEBUG]   fullType: " .. tostring(fullType), 1)
+        end
+
+        -- Ensure fluid containers have their dynamic category applied to modData first
+        ensureFluidCategoryApplied(item)
+
+        -- Use ItemDictionary hierarchy
+        local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
+          or Sorted.getEffectiveCategory(fullType)
+
+        if Sorted and Sorted.log then
+          Sorted:log("[DEBUG]   Category: " .. tostring(effectiveCategory or "NIL"), 1)
+        end
+
+        if effectiveCategory then
+          if item and item.setDisplayCategory then
+            item:setDisplayCategory(effectiveCategory)
+            appliedCount = appliedCount + 1
+          end
         end
       end
+    end)
+
+    if not success and Sorted and Sorted.log then
+      Sorted:log("[ERROR] OnFillContainer item " .. tostring(i) .. " failed: " .. tostring(err), 1)
     end
   end
 
