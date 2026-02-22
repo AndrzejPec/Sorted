@@ -367,20 +367,9 @@ function Sorted.openModal(item)
 end
 
 function Sorted.getSavedCategory(fullType)
-    local reader = getFileReader(ASSIGNMENTS_FILE, false)
-    if not reader then return "none" end
-
-    while true do
-        local line = reader:readLine()
-        if not line then break end
-        local k, v = line:match("^(.-)=(.+)$")
-        if k == fullType then
-            reader:close()
-            return normalizeCategoryKey(v)
-        end
+    if Sorted.getEffectiveCategory then
+        return Sorted.getEffectiveCategory(fullType) or "none"
     end
-
-    reader:close()
     return "none"
 end
 
@@ -573,23 +562,40 @@ function Sorted.Modal:onReset()
 end
 
 function Sorted.applyDisplayCategories()
+    -- Migration adapter: imports user assignments from legacy CategoryAssignments.ini
+    -- into ItemDictionary (user field). Becomes a no-op once all data is migrated.
+    -- Actual category application is handled by Sorted.applyAllCategories() in OnGameBoot.
+    if not Sorted.ItemDictionary or not Sorted.setUserCategory then
+        return
+    end
+
     local reader = getFileReader(ASSIGNMENTS_FILE, false)
     if not reader then
         return
     end
+
+    local migrated = 0
     while true do
         local line = reader:readLine()
         if not line then break end
         local fullType, category = line:match("^(.-)=(.+)$")
         if fullType and category then
             category = normalizeCategoryKey(category)
-            local scriptItem = ScriptManager.instance:getItem(fullType)
-            if scriptItem then
-                scriptItem:DoParam("DisplayCategory = " .. category)
+            local entry = Sorted.ItemDictionary[fullType]
+            if entry and (not entry.user or entry.user == "") then
+                Sorted.setUserCategory(fullType, category)
+                migrated = migrated + 1
             end
         end
     end
     reader:close()
+
+    if migrated > 0 then
+        Sorted:log("[Sorted] Migrated " .. migrated .. " user categories from legacy CategoryAssignments.ini", 2)
+        if Sorted.saveDictionary then
+            Sorted.saveDictionary()
+        end
+    end
 end
 
 Events.OnFillInventoryObjectContextMenu.Add(Sorted.addContextMenu)
