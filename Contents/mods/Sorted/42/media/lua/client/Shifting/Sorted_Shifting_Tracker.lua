@@ -48,19 +48,14 @@ function Sorted.Tracker.clearAllCache()
     Sorted.Tracker.invalidateCategoryCache()
 end
 
-local function applyToInventory(inventory)
-  if not inventory then
+function Sorted.Tracker.applyShiftingCategoriesToInventories()
+  if not Sorted.Tracker.Config.enabled then
     return
   end
 
-  local items = inventory:getItems()
-  local appliedCount = 0
-
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-
+  local totalApplied = 0
+  Sorted.forEachPlayerItem(function(item)
     local fullType = item and item.getFullType and item:getFullType()
-
     if fullType then
       -- Ensure fluid containers have their dynamic category applied to modData first
       ensureFluidCategoryApplied(item)
@@ -73,35 +68,12 @@ local function applyToInventory(inventory)
         if currentCategory ~= effectiveCategory then
           if item and item.setDisplayCategory then
             item:setDisplayCategory(effectiveCategory)
-            appliedCount = appliedCount + 1
+            totalApplied = totalApplied + 1
           end
         end
       end
     end
-  end
-
-  return appliedCount
-end
-
-function Sorted.Tracker.applyShiftingCategoriesToInventories()
-  if not Sorted.Tracker.Config.enabled then
-    return
-  end
-
-  local totalApplied = 0
-
-  for playerNum = 0, getNumActivePlayers() - 1 do
-    local player = getPlayer(playerNum)
-    if player then
-      totalApplied = totalApplied + (applyToInventory(player:getInventory()) or 0)
-    end
-
-    local playerLoot = getPlayerLoot(playerNum)
-    if playerLoot and playerLoot.inventory then
-      totalApplied = totalApplied + (applyToInventory(playerLoot.inventory) or 0)
-    end
-  end
-
+  end)
   return totalApplied
 end
 

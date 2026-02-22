@@ -201,28 +201,7 @@ function Sorted.ApplyFluidCategory(item)
 end
 
 local function applyFluidCategoriesToAllInventories()
-  for playerNum = 0, getNumActivePlayers() - 1 do
-    local player = getSpecificPlayer(playerNum)
-    if player then
-      local playerInv = player:getInventory()
-      if playerInv then
-        local items = playerInv:getItems()
-        for i = 0, items:size() - 1 do
-          local item = items:get(i)
-          Sorted.ApplyFluidCategory(item)
-        end
-      end
-
-      local playerLoot = getPlayerLoot(playerNum)
-      if playerLoot and playerLoot.inventory then
-        local items = playerLoot.inventory:getItems()
-        for i = 0, items:size() - 1 do
-          local item = items:get(i)
-          Sorted.ApplyFluidCategory(item)
-        end
-      end
-    end
-  end
+  Sorted.forEachPlayerItem(Sorted.ApplyFluidCategory)
 end
 
 local function applyFluidCategoriesToWorldItems()

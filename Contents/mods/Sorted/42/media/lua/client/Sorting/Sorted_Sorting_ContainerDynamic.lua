@@ -223,26 +223,11 @@ end
 
 ---Update all containers in player inventory with dynamic categories
 function Sorted.container:updateAllPlayerContainers()
-    for playerNum = 0, getNumActivePlayers() - 1 do
-        local player = getPlayer(playerNum)
-        if player then
-            local inventory = player:getInventory()
-            if inventory then
-                local items = inventory:getItems()
-                local updatedCount = 0
-
-                for i = 0, items:size() - 1 do
-                    local item = items:get(i)
-                    if item then
-                        if self.isContainer(item) then
-                            self:applyDynamicCategory(item)
-                            updatedCount = updatedCount + 1
-                        end
-                    end
-                end
-            end
+    Sorted.forEachPlayerItem(function(item)
+        if item and self.isContainer(item) then
+            self:applyDynamicCategory(item)
         end
-    end
+    end)
 end
 
 -- OVERKILL MODE: Update on every tick

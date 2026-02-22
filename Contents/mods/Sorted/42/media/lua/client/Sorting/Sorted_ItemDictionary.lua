@@ -428,6 +428,28 @@ function Sorted.initializeDictionary()
     return {}
 end
 
+function Sorted.forEachPlayerItem(callback)
+    for playerNum = 0, getNumActivePlayers() - 1 do
+        local player = getSpecificPlayer(playerNum)
+        if player then
+            local inv = player:getInventory()
+            if inv then
+                local items = inv:getItems()
+                for i = 0, items:size() - 1 do
+                    callback(items:get(i))
+                end
+            end
+            local loot = getPlayerLoot(playerNum)
+            if loot and loot.inventory then
+                local items = loot.inventory:getItems()
+                for i = 0, items:size() - 1 do
+                    callback(items:get(i))
+                end
+            end
+        end
+    end
+end
+
 if Sorted.log then
     Sorted:log("[Sorted] ItemDictionary module loaded", 3)
 else
