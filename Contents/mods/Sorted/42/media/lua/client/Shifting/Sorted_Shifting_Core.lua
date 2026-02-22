@@ -498,6 +498,16 @@ function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
         writer:write(line .. "\n")
     end
     writer:close()
+
+    if Sorted.setUserCategory then
+        Sorted.setUserCategory(fullType, category)
+    end
+    if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
+        Sorted.Tracker.syncItemTypeInWorld(fullType)
+    end
+    if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
+        Sorted.Tracker.invalidateCategoryCache()
+    end
 end
 
 function Sorted.Modal:onClick()

@@ -48,21 +48,6 @@ function Sorted.Tracker.clearAllCache()
     Sorted.Tracker.invalidateCategoryCache()
 end
 
-local originalWriteCategoryToIni = Sorted.writeCategoryToIni
-if originalWriteCategoryToIni then
-    Sorted.writeCategoryToIni = function(fullType, category)
-      originalWriteCategoryToIni(fullType, category)
-      Sorted.Tracker.invalidateCategoryCache()
-
-      if Sorted.setUserCategory then
-          Sorted.setUserCategory(fullType, category)
-      end
-      if Sorted.Tracker.syncItemTypeInWorld then
-        Sorted.Tracker.syncItemTypeInWorld(fullType)
-      end
-    end
-end
-
 local function applyToInventory(inventory)
   if not inventory then
     return
