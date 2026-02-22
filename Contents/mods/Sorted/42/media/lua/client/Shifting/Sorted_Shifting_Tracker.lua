@@ -353,13 +353,27 @@ if Events and Events.OnFillContainer then
 end
 
 -- ========================================
--- OnRefreshInventoryWindowContainers: Apply categories when inventory opens
+-- OnRefreshInventoryWindowContainers: Unified refresh handler
+-- Order matters: fluid sets modData -> container reads modData -> tracker reads ItemDictionary+modData
 -- ========================================
 
+local function onSortedInventoryRefresh()
+  Sorted.forEachPlayerItem(function(item)
+    if item and item.getFluidContainerFromSelfOrWorldItem then
+      local fc = item:getFluidContainerFromSelfOrWorldItem()
+      if fc and fc.getAmount and fc:getAmount() > 0 then
+        Sorted.ApplyFluidCategory(item)
+      end
+    end
+  end)
+  Sorted.container:updateAllPlayerContainers()
+  Sorted.Tracker.applyShiftingCategoriesToInventories()
+end
+
 if Events and Events.OnRefreshInventoryWindowContainers then
-  Events.OnRefreshInventoryWindowContainers.Add(Sorted.Tracker.applyShiftingCategoriesToInventories)
+  Events.OnRefreshInventoryWindowContainers.Add(onSortedInventoryRefresh)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered - applies on inventory open", 3)
+    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered - unified refresh (fluid -> container -> tracker)", 3)
   end
 end
 

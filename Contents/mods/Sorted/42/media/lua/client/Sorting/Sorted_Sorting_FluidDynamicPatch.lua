@@ -200,10 +200,6 @@ function Sorted.ApplyFluidCategory(item)
   end
 end
 
-local function applyFluidCategoriesToAllInventories()
-  Sorted.forEachPlayerItem(Sorted.ApplyFluidCategory)
-end
-
 local function applyFluidCategoriesToWorldItems()
   local scanRadius = 10
   local totalProcessed = 0
@@ -287,17 +283,8 @@ else
   end
 end
 
--- ========================================
--- OnRefreshInventoryWindowContainers: Backup dla już istniejących itemów
--- ========================================
-
-if Events and Events.OnRefreshInventoryWindowContainers then
-  Events.OnRefreshInventoryWindowContainers.Add(applyFluidCategoriesToAllInventories)
-  Sorted._fluidDynamicPatch = true
-  if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: OnRefreshInventoryWindowContainers registered (backup for existing items)", 3)
-  end
-end
+-- OnRefreshInventoryWindowContainers handled by unified handler in Sorted_Shifting_Tracker.lua
+Sorted._fluidDynamicPatch = true
 
 local function applyFluidWithThrottle()
   local now = getTimestampMs()
@@ -305,14 +292,13 @@ local function applyFluidWithThrottle()
     return
   end
   lastApplyTime = now
-  applyFluidCategoriesToAllInventories()
   applyFluidCategoriesToWorldItems()
 end
 
 if Events and Events.OnPlayerUpdate then
   Events.OnPlayerUpdate.Add(applyFluidWithThrottle)
   if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
+    Sorted:log("FluidDynamicPatch: world-items refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end
 else
   if Sorted and Sorted.log then
