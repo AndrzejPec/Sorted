@@ -158,7 +158,6 @@ function Sorted.ApplyFluidCategory(item)
     return
   end
 
-  local fullType = item and item.getFullType and item:getFullType()
   local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
   local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
   local instanceCategory = dynamicCategory
@@ -176,27 +175,23 @@ function Sorted.ApplyFluidCategory(item)
     end
   end
 
-  if dynamicCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
-    Sorted.setAlgorithmCategory(fullType, dynamicCategory)
-  end
+  -- DISABLED: source-of-truth refactor - instance state must not pollute global dictionary
+  -- if dynamicCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+  --   Sorted.setAlgorithmCategory(fullType, dynamicCategory)
+  -- end
 
-  if instanceCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
-    if not dynamicCategory then
-        Sorted.setAlgorithmCategory(fullType, instanceCategory)
-    end
-  end
+  -- if instanceCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+  --   if not dynamicCategory then
+  --       Sorted.setAlgorithmCategory(fullType, instanceCategory)
+  --   end
+  -- end
 
 
   if not item.setDisplayCategory then
     return
   end
 
-  local effectiveCategory = nil
-  if Sorted and Sorted.getEffectiveCategoryForItem then
-    effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
-  elseif Sorted and Sorted.getEffectiveCategory and fullType then
-    effectiveCategory = Sorted.getEffectiveCategory(fullType)
-  end
+  local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
 
   if effectiveCategory and effectiveCategory ~= "none" then
     item:setDisplayCategory(effectiveCategory)

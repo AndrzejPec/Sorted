@@ -1,10 +1,9 @@
 require("0_Sorted_Debug")
 require("0_LoL_debug")
-require("0_Debug_Containers")
 require("Sorting/Sorted_Sorting_ItemTweaker_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
--- require("Sorting/Sorted_InventoryCategory_DoubleClick")  -- File doesn't exist
+require("Sorting/Sorted_ItemDictionary")
 require("Sorted_ModOptions")
 require("Sorted_Input")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
@@ -1363,9 +1362,6 @@ Sorted._reduxLoaded = true
 local overrides = {
   Hat_HazmatSuit = "Breathing",
 }
-
-require("Sorting/Sorted_Sorting_FluidDynamicPatch")
-require("Sorting/Sorted_ItemDictionary")
 
 function Sorted.testIsCannedFood()
   local player = getPlayer()

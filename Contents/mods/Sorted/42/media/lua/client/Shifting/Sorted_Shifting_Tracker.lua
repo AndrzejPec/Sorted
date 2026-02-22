@@ -68,11 +68,6 @@ local function applyToInventory(inventory)
     return
   end
 
-  -- Check if ItemDictionary integration is available
-  if not Sorted or not Sorted.getEffectiveCategory then
-    return
-  end
-
   local items = inventory:getItems()
   local appliedCount = 0
 
@@ -86,8 +81,7 @@ local function applyToInventory(inventory)
       ensureFluidCategoryApplied(item)
 
       -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
-      local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
-        or Sorted.getEffectiveCategory(fullType)
+      local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
 
       if effectiveCategory then
         local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
@@ -139,14 +133,6 @@ function Sorted.Tracker.applyCategoriesToWorldContainers()
     return 0
   end
 
-  -- Check if ItemDictionary is available
-  if not Sorted or not Sorted.getEffectiveCategory then
-    if Sorted and Sorted.log then
-      Sorted:log("[Tracker] World scan skipped - ItemDictionary not available", 2)
-    end
-    return 0
-  end
-
   local totalContainers = 0
   local totalItems = 0
   local totalApplied = 0
@@ -193,8 +179,7 @@ function Sorted.Tracker.applyCategoriesToWorldContainers()
                           -- Ensure fluid containers have their dynamic category applied to modData first
                           ensureFluidCategoryApplied(item)
 
-                          local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
-                            or Sorted.getEffectiveCategory(fullType)
+                          local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
 
                           if effectiveCategory then
                             local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
@@ -228,7 +213,7 @@ end
 
 -- Sync specific item type across entire world
 function Sorted.Tracker.syncItemTypeInWorld(fullType)
-  if not fullType or not Sorted or not Sorted.getEffectiveCategory then
+  if not fullType then
     return 0
   end
 
@@ -339,10 +324,6 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     return
   end
 
-  if not Sorted or not Sorted.getEffectiveCategory then
-    return
-  end
-
   -- OnFillContainer sometimes passes ItemContainer object, sometimes ArrayList directly
   local items
   if container.getItems then
@@ -382,8 +363,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
         ensureFluidCategoryApplied(item)
 
         -- Use ItemDictionary hierarchy
-        local effectiveCategory = Sorted.getEffectiveCategoryForItem and Sorted.getEffectiveCategoryForItem(item)
-          or Sorted.getEffectiveCategory(fullType)
+        local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
 
         if Sorted and Sorted.log then
           Sorted:log("[DEBUG]   Category: " .. tostring(effectiveCategory or "NIL"), 1)

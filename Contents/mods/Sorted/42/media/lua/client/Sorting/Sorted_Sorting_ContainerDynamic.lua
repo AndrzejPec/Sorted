@@ -25,7 +25,7 @@ function Sorted.container.isContainer(item)
         return false
     end
 
-    -- Exclude keys - they're containers but shouldn't be dynamically categorized
+    -- Exclude keys - they're containers but shouldn't be dynamically categorized (?? are they? TODO: check if they should be)
     if item:isItemType(ItemType.KEY) then
         return false
     end
@@ -63,15 +63,10 @@ function Sorted.container.analyzeContents(containerItem)
 
             -- Use ItemDictionary for hierarchical category resolution
             local fullType = item.getFullType and item:getFullType()
-            if fullType and Sorted then
-                if Sorted.getEffectiveCategoryForItem then
-                    category = Sorted.getEffectiveCategoryForItem(item)
-                elseif Sorted.getEffectiveCategory then
-                    category = Sorted.getEffectiveCategory(fullType)
-                end
+            if fullType then
+                category = Sorted.getEffectiveCategoryForItem(item)
             end
 
-            -- Fallback to display category if ItemDictionary not available
             if not category and item.getDisplayCategory then
                 category = item:getDisplayCategory()
             end
