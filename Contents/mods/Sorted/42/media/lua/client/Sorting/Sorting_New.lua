@@ -1,14 +1,6 @@
 
 if not Sorted then Sorted = {} end
 
-local function sortedLog(msg, lvl)
-  if Sorted and Sorted.log then
-    Sorted:log(msg, lvl or 3)
-    return
-  end
-  print(msg)
-end
-
 function Sorted.categorizeFoodBoxes(item)
   if not item or not item.getItemType or item:getItemType() ~= ItemType.FOOD then
     return nil
@@ -54,7 +46,7 @@ function Sorted.iterateAllItems(predicate, doReturn, doPrint, param)
           end
         end
 
-        sortedLog(printStr)
+        Sorted:log(printStr)
       end
 
       if doReturn then

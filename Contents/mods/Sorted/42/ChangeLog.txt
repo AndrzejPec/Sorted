@@ -27,3 +27,4 @@
 
 [ incoming-date ]
 - snapshot before source-of-truth refactor
+- source-of-truth refactor complete - ItemDictionary as single resolver

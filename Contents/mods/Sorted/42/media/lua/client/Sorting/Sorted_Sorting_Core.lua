@@ -1,5 +1,4 @@
 require("0_Sorted_Debug")
-require("0_LoL_debug")
 require("Sorting/Sorted_Sorting_ItemTweaker_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
