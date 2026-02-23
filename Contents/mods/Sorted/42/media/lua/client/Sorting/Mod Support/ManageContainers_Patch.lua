@@ -47,6 +47,11 @@ Sorted:log("[Sorted] ManageContainers patch loading...")
 
 function MCPatch_GetSortedCategoryKeys()
   local keys = {}
+  local function mcLog(message, level)
+    if Sorted and Sorted.log then
+      Sorted:log(message, level or 3)
+    end
+  end
 
   local function add(category)
     if category and category ~= "" then
@@ -54,20 +59,20 @@ function MCPatch_GetSortedCategoryKeys()
     end
   end
 
-  print("[MC_Patch] MCPatch_GetSortedCategoryKeys() called")
+  mcLog("[MC_Patch] MCPatch_GetSortedCategoryKeys() called", 3)
 
   if not Sorted then
-    print("[MC_Patch] ERROR: Sorted is nil!")
+    mcLog("[MC_Patch] ERROR: Sorted is nil!", 1)
     return keys
   end
 
-  print("[MC_Patch] Sorted exists, checking collectDisplayCategories...")
+  mcLog("[MC_Patch] Sorted exists, checking collectDisplayCategories...", 3)
 
   if Sorted.collectDisplayCategories then
-    print("[MC_Patch] Calling Sorted.collectDisplayCategories()...")
+    mcLog("[MC_Patch] Calling Sorted.collectDisplayCategories()...", 3)
     Sorted.collectDisplayCategories()
   else
-    print("[MC_Patch] WARNING: Sorted.collectDisplayCategories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.collectDisplayCategories is nil!", 2)
   end
 
   local staticCount = 0
@@ -76,29 +81,29 @@ function MCPatch_GetSortedCategoryKeys()
       add(entry.key)
       staticCount = staticCount + 1
     end
-    print("[MC_Patch] Added " .. staticCount .. " STATIC categories from Sorted.categories")
+    mcLog("[MC_Patch] Added " .. staticCount .. " STATIC categories from Sorted.categories", 3)
   else
-    print("[MC_Patch] WARNING: Sorted.categories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.categories is nil!", 2)
   end
 
   local dynamicCount = 0
   if Sorted.DynamicCategories then
-    print("[MC_Patch] Sorted.DynamicCategories EXISTS, iterating...")
+    mcLog("[MC_Patch] Sorted.DynamicCategories EXISTS, iterating...", 3)
     for category, value in pairs(Sorted.DynamicCategories) do
-      print("[MC_Patch]   DynamicCategory: '" .. tostring(category) .. "' = " .. tostring(value))
+      mcLog("[MC_Patch]   DynamicCategory: '" .. tostring(category) .. "' = " .. tostring(value), 3)
       if value then
         add(category)
         dynamicCount = dynamicCount + 1
       end
     end
-    print("[MC_Patch] Added " .. dynamicCount .. " DYNAMIC categories")
+    mcLog("[MC_Patch] Added " .. dynamicCount .. " DYNAMIC categories", 3)
   else
-    print("[MC_Patch] WARNING: Sorted.DynamicCategories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.DynamicCategories is nil!", 2)
   end
 
   local totalCount = 0
   for _ in pairs(keys) do totalCount = totalCount + 1 end
-  print("[MC_Patch] TOTAL categories returned: " .. totalCount)
+  mcLog("[MC_Patch] TOTAL categories returned: " .. totalCount, 3)
 
   return keys
 end

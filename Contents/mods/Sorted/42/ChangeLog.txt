@@ -30,3 +30,4 @@
 - source-of-truth refactor complete - ItemDictionary as single resolver
 - remove writeCategoryToIni monkey-patch - setUserCategory now called directly
 - decouple live INI reads - getSavedCategory and applyDisplayCategories use ItemDictionary
+- consolidate inventory scan events into single refresh loop

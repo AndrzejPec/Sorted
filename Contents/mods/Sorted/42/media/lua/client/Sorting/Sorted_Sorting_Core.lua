@@ -243,7 +243,6 @@ end
 local function getDishCategory(item)
   if not item then return nil end
 
-
   local eatType = item and item.getEatType and item:getEatType()
   if item and item.getItemType and item:getItemType() == ItemType.FOOD then
     local cookwareTypes = {"Pot", "Plate", "2handbowl", "Saucepan"}
@@ -293,8 +292,6 @@ local function getFoodCategory(item)
   if boxType then
     return boxType
   end
-
-
 
   if isCannedFood(item) then
     if isPerishable(item) then

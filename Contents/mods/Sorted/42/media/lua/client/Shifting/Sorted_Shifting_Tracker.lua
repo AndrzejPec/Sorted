@@ -5,7 +5,7 @@ Sorted.Tracker = Sorted.Tracker or {}
 
 Sorted.Tracker.Config = {
     enabled = true,
-    debug = true,
+    debug = false,
     radius = 10,
     updateInterval = 1,
     syncVehicles = true,
@@ -297,7 +297,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
 
   local appliedCount = 0
 
-  if Sorted and Sorted.log then
+  if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
     Sorted:log("[DEBUG] OnFillContainer: " .. tostring(containerType) .. " has " .. tostring(items:size()) .. " items, items type: " .. tostring(items), 1)
   end
 
@@ -305,14 +305,14 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     local success, err = pcall(function()
       local item = items:get(i)
 
-      if Sorted and Sorted.log then
+      if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
         Sorted:log("[DEBUG] Item[" .. tostring(i) .. "] = " .. tostring(item) .. " (type: " .. tostring(type(item)) .. ")", 1)
       end
 
       local fullType = item and item.getFullType and item:getFullType()
 
       if fullType then
-        if Sorted and Sorted.log then
+        if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
           Sorted:log("[DEBUG]   fullType: " .. tostring(fullType), 1)
         end
 
@@ -322,7 +322,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
         -- Use ItemDictionary hierarchy
         local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
 
-        if Sorted and Sorted.log then
+        if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
           Sorted:log("[DEBUG]   Category: " .. tostring(effectiveCategory or "NIL"), 1)
         end
 
@@ -340,7 +340,7 @@ local function applyShiftingCategoriesToContainer(roomType, containerType, conta
     end
   end
 
-  if appliedCount > 0 and Sorted and Sorted.log then
+  if appliedCount > 0 and Sorted and Sorted.log and Sorted.Tracker.Config.debug then
     Sorted:log("[Tracker] OnFillContainer: Applied " .. appliedCount .. " custom categories in " .. tostring(containerType), 3)
   end
 end
@@ -443,6 +443,4 @@ if Sorted and Sorted.log then
         "  Sorted.trackerSyncItem(fullType) - sync specific item type across world",
         "  Sorted.trackerStats()            - show tracker stats",
     }, "\n"), 3)
-else
-    print("[Sorted.Tracker] Loaded!")
 end

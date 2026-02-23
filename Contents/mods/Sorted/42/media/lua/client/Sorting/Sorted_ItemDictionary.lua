@@ -452,9 +452,5 @@ end
 
 if Sorted.log then
     Sorted:log("[Sorted] ItemDictionary module loaded", 3)
-else
-    print("[Sorted is having a break so I am just printing] ItemDictionary module loaded")
-    print("The fuck he gone...")
-    print("Damn I hate this job!")
-    print("Rurku... To dobrze że mnie słuchasz...")
 end
+

@@ -1,7 +1,7 @@
 Sorted = Sorted or {}
 
 Sorted.debug = {
-    enabled = true,  -- WŁĄCZ LOGI DOMYŚLNIE
+    enabled = false, -- logs disabled by default
     minLevel = 1, -- 1=ERROR, 2=WARN, 3=INFO
 }
 
@@ -121,3 +121,4 @@ if Sorted and Sorted.log then
 else
     print("[0_Sorted_Debug] ERROR: Sorted.log is not available!")
 end
+

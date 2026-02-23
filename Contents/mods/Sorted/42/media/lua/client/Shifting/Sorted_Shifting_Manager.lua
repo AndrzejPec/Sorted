@@ -653,6 +653,4 @@ end
 
 if Sorted and Sorted.log then
     Sorted:log("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.", 3)
-else
-    print("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.")
 end
