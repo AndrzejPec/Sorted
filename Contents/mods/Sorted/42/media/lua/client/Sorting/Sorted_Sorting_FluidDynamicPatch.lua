@@ -239,48 +239,10 @@ local function applyFluidCategoriesToWorldItems()
   end
 end
 
--- ========================================
--- OnFillContainer: Aplikuj kategorie gdy kontener się tworzy
--- ========================================
--- Ten event triggeruje się gdy loot jest PIERWSZY RAZ generowany w kontenerze
--- (nowy świat, nowy chunk, respawn lootu)
-
-local function applyFluidCategoriesToContainer(roomType, containerType, container)
-  if not container then
-    return
-  end
-
-  local items = container:getItems()
-  if not items then
-    return
-  end
-
-  local appliedCount = 0
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    if item and item.getFluidContainer then
-      local fluidContainer = item:getFluidContainer()
-      if fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() > 0 then
-        Sorted.ApplyFluidCategory(item)
-        appliedCount = appliedCount + 1
-      end
-    end
-  end
-
-  if appliedCount > 0 and Sorted and Sorted.log then
-    Sorted:log("[FluidDynamicPatch] OnFillContainer: Applied fluid categories to " .. appliedCount .. " items in " .. tostring(containerType), 3)
-  end
-end
-
-if Events and Events.OnFillContainer then
-  Events.OnFillContainer.Add(applyFluidCategoriesToContainer)
-  if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: OnFillContainer registered - will apply fluid categories at spawn time!", 2)
-  end
-else
-  if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: WARNING - OnFillContainer event not found!", 1)
-  end
+-- OnFillContainer ownership belongs to Sorted_Shifting_Tracker.lua.
+-- This module only provides Sorted.ApplyFluidCategory and world-item refresh.
+if Sorted and Sorted.log then
+  Sorted:log("FluidDynamicPatch: OnFillContainer handled by Tracker (single-owner architecture)", 3)
 end
 
 -- OnRefreshInventoryWindowContainers handled by unified handler in Sorted_Shifting_Tracker.lua

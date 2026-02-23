@@ -452,45 +452,71 @@ function Sorted.Modal:initialise()
     self:addChild(cancelButton)
 end
 
+-- function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
+--     if not skipNormalize then
+--         category = normalizeCategoryKey(category)
+--     end
+--     local lines = {}
+--     local found = false
+
+--     local reader = getFileReader(ASSIGNMENTS_FILE, false)
+--     if reader then
+--         while true do
+--             local line = reader:readLine()
+--             if not line then break end
+--             local k = line:match("^(.-)=")
+--             if k == fullType then
+--                 table.insert(lines, fullType .. "=" .. category)
+--                 found = true
+--             else
+--                 table.insert(lines, line)
+--             end
+--         end
+--         reader:close()
+--     end
+
+--     if not found then
+--         table.insert(lines, fullType .. "=" .. category)
+--     end
+
+--     local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
+--     if not writer then
+--         return
+--     end
+--     for _, line in ipairs(lines) do
+--         writer:write(line .. "\n")
+--     end
+--     writer:close()
+
+--     if Sorted.setUserCategory then
+--         Sorted.setUserCategory(fullType, category)
+--     end
+--     if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
+--         Sorted.Tracker.syncItemTypeInWorld(fullType)
+--     end
+--     if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
+--         Sorted.Tracker.invalidateCategoryCache()
+--     end
+-- end
+
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
+    if not fullType or fullType == "" or not category or category == "" then
+        return
+    end
+
     if not skipNormalize then
         category = normalizeCategoryKey(category)
     end
-    local lines = {}
-    local found = false
 
-    local reader = getFileReader(ASSIGNMENTS_FILE, false)
-    if reader then
-        while true do
-            local line = reader:readLine()
-            if not line then break end
-            local k = line:match("^(.-)=")
-            if k == fullType then
-                table.insert(lines, fullType .. "=" .. category)
-                found = true
-            else
-                table.insert(lines, line)
-            end
-        end
-        reader:close()
-    end
-
-    if not found then
-        table.insert(lines, fullType .. "=" .. category)
-    end
-
-    local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
-    if not writer then
-        return
-    end
-    for _, line in ipairs(lines) do
-        writer:write(line .. "\n")
-    end
-    writer:close()
-
+    -- Legacy shim: keep API name, but persist to ItemDictionary (single source of truth).
     if Sorted.setUserCategory then
         Sorted.setUserCategory(fullType, category)
     end
+
+    if Sorted.saveDictionary then
+        Sorted.saveDictionary()
+    end
+
     if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
         Sorted.Tracker.syncItemTypeInWorld(fullType)
     end
@@ -498,6 +524,7 @@ function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
         Sorted.Tracker.invalidateCategoryCache()
     end
 end
+
 
 function Sorted.Modal:onClick()
     local customText = self.customInput:getText()
@@ -562,6 +589,20 @@ function Sorted.Modal:onReset()
 end
 
 function Sorted.applyDisplayCategories()
+    -- If dictionary already has any user assignments, skip legacy INI import.
+    local hasUserAssignments = false
+    if Sorted.ItemDictionary then
+        for _, entry in pairs(Sorted.ItemDictionary) do
+            if entry and entry.user and entry.user ~= "" then
+                hasUserAssignments = true
+                break
+            end
+        end
+    end
+    if hasUserAssignments then
+        return
+    end
+    
     -- Migration adapter: imports user assignments from legacy CategoryAssignments.ini
     -- into ItemDictionary (user field). Becomes a no-op once all data is migrated.
     -- Actual category application is handled by Sorted.applyAllCategories() in OnGameBoot.
