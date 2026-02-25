@@ -5,6 +5,9 @@ Sorted.ItemDictionary = {}
 Sorted.DICTIONARY_FILE = "Sorted_ItemDictionary.ini"
 Sorted.USER_BACKUP_PREFIX = "Sorted_UserAssignments_BACKUP_"
 
+Sorted.CategoryMappings = {}
+Sorted.MAPPINGS_FILE = "Sorted_CategoryMappings.ini"
+
 Sorted.DeprecatedCategories = {
     RENAMED = {
         ["VehicleMaintenance"] = "Mechanics",
@@ -42,6 +45,84 @@ end
 local function isOrphaned(category)
     return Sorted.DeprecatedCategories.ORPHANED[category] == true
 end
+
+function Sorted.resolveMapping(category)
+    if not category or category == "" then
+        return category
+    end
+    local mapped = Sorted.CategoryMappings[category]
+    if mapped and mapped ~= "" then
+        Sorted:log("[Sorted] CategoryMapping resolved: " .. category .. " -> " .. mapped, 2)
+        return mapped
+    end
+    return category
+end
+
+function Sorted.setCategoryMapping(sourceCategory, targetCategory)
+    if not sourceCategory or sourceCategory == "" then
+        Sorted:log("[Sorted] setCategoryMapping: empty source category, ignoring", 2)
+        return false
+    end
+    if targetCategory and targetCategory ~= "" then
+        Sorted.CategoryMappings[sourceCategory] = targetCategory
+        Sorted:log("[Sorted] Category mapped: " .. sourceCategory .. " -> " .. targetCategory, 2)
+    else
+        Sorted.CategoryMappings[sourceCategory] = nil
+        Sorted:log("[Sorted] Category mapping removed for: " .. sourceCategory, 2)
+    end
+    return true
+end
+
+function Sorted.saveMappings()
+    local writer = getFileWriter(Sorted.MAPPINGS_FILE, true, false)
+    if not writer then
+        Sorted:log("[Sorted] ERROR: Could not open mappings file for writing", 1)
+        return false
+    end
+
+    writer:write("# Sorted Category Mappings (user-defined renames)\n")
+    writer:write("# Format: sourceCategory=targetCategory\n")
+    writer:write("# Generated: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
+
+    local count = 0
+    for source, target in pairs(Sorted.CategoryMappings) do
+        writer:write(source .. "=" .. target .. "\n")
+        count = count + 1
+    end
+
+    writer:close()
+    Sorted:log("[Sorted] Saved " .. count .. " category mappings", 2)
+    return true
+end
+
+function Sorted.loadMappings()
+    Sorted.CategoryMappings = {}
+
+    local reader = getFileReader(Sorted.MAPPINGS_FILE, false)
+    if not reader then
+        Sorted:log("[Sorted] No category mappings file found, starting fresh", 3)
+        return false
+    end
+
+    local count = 0
+    while true do
+        local line = reader:readLine()
+        if not line then break end
+
+        if not line:match("^#") and line ~= "" then
+            local source, target = line:match("^(.-)=(.+)$")
+            if source and target and source ~= "" and target ~= "" then
+                Sorted.CategoryMappings[source] = target
+                count = count + 1
+            end
+        end
+    end
+
+    reader:close()
+    Sorted:log("[Sorted] Loaded " .. count .. " category mappings", 2)
+    return true
+end
+
 
 function Sorted.buildItemDictionary()
     Sorted:log("[Sorted] Building Item Dictionary...", 2)
@@ -82,23 +163,21 @@ function Sorted.getEffectiveCategory(fullType)
         return nil
     end
 
+    local resolved
+
     if entry.user and entry.user ~= "" then
-        return entry.user
+        resolved = entry.user
+    elseif entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
+        resolved = entry.algorithm
+    elseif entry.mapped and entry.mapped ~= "" then
+        resolved = entry.mapped
+    elseif entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
+        resolved = entry.original
+    else
+        resolved = "_Sorted.Uncategorized"
     end
 
-    if entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
-        return entry.algorithm
-    end
-
-    if entry.mapped and entry.mapped ~= "" then
-        return entry.mapped
-    end
-
-    if entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
-        return entry.original
-    end
-
-    return "_Sorted.Uncategorized"
+    return Sorted.resolveMapping(resolved)
 end
 
 function Sorted.getItemAlgorithmCategory(item)
@@ -146,28 +225,26 @@ function Sorted.getEffectiveCategoryForItem(item)
         return nil
     end
 
+    local resolved
+
     if entry.user and entry.user ~= "" then
-        return entry.user
+        resolved = entry.user
+    else
+        local instanceAlgorithm = Sorted.getItemAlgorithmCategory and Sorted.getItemAlgorithmCategory(item)
+        if instanceAlgorithm and instanceAlgorithm ~= "" and not isDeprecated(instanceAlgorithm) then
+            resolved = instanceAlgorithm
+        elseif entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
+            resolved = entry.algorithm
+        elseif entry.mapped and entry.mapped ~= "" then
+            resolved = entry.mapped
+        elseif entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
+            resolved = entry.original
+        else
+            resolved = "_Sorted.Uncategorized"
+        end
     end
 
-    local instanceAlgorithm = Sorted.getItemAlgorithmCategory and Sorted.getItemAlgorithmCategory(item)
-    if instanceAlgorithm and instanceAlgorithm ~= "" and not isDeprecated(instanceAlgorithm) then
-        return instanceAlgorithm
-    end
-
-    if entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
-        return entry.algorithm
-    end
-
-    if entry.mapped and entry.mapped ~= "" then
-        return entry.mapped
-    end
-
-    if entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
-        return entry.original
-    end
-
-    return "_Sorted.Uncategorized"
+    return Sorted.resolveMapping(resolved)
 end
 
 function Sorted.setAlgorithmCategory(fullType, category)
@@ -402,6 +479,8 @@ end
 
 function Sorted.initializeDictionary()
     Sorted:log("[Sorted] === Initializing Item Dictionary System ===", 2)
+
+    Sorted.loadMappings()
 
     local loaded = Sorted.loadDictionary()
 
