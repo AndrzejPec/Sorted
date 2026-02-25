@@ -529,6 +529,17 @@ function Sorted.forEachPlayerItem(callback)
     end
 end
 
+function Sorted.applyMappingAndRefresh()
+    Sorted:log("[Sorted] Applying category mappings and refreshing all items...", 2)
+    Sorted.saveMappings()
+    if Sorted.applyAllCategories then
+        Sorted.applyAllCategories()
+        Sorted:log("[Sorted] Category mappings applied successfully", 2)
+    else
+        Sorted:log("[Sorted] WARNING: applyAllCategories not available yet", 1)
+    end
+end
+
 if Sorted.log then
     Sorted:log("[Sorted] ItemDictionary module loaded", 3)
 end

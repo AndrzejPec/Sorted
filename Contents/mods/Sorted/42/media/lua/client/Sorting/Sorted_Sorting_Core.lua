@@ -1162,7 +1162,6 @@ local function orphanTheUnfit()
   end
 end
 
-
 local CATEGORY_DETECTORS_DETAILED = {
   getLightSourceCategory,
   getRanged,
@@ -1240,10 +1239,6 @@ end
 
 -- Sorted.categories
 
-local function remapCategories()
-  
-end
-
 function Sorted.CategorizeAllItems()
   Sorted:log("[CategorizeAllItems] START", 1)
   local items = getAllItems()
@@ -1271,8 +1266,6 @@ function Sorted.CategorizeAllItems()
     else
       skippedCount = skippedCount + 1
     end
-
-    remapCategories()
   end
 
   Sorted:log("[CategorizeAllItems] DONE: " .. categorizedCount .. " categorized, " .. skippedCount .. " skipped (manual)", 1)
