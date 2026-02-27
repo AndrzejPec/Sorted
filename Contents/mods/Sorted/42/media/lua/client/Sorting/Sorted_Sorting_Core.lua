@@ -1181,8 +1181,7 @@ end
 
 local function getCraftKnappingCategory(item)
   if item:hasTag(ItemTag.FLINT_PIECE)
-  or item:hasTag(ItemTag.KNAPPING_TOOL)
-  or item:hasTag(ItemTag.HAMMER_STONE) then
+  or item:hasTag(ItemTag.KNAPPING_TOOL) then
     return "CraftKnapping"
   end
 end
