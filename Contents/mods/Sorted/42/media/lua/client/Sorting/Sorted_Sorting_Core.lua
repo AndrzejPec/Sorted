@@ -1162,6 +1162,31 @@ local function orphanTheUnfit()
   end
 end
 
+local function getCraftTailoringCategory(item)
+  if item:hasTag(ItemTag.SEWING_NEEDLE)
+  or item:hasTag(ItemTag.KNITTING_NEEDLES)
+  or item:hasTag(ItemTag.THREAD)
+  or item:hasTag(ItemTag.HEAVY_THREAD) then
+    return "CraftTailoring"
+  end
+end
+
+local function getCraftMasonryCategory(item)
+  if item:hasTag(ItemTag.PLASTER_TROWEL)
+  or item:hasTag(ItemTag.CONCRETE)
+  or item:hasTag(ItemTag.MORTAR_PESTLE) then
+    return "CraftMasonry"
+  end
+end
+
+local function getCraftKnappingCategory(item)
+  if item:hasTag(ItemTag.FLINT_PIECE)
+  or item:hasTag(ItemTag.KNAPPING_TOOL)
+  or item:hasTag(ItemTag.HAMMER_STONE) then
+    return "CraftKnapping"
+  end
+end
+
 local CATEGORY_DETECTORS_DETAILED = {
   getLightSourceCategory,
   getRanged,
@@ -1185,6 +1210,9 @@ local CATEGORY_DETECTORS_DETAILED = {
   getKeyCategory,
   getMementoClothingCategoryDetailed,
   getClothingCategoryDetailed,
+  getCraftTailoringCategory,
+  getCraftMasonryCategory,
+  getCraftKnappingCategory,
   getAmmo,
   getFirearmContainers,
   getContainerCategory,
@@ -1209,6 +1237,9 @@ local CATEGORY_DETECTORS_SIMPLE = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
+  getCraftTailoringCategory,
+  getCraftMasonryCategory,
+  getCraftKnappingCategory,
   getContainerCategory,
   getMementoClothingCategorySimple,
   getClothingCategorySimple,
@@ -1316,9 +1347,50 @@ function Sorted.OnGameBoot()
   orphanTheUnfit()
   Sorted:log("[OnGameBoot] orphanTheUnfit DONE", 1)
 
-  if #unknownItems > 0 then
-    Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
-  end
+  -- TODO: this was supposed to be showing a panel with items that couldn't be categorised, but I think that the panel cannot be shown in the main menu (where the onGameBoot is loaded)
+  -- if #unknownItems > 0 then
+  --   Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
+  --   local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
+  --   local pendingCount = #unknownItems
+  --   local tickCount = 0
+  --   local function onTickNotify()
+  --     tickCount = tickCount + 1
+  --     if tickCount >= 120 then
+  --       Events.OnTick.Remove(onTickNotify)
+  --       if ISLabel and ISButton and ISPanel then
+  --         local sw = getCore():getScreenWidth()
+  --         local sh = getCore():getScreenHeight()
+  --         local w, h = 360, 70
+  --         local panel = ISPanel:new(sw - w - 20, sh - h - 60, w, h)
+  --         panel.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+  --         panel.backgroundColor = {r=0.15, g=0.12, b=0.05, a=0.92}
+  --         panel:initialise()
+  --         panel:addToUIManager()
+
+  --         local msg = pendingCount .. " item(s) could not be auto-categorized."
+  --         local lbl = ISLabel:new(8, 8, FONT_HGT_SMALL, msg, 1, 0.85, 0.5, 1, UIFont.Small, true)
+  --         panel:addChild(lbl)
+
+  --         local btnW = 140
+  --         local btn = ISButton:new(w - btnW - 8, 8, btnW, FONT_HGT_SMALL + 8, "Open Category Manager", panel, function()
+  --           panel:setVisible(false)
+  --           panel:removeFromUIManager()
+  --           if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
+  --             Sorted.ManagerMC.toggle()
+  --           end
+  --         end)
+  --         btn.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+  --         btn.backgroundColor = {r=0.3, g=0.2, b=0.05, a=0.8}
+  --         btn.backgroundColorMouseOver = {r=0.5, g=0.35, b=0.1, a=0.9}
+  --         btn:initialise()
+  --         panel:addChild(btn)
+
+  --         Sorted:log("[Sorted] Uncategorized items notification shown: " .. pendingCount .. " items", 2)
+  --       end
+  --     end
+  --   end
+  --   Events.OnTick.Add(onTickNotify)
+  -- end
 
   Sorted:log("--- Sorted End (redux) ---", 1)
 
