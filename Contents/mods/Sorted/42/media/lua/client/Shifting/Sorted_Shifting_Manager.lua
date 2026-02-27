@@ -729,7 +729,7 @@ function Sorted.ManagerMC:onResetAll()
         getCore():getScreenWidth() / 2 - 150,
         getCore():getScreenHeight() / 2 - 50,
         300, 100,
-        "Reset ALL items to default categories?\nThis will clear your INI file!",
+        "Reset ALL user category assignments?\nThis cannot be undone.",
         true, self, Sorted.ManagerMC.onResetAllConfirm
     )
     modal:initialise()
@@ -741,25 +741,38 @@ function Sorted.ManagerMC:onResetAllConfirm(button)
         return
     end
 
+    Sorted:log("[ManagerMC] Reset All: clearing all user assignments from ItemDictionary", 2)
+
     if Sorted.collectDefaultCategories then
         Sorted.collectDefaultCategories()
     end
 
-    local writer = getFileWriter("Sorted_CategoryAssignments.ini", true, false)
-    if writer then
-        writer:close()
+    local cleared = 0
+    for fullType, entry in pairs(Sorted.ItemDictionary) do
+        if entry.user and entry.user ~= "" then
+            entry.user = nil
+            cleared = cleared + 1
+        end
+    end
+
+    Sorted:log("[ManagerMC] Reset All: cleared " .. cleared .. " user assignments", 2)
+
+    if Sorted.saveDictionary then
+        Sorted.saveDictionary()
     end
 
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
         local fullType = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
-        local defaultCategory = Sorted.defaultCategories and Sorted.defaultCategories[fullType]
-        if defaultCategory and defaultCategory ~= "none" then
+        local effectiveCategory = Sorted.getEffectiveCategory and Sorted.getEffectiveCategory(fullType)
+        if effectiveCategory and effectiveCategory ~= "" and effectiveCategory ~= "_Sorted.Uncategorized" then
             if scriptItem and scriptItem.DoParam then
-                scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
+                scriptItem:DoParam("DisplayCategory = " .. effectiveCategory)
             end
-            Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
+            if Sorted.syncAllItemsOfType then
+                Sorted.syncAllItemsOfType(fullType, effectiveCategory, true)
+            end
         end
     end
 
@@ -771,6 +784,8 @@ function Sorted.ManagerMC:onResetAllConfirm(button)
     if Sorted.collectDisplayCategories then
         Sorted.collectDisplayCategories()
     end
+
+    Sorted:log("[ManagerMC] Reset All: done", 2)
 end
 
 function Sorted.ManagerMC:close()
