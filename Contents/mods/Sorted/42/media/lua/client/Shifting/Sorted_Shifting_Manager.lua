@@ -539,19 +539,51 @@ function Sorted.ManagerMC:populateMappingSourceCombo()
     if not self.mappingSourceCombo then return end
     self.mappingSourceCombo:clear()
 
-    if Sorted.collectDisplayCategories then
-        Sorted.collectDisplayCategories()
+    -- Build unique set of PRE-MAPPING categories from ItemDictionary
+    -- We need original resolved categories (before resolveMapping), not post-mapping DisplayCategory
+    local raw = {}
+    for fullType, entry in pairs(Sorted.ItemDictionary) do
+        local resolved
+        if entry.user and entry.user ~= "" then
+            resolved = entry.user
+        elseif entry.algorithm and entry.algorithm ~= "" then
+            resolved = entry.algorithm
+        elseif entry.mapped and entry.mapped ~= "" then
+            resolved = entry.mapped
+        elseif entry.original and entry.original ~= "" then
+            resolved = entry.original
+        end
+        if resolved and resolved ~= "" and resolved ~= "_Sorted.Uncategorized" then
+            raw[resolved] = true
+        end
     end
 
-    if Sorted.categories and #Sorted.categories > 0 then
-        for _, entry in ipairs(Sorted.categories) do
-            local source = entry.key
-            local label = entry.label or entry.key
-            if Sorted.CategoryMappings and Sorted.CategoryMappings[source] then
-                label = label .. "  ->  " .. Sorted.CategoryMappings[source]
-            end
-            self.mappingSourceCombo:addOptionWithData(label, source)
+    -- Also include source keys from existing mappings (in case no items resolve to them anymore)
+    if Sorted.CategoryMappings then
+        for source, _ in pairs(Sorted.CategoryMappings) do
+            raw[source] = true
         end
+    end
+
+    local sorted = {}
+    for cat, _ in pairs(raw) do
+        table.insert(sorted, cat)
+    end
+    table.sort(sorted)
+
+    for _, cat in ipairs(sorted) do
+        local label
+        local textKey = "IGUI_ItemCat_" .. cat
+        local translated = getText(textKey)
+        if translated and translated ~= textKey then
+            label = translated
+        else
+            label = cat
+        end
+        if Sorted.CategoryMappings and Sorted.CategoryMappings[cat] then
+            label = label .. "  ->  " .. Sorted.CategoryMappings[cat]
+        end
+        self.mappingSourceCombo:addOptionWithData(label, cat)
     end
 
     if self.mappingSourceCombo.options and #self.mappingSourceCombo.options > 0 then
@@ -559,7 +591,7 @@ function Sorted.ManagerMC:populateMappingSourceCombo()
         self:onMappingSourceChange()
     end
 
-    Sorted:log("[ManagerMC] Mapping source combo populated", 3)
+    Sorted:log("[ManagerMC] Mapping source combo populated with " .. #sorted .. " pre-mapping categories", 3)
 end
 
 function Sorted.ManagerMC:onMappingSourceChange()

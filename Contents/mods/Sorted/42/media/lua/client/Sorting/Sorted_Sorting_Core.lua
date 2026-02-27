@@ -685,7 +685,7 @@ end
 
 local function getAmmo(item)
   if item:hasTag(ItemTag.AMMO_CASE) then
-    return "Ammunition"
+    return "Ammo"
   end
 end
 

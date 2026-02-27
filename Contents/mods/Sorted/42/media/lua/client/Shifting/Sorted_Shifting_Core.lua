@@ -254,6 +254,41 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
     end
 end
 
+function Sorted.syncAllOpenItems()
+    local count = 0
+    for playerNum = 0, getNumActivePlayers() - 1 do
+        local playerInv = getPlayerInventory(playerNum)
+        if playerInv and playerInv.inventory then
+            local items = playerInv.inventory:getItems()
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and item.getFullType and item.setDisplayCategory then
+                    local category = Sorted.getEffectiveCategory(item:getFullType())
+                    if category and category ~= "" and category ~= "_Sorted.Uncategorized" then
+                        item:setDisplayCategory(category)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+        local playerLoot = getPlayerLoot(playerNum)
+        if playerLoot and playerLoot.inventory then
+            local items = playerLoot.inventory:getItems()
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and item.getFullType and item.setDisplayCategory then
+                    local category = Sorted.getEffectiveCategory(item:getFullType())
+                    if category and category ~= "" and category ~= "_Sorted.Uncategorized" then
+                        item:setDisplayCategory(category)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+    Sorted:log("[Sorted] syncAllOpenItems: updated " .. count .. " item instances", 3)
+end
+
 function Sorted.collectDisplayCategories()
     local raw = {}
     local scripts = getScriptManager():getAllItems()

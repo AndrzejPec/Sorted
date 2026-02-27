@@ -13,6 +13,7 @@ Sorted.DeprecatedCategories = {
         ["VehicleMaintenance"] = "Mechanics",
         ["First Aid"] = "FirstAid",
         ["Cartography"] = "LitCartography",
+        ["Ammunition"] = "Ammo",
     },
     ORPHANED = {
         ["Frog"] = true,
@@ -540,30 +541,18 @@ function Sorted.applyMappingAndRefresh()
     Sorted.applyAllCategories()
     Sorted:log("[Sorted] Category mappings applied to script items", 2)
 
-    if Sorted.Tracker then
-        if Sorted.Tracker.clearAllCache then
-            Sorted.Tracker.clearAllCache()
-        end
+    if Sorted.Tracker and Sorted.Tracker.clearAllCache then
+        Sorted.Tracker.clearAllCache()
     end
 
     if Sorted.collectDisplayCategories then
         Sorted.collectDisplayCategories()
     end
 
-    triggerEvent("OnRefreshInventoryWindowContainers")
-    Sorted:log("[Sorted] Inventory refresh event fired", 3)
-
-    for playerNum = 0, getNumActivePlayers() - 1 do
-        local invPage = getPlayerInventory(playerNum)
-        if invPage and invPage.inventory and invPage.inventory.refreshView then
-            invPage.inventory:refreshView()
-            Sorted:log("[Sorted] Player " .. playerNum .. " inventory view refreshed", 3)
-        end
-        local lootPage = getPlayerLoot(playerNum)
-        if lootPage and lootPage.inventory and lootPage.inventory.refreshView then
-            lootPage.inventory:refreshView()
-            Sorted:log("[Sorted] Player " .. playerNum .. " loot inventory view refreshed", 3)
-        end
+    if Sorted.syncAllOpenItems then
+        Sorted.syncAllOpenItems()
+    else
+        Sorted:log("[Sorted] WARNING: syncAllOpenItems not available, inventory may need manual refresh", 1)
     end
 end
 
