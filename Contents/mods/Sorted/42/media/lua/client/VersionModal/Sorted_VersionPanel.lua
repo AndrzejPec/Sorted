@@ -17,7 +17,7 @@ local function loadChangelogLines()
 
     local reader = nil
     if getModFileReader then
-        reader = getModFileReader("\\Sorted.", "media/lua/client/VersionModal/content.txt", false)
+        reader = getModFileReader("\\Sorted.", "content.txt", false)
     end
     if not reader and Sorted and Sorted.log then
         Sorted:log("Version modal: content.txt not found, using defaults.")

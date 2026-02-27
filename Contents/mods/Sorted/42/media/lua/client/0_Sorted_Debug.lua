@@ -1,7 +1,7 @@
 Sorted = Sorted or {}
 
 Sorted.debug = {
-    enabled = false,
+    enabled = true, -- logs disabled by default
     minLevel = 1, -- 1=ERROR, 2=WARN, 3=INFO
 }
 
@@ -78,8 +78,6 @@ end
 
 Events.OnGameStart.Add(doDebug)
 
-
-
 Sorted.throttle = { queue = {}, active = false }
 
 --- @param lines table|nil
@@ -114,3 +112,10 @@ local function onEveryOneMinuteThrottleTick()
 end
 
 Events.EveryOneMinute.Add(onEveryOneMinuteThrottleTick)
+
+if Sorted and Sorted.log then
+    Sorted:log("[0_Sorted_Debug] Module loaded - Logging is enabled: " .. tostring(Sorted.debug.enabled), 1)
+else
+    print("[0_Sorted_Debug] ERROR: Sorted.log is not available!")
+end
+

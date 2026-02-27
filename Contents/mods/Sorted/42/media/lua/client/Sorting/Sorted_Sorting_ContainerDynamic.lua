@@ -25,7 +25,7 @@ function Sorted.container.isContainer(item)
         return false
     end
 
-    -- Exclude keys - they're containers but shouldn't be dynamically categorized
+    -- Exclude keys - they're containers but shouldn't be dynamically categorized (?? are they? TODO: check if they should be)
     if item:isItemType(ItemType.KEY) then
         return false
     end
@@ -58,8 +58,20 @@ function Sorted.container.analyzeContents(containerItem)
 
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        if item and item.getDisplayCategory then
-            local category = item:getDisplayCategory() or "Uncategorized"
+        if item then
+            local category = nil
+
+            -- Use ItemDictionary for hierarchical category resolution
+            local fullType = item.getFullType and item:getFullType()
+            if fullType then
+                category = Sorted.getEffectiveCategoryForItem(item)
+            end
+
+            if not category and item.getDisplayCategory then
+                category = item:getDisplayCategory()
+            end
+
+            category = category or "_Sorted.Uncategorize"
 
             -- BULLETPROOF FIX: Ignore nested containers to avoid recursive/nonsensical naming
             -- We don't care that there's a bag inside a bag - we care what's IN the bags!
@@ -182,9 +194,26 @@ end
 ---Apply dynamic categorization to a container
 ---@param container InventoryItem
 function Sorted.container:applyDynamicCategory(container)
+    local fullType = container.getFullType and container:getFullType()
+    
+    if fullType and Sorted.ItemDictionary[fullType] then
+        local entry = Sorted.ItemDictionary[fullType]
+        if entry.user and entry.user ~= "" then
+            return
+        end
+    end
     local category = self:getDynamicCategory(container)
 
     if category then
+        if Sorted and Sorted.setItemAlgorithmCategory then
+            Sorted.setItemAlgorithmCategory(container, category)
+        elseif container.getModData then
+            local modData = container:getModData()
+            if modData then
+                modData.SortedAlgorithmCategory = category
+            end
+        end
+
         -- Directly set the display category on the item instance
         if container.setDisplayCategory then
             container:setDisplayCategory(category)
@@ -194,26 +223,11 @@ end
 
 ---Update all containers in player inventory with dynamic categories
 function Sorted.container:updateAllPlayerContainers()
-    for playerNum = 0, getNumActivePlayers() - 1 do
-        local player = getPlayer(playerNum)
-        if player then
-            local inventory = player:getInventory()
-            if inventory then
-                local items = inventory:getItems()
-                local updatedCount = 0
-
-                for i = 0, items:size() - 1 do
-                    local item = items:get(i)
-                    if item then
-                        if self.isContainer(item) then
-                            self:applyDynamicCategory(item)
-                            updatedCount = updatedCount + 1
-                        end
-                    end
-                end
-            end
+    Sorted.forEachPlayerItem(function(item)
+        if item and self.isContainer(item) then
+            self:applyDynamicCategory(item)
         end
-    end
+    end)
 end
 
 -- OVERKILL MODE: Update on every tick

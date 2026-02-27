@@ -5,11 +5,15 @@ Sorted.ItemDictionary = {}
 Sorted.DICTIONARY_FILE = "Sorted_ItemDictionary.ini"
 Sorted.USER_BACKUP_PREFIX = "Sorted_UserAssignments_BACKUP_"
 
+Sorted.CategoryMappings = {}
+Sorted.MAPPINGS_FILE = "Sorted_CategoryMappings.ini"
+
 Sorted.DeprecatedCategories = {
     RENAMED = {
         ["VehicleMaintenance"] = "Mechanics",
         ["First Aid"] = "FirstAid",
         ["Cartography"] = "LitCartography",
+        ["Ammunition"] = "Ammo",
     },
     ORPHANED = {
         ["Frog"] = true,
@@ -42,6 +46,84 @@ end
 local function isOrphaned(category)
     return Sorted.DeprecatedCategories.ORPHANED[category] == true
 end
+
+function Sorted.resolveMapping(category)
+    if not category or category == "" then
+        return category
+    end
+    local mapped = Sorted.CategoryMappings[category]
+    if mapped and mapped ~= "" then
+        Sorted:log("[Sorted] CategoryMapping resolved: " .. category .. " -> " .. mapped, 2)
+        return mapped
+    end
+    return category
+end
+
+function Sorted.setCategoryMapping(sourceCategory, targetCategory)
+    if not sourceCategory or sourceCategory == "" then
+        Sorted:log("[Sorted] setCategoryMapping: empty source category, ignoring", 2)
+        return false
+    end
+    if targetCategory and targetCategory ~= "" then
+        Sorted.CategoryMappings[sourceCategory] = targetCategory
+        Sorted:log("[Sorted] Category mapped: " .. sourceCategory .. " -> " .. targetCategory, 2)
+    else
+        Sorted.CategoryMappings[sourceCategory] = nil
+        Sorted:log("[Sorted] Category mapping removed for: " .. sourceCategory, 2)
+    end
+    return true
+end
+
+function Sorted.saveMappings()
+    local writer = getFileWriter(Sorted.MAPPINGS_FILE, true, false)
+    if not writer then
+        Sorted:log("[Sorted] ERROR: Could not open mappings file for writing", 1)
+        return false
+    end
+
+    writer:write("# Sorted Category Mappings (user-defined renames)\n")
+    writer:write("# Format: sourceCategory=targetCategory\n")
+    writer:write("# Generated: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
+
+    local count = 0
+    for source, target in pairs(Sorted.CategoryMappings) do
+        writer:write(source .. "=" .. target .. "\n")
+        count = count + 1
+    end
+
+    writer:close()
+    Sorted:log("[Sorted] Saved " .. count .. " category mappings", 2)
+    return true
+end
+
+function Sorted.loadMappings()
+    Sorted.CategoryMappings = {}
+
+    local reader = getFileReader(Sorted.MAPPINGS_FILE, false)
+    if not reader then
+        Sorted:log("[Sorted] No category mappings file found, starting fresh", 3)
+        return false
+    end
+
+    local count = 0
+    while true do
+        local line = reader:readLine()
+        if not line then break end
+
+        if not line:match("^#") and line ~= "" then
+            local source, target = line:match("^(.-)=(.+)$")
+            if source and target and source ~= "" and target ~= "" then
+                Sorted.CategoryMappings[source] = target
+                count = count + 1
+            end
+        end
+    end
+
+    reader:close()
+    Sorted:log("[Sorted] Loaded " .. count .. " category mappings", 2)
+    return true
+end
+
 
 function Sorted.buildItemDictionary()
     Sorted:log("[Sorted] Building Item Dictionary...", 2)
@@ -82,23 +164,88 @@ function Sorted.getEffectiveCategory(fullType)
         return nil
     end
 
+    local resolved
+
     if entry.user and entry.user ~= "" then
-        return entry.user
+        resolved = entry.user
+    elseif entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
+        resolved = entry.algorithm
+    elseif entry.mapped and entry.mapped ~= "" then
+        resolved = entry.mapped
+    elseif entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
+        resolved = entry.original
+    else
+        resolved = "_Sorted.Uncategorized"
     end
 
-    if entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
-        return entry.algorithm
+    return Sorted.resolveMapping(resolved)
+end
+
+function Sorted.getItemAlgorithmCategory(item)
+    if not item or not item.getModData then
+        return nil
     end
 
-    if entry.mapped and entry.mapped ~= "" then
-        return entry.mapped
+    local modData = item:getModData()
+    if not modData then
+        return nil
     end
 
-    if entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
-        return entry.original
+    return modData.SortedAlgorithmCategory
+end
+
+function Sorted.setItemAlgorithmCategory(item, category)
+    if not item or not item.getModData then
+        return
     end
 
-    return "_Sorted.Uncategorized"
+    local modData = item:getModData()
+    if not modData then
+        return
+    end
+
+    if category and category ~= "" then
+        modData.SortedAlgorithmCategory = category
+    else
+        modData.SortedAlgorithmCategory = nil
+    end
+end
+
+function Sorted.getEffectiveCategoryForItem(item)
+    if not item or not item.getFullType then
+        return nil
+    end
+
+    local fullType = item:getFullType()
+    if not fullType then
+        return nil
+    end
+
+    local entry = Sorted.ItemDictionary[fullType]
+    if not entry then
+        return nil
+    end
+
+    local resolved
+
+    if entry.user and entry.user ~= "" then
+        resolved = entry.user
+    else
+        local instanceAlgorithm = Sorted.getItemAlgorithmCategory and Sorted.getItemAlgorithmCategory(item)
+        if instanceAlgorithm and instanceAlgorithm ~= "" and not isDeprecated(instanceAlgorithm) then
+            resolved = instanceAlgorithm
+        elseif entry.algorithm and entry.algorithm ~= "" and not isDeprecated(entry.algorithm) then
+            resolved = entry.algorithm
+        elseif entry.mapped and entry.mapped ~= "" then
+            resolved = entry.mapped
+        elseif entry.original and entry.original ~= "" and not isDeprecated(entry.original) then
+            resolved = entry.original
+        else
+            resolved = "_Sorted.Uncategorized"
+        end
+    end
+
+    return Sorted.resolveMapping(resolved)
 end
 
 function Sorted.setAlgorithmCategory(fullType, category)
@@ -334,6 +481,8 @@ end
 function Sorted.initializeDictionary()
     Sorted:log("[Sorted] === Initializing Item Dictionary System ===", 2)
 
+    Sorted.loadMappings()
+
     local loaded = Sorted.loadDictionary()
 
     if loaded then
@@ -359,11 +508,55 @@ function Sorted.initializeDictionary()
     return {}
 end
 
+function Sorted.forEachPlayerItem(callback)
+    for playerNum = 0, getNumActivePlayers() - 1 do
+        local player = getSpecificPlayer(playerNum)
+        if player then
+            local inv = player:getInventory()
+            if inv then
+                local items = inv:getItems()
+                for i = 0, items:size() - 1 do
+                    callback(items:get(i))
+                end
+            end
+            local loot = getPlayerLoot(playerNum)
+            if loot and loot.inventory then
+                local items = loot.inventory:getItems()
+                for i = 0, items:size() - 1 do
+                    callback(items:get(i))
+                end
+            end
+        end
+    end
+end
+
+function Sorted.applyMappingAndRefresh()
+    Sorted:log("[Sorted] Applying category mappings and refreshing all items...", 2)
+    Sorted.saveMappings()
+    if not Sorted.applyAllCategories then
+        Sorted:log("[Sorted] WARNING: applyAllCategories not available yet", 1)
+        return
+    end
+
+    Sorted.applyAllCategories()
+    Sorted:log("[Sorted] Category mappings applied to script items", 2)
+
+    if Sorted.Tracker and Sorted.Tracker.clearAllCache then
+        Sorted.Tracker.clearAllCache()
+    end
+
+    if Sorted.collectDisplayCategories then
+        Sorted.collectDisplayCategories()
+    end
+
+    if Sorted.syncAllOpenItems then
+        Sorted.syncAllOpenItems()
+    else
+        Sorted:log("[Sorted] WARNING: syncAllOpenItems not available, inventory may need manual refresh", 1)
+    end
+end
+
 if Sorted.log then
     Sorted:log("[Sorted] ItemDictionary module loaded", 3)
-else
-    print("[Sorted is having a break so I am just printing] ItemDictionary module loaded")
-    print("The fuck he gone...")
-    print("Damn I hate this job!")
-    print("Rurku... To dobrze że mnie słuchasz...")
 end
+

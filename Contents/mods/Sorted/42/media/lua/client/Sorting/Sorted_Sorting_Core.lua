@@ -1,8 +1,8 @@
+require("0_Sorted_Debug")
 require("Sorting/Sorted_Sorting_ItemTweaker_CC")
 require("Sorting/Sorting_New")
 require("Sorting/Sorted_Sorting_FluidDynamicPatch")
-require("_LoL_debug")
--- require("Sorting/Sorted_InventoryCategory_DoubleClick")  -- File doesn't exist
+require("Sorting/Sorted_ItemDictionary")
 require("Sorted_ModOptions")
 require("Sorted_Input")
 require("Sorting/Sorted_Sorting_ContainerDynamic")
@@ -34,6 +34,7 @@ local function isPerishable(item)
 end
 
 local cannedFoodCache = {}
+local cannedMarkerCache = {}
 
 local function getScriptItemBooleanField(item, fieldName)
   if not item or not item.getFullName then
@@ -71,7 +72,7 @@ local function getScriptItemBooleanField(item, fieldName)
   return false
 end
 
-function LoL:getAllItemsPredicate(predicate)
+function Sorted:getAllItemsPredicate(predicate)
   local result = {}
   local count = 0
   local items = getScriptManager():getAllItems()
@@ -88,6 +89,72 @@ function LoL:getAllItemsPredicate(predicate)
   end
   print("Found " .. #result .. " items out of all " .. count .. " items in game")
   return result
+end
+
+local function hasCannedMarkers(item)
+  if not item or not item.getFullName then
+    return false
+  end
+
+  local fullType = item:getFullName()
+  if not fullType then
+    return false
+  end
+
+  local cached = cannedMarkerCache[fullType]
+  if cached ~= nil then
+    return cached
+  end
+
+  local function normalize(value)
+    if value == nil then
+      return ""
+    end
+    return string.lower(tostring(value))
+  end
+
+  local function containsMarker(value)
+    if value == "" then
+      return false
+    end
+
+    if value:find("opencannedfood", 1, true) then return true end
+    if value:find("tincanempty", 1, true) then return true end
+    if value:find("canopener", 1, true) then return true end
+    if value:find("canned", 1, true) then return true end
+    if value:find("canof", 1, true) then return true end
+    if value:find("canclosed", 1, true) then return true end
+    if value:find("canopen", 1, true) then return true end
+    if value:find("tinned", 1, true) then return true end
+    if value:find("tinof", 1, true) then return true end
+    if value:find("tincan", 1, true) then return true end
+    if value:sub(1, 3) == "tin" then return true end
+    if value:find("_tin", 1, true) or value:find("-tin", 1, true) or value:find(" tin", 1, true) then
+      return true
+    end
+
+    return false
+  end
+
+  local fields = {
+    normalize(fullType),
+    normalize(item.getIcon and item:getIcon()),
+    normalize(item.getStaticModel and item:getStaticModel()),
+    normalize(item.getWorldStaticModel and item:getWorldStaticModel()),
+    normalize(item.getTooltip and item:getTooltip()),
+    normalize(item.getOpeningRecipe and item:getOpeningRecipe()),
+    normalize(item.getReplaceOnUse and item:getReplaceOnUse()),
+  }
+
+  for _, value in ipairs(fields) do
+    if containsMarker(value) then
+      cannedMarkerCache[fullType] = true
+      return true
+    end
+  end
+
+  cannedMarkerCache[fullType] = false
+  return false
 end
 
 local function isCannedFood(item)
@@ -117,11 +184,15 @@ local function isCannedFood(item)
     return true
   end
 
+  if hasCannedMarkers(item) then
+    return true
+  end
+
   return getScriptItemBooleanField(item, "cannedFood") == true
 end
 
 function Sorted:getAllCans()
-  return LoL:getAllItemsPredicate(function(item)
+  return self:getAllItemsPredicate(function(item)
     return isCannedFood(item) and not isPerishable(item)
   end)
 end
@@ -172,7 +243,6 @@ end
 local function getDishCategory(item)
   if not item then return nil end
 
-
   local eatType = item and item.getEatType and item:getEatType()
   if item and item.getItemType and item:getItemType() == ItemType.FOOD then
     local cookwareTypes = {"Pot", "Plate", "2handbowl", "Saucepan"}
@@ -222,8 +292,6 @@ local function getFoodCategory(item)
   if boxType then
     return boxType
   end
-
-
 
   if isCannedFood(item) then
     if isPerishable(item) then
@@ -617,7 +685,7 @@ end
 
 local function getAmmo(item)
   if item:hasTag(ItemTag.AMMO_CASE) then
-    return "Ammunition"
+    return "Ammo"
   end
 end
 
@@ -947,13 +1015,13 @@ local function getClothingCategory(item, useDetailed)
     local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
     if bloodLoc and bloodLoc ~= "" then
       bodyLoc = bloodLoc
-      logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
+      -- logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
     else
-      logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
+      -- logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
       return "ClothMisc"
     end
   else
-    logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
+    -- logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
   end
 
   local bodyLocStr = tostring(bodyLoc)
@@ -962,16 +1030,16 @@ local function getClothingCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
 
   local mapping = BODYLOCATION_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
-    Sorted:log("Mapped to: " .. category, 3)
+    Sorted:log("Mapped to: " .. category, 0)
     return category
   end
 
-  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
   return "ClothMisc"
 end
 
@@ -1018,18 +1086,18 @@ local function getProtectiveGearCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
 
   local mapping = PROTECTIVE_GEAR_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
     if category and type(category) == "string" then
-      Sorted:log("PGear mapped to: " .. category, 3)
+      Sorted:log("PGear mapped to: " .. category, 0)
       return category
     end
   end
 
-  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
   return "ProtGearMisc"
 end
 
@@ -1094,6 +1162,29 @@ local function orphanTheUnfit()
   end
 end
 
+local function getCraftTailoringCategory(item)
+  if item:hasTag(ItemTag.SEWING_NEEDLE)
+  or item:hasTag(ItemTag.KNITTING_NEEDLES)
+  or item:hasTag(ItemTag.THREAD)
+  or item:hasTag(ItemTag.HEAVY_THREAD) then
+    return "CraftTailoring"
+  end
+end
+
+local function getCraftMasonryCategory(item)
+  if item:hasTag(ItemTag.PLASTER_TROWEL)
+  or item:hasTag(ItemTag.CONCRETE)
+  or item:hasTag(ItemTag.MORTAR_PESTLE) then
+    return "CraftMasonry"
+  end
+end
+
+local function getCraftKnappingCategory(item)
+  if item:hasTag(ItemTag.FLINT_PIECE)
+  or item:hasTag(ItemTag.KNAPPING_TOOL) then
+    return "CraftKnapping"
+  end
+end
 
 local CATEGORY_DETECTORS_DETAILED = {
   getLightSourceCategory,
@@ -1118,6 +1209,9 @@ local CATEGORY_DETECTORS_DETAILED = {
   getKeyCategory,
   getMementoClothingCategoryDetailed,
   getClothingCategoryDetailed,
+  getCraftTailoringCategory,
+  getCraftMasonryCategory,
+  getCraftKnappingCategory,
   getAmmo,
   getFirearmContainers,
   getContainerCategory,
@@ -1142,6 +1236,9 @@ local CATEGORY_DETECTORS_SIMPLE = {
   getThrowableWeaponCategory,
   getPlushieCategory,
   getKeyCategory,
+  getCraftTailoringCategory,
+  getCraftMasonryCategory,
+  getCraftKnappingCategory,
   getContainerCategory,
   getMementoClothingCategorySimple,
   getClothingCategorySimple,
@@ -1172,10 +1269,6 @@ end
 
 -- Sorted.categories
 
-local function remapCategories()
-  
-end
-
 function Sorted.CategorizeAllItems()
   Sorted:log("[CategorizeAllItems] START", 1)
   local items = getAllItems()
@@ -1203,8 +1296,6 @@ function Sorted.CategorizeAllItems()
     else
       skippedCount = skippedCount + 1
     end
-
-    remapCategories()
   end
 
   Sorted:log("[CategorizeAllItems] DONE: " .. categorizedCount .. " categorized, " .. skippedCount .. " skipped (manual)", 1)
@@ -1255,9 +1346,50 @@ function Sorted.OnGameBoot()
   orphanTheUnfit()
   Sorted:log("[OnGameBoot] orphanTheUnfit DONE", 1)
 
-  if #unknownItems > 0 then
-    Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
-  end
+  -- TODO: this was supposed to be showing a panel with items that couldn't be categorised, but I think that the panel cannot be shown in the main menu (where the onGameBoot is loaded)
+  -- if #unknownItems > 0 then
+  --   Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
+  --   local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
+  --   local pendingCount = #unknownItems
+  --   local tickCount = 0
+  --   local function onTickNotify()
+  --     tickCount = tickCount + 1
+  --     if tickCount >= 120 then
+  --       Events.OnTick.Remove(onTickNotify)
+  --       if ISLabel and ISButton and ISPanel then
+  --         local sw = getCore():getScreenWidth()
+  --         local sh = getCore():getScreenHeight()
+  --         local w, h = 360, 70
+  --         local panel = ISPanel:new(sw - w - 20, sh - h - 60, w, h)
+  --         panel.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+  --         panel.backgroundColor = {r=0.15, g=0.12, b=0.05, a=0.92}
+  --         panel:initialise()
+  --         panel:addToUIManager()
+
+  --         local msg = pendingCount .. " item(s) could not be auto-categorized."
+  --         local lbl = ISLabel:new(8, 8, FONT_HGT_SMALL, msg, 1, 0.85, 0.5, 1, UIFont.Small, true)
+  --         panel:addChild(lbl)
+
+  --         local btnW = 140
+  --         local btn = ISButton:new(w - btnW - 8, 8, btnW, FONT_HGT_SMALL + 8, "Open Category Manager", panel, function()
+  --           panel:setVisible(false)
+  --           panel:removeFromUIManager()
+  --           if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
+  --             Sorted.ManagerMC.toggle()
+  --           end
+  --         end)
+  --         btn.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+  --         btn.backgroundColor = {r=0.3, g=0.2, b=0.05, a=0.8}
+  --         btn.backgroundColorMouseOver = {r=0.5, g=0.35, b=0.1, a=0.9}
+  --         btn:initialise()
+  --         panel:addChild(btn)
+
+  --         Sorted:log("[Sorted] Uncategorized items notification shown: " .. pendingCount .. " items", 2)
+  --       end
+  --     end
+  --   end
+  --   Events.OnTick.Add(onTickNotify)
+  -- end
 
   Sorted:log("--- Sorted End (redux) ---", 1)
 
@@ -1290,9 +1422,6 @@ Sorted._reduxLoaded = true
 local overrides = {
   Hat_HazmatSuit = "Breathing",
 }
-
-require("Sorting/Sorted_Sorting_FluidDynamicPatch")
-require("Sorting/Sorted_ItemDictionary")
 
 function Sorted.testIsCannedFood()
   local player = getPlayer()

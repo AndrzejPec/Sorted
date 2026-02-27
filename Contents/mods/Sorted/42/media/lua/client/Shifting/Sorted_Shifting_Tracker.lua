@@ -5,55 +5,35 @@ Sorted.Tracker = Sorted.Tracker or {}
 
 Sorted.Tracker.Config = {
     enabled = true,
-    debug = true,
+    debug = false,
     radius = 10,
     updateInterval = 1,
     syncVehicles = true,
     syncWorldItems = true,
 }
 
+-- Helper: Ensure fluid items have their dynamic category set on instance modData
+-- This must be called BEFORE getEffectiveCategoryForItem to ensure consistent behavior
+-- regardless of where the item is (world container vs player inventory)
+local function ensureFluidCategoryApplied(item)
+  if not item then return end
+  if Sorted.ApplyFluidCategory and item.getFluidContainerFromSelfOrWorldItem then
+    local fluidContainer = item:getFluidContainerFromSelfOrWorldItem()
+    if fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() > 0 then
+      Sorted.ApplyFluidCategory(item)
+    end
+  end
+end
+
 Sorted.Tracker._categoryCache = nil
 Sorted.Tracker._categoryCacheTime = 0
 
-local CACHE_LIFETIME = 300 * 1000
-local THROTTLE_MS = 0
-local lastApplyTime = 0
-
-local function tableSize(t)
-    if not t then return 0 end
-    local count = 0
-    for _ in pairs(t) do count = count + 1 end
-    return count
-end
-
 function Sorted.Tracker.getSavedCategories()
-    local now = getTimestampMs()
-    if Sorted.Tracker._categoryCache and (now - Sorted.Tracker._categoryCacheTime) < CACHE_LIFETIME then
-        return Sorted.Tracker._categoryCache
-    end
-
-    local categories = {}
-    local reader = getFileReader("Sorted_CategoryAssignments.ini", false)
-    if reader then
-        while true do
-            local line = reader:readLine()
-            if not line then break end
-            local fullType, category = line:match("^(.-)=(.+)$")
-            if fullType and category then
-                categories[fullType] = category
-            end
-        end
-        reader:close()
-    end
-
-    Sorted.Tracker._categoryCache = categories
-    Sorted.Tracker._categoryCacheTime = now
-
-    if Sorted and Sorted.log then
-        Sorted:log("Loaded " .. tableSize(categories) .. " category assignments from INI", 3)
-    end
-
-    return categories
+  -- DEPRECATED: Tracker now uses ItemDictionary.getEffectiveCategory() per-item
+  -- This function remains for backward compatibility but returns empty table
+  -- Individual items are now categorized using the hierarchical system:
+  -- user > algorithm > mapped > original
+  return {}
 end
 
 function Sorted.Tracker.invalidateCategoryCache()
@@ -68,83 +48,332 @@ function Sorted.Tracker.clearAllCache()
     Sorted.Tracker.invalidateCategoryCache()
 end
 
-local originalWriteCategoryToIni = Sorted.writeCategoryToIni
-if originalWriteCategoryToIni then
-    Sorted.writeCategoryToIni = function(fullType, category)
-        originalWriteCategoryToIni(fullType, category)
-        Sorted.Tracker.invalidateCategoryCache()
-
-        if Sorted.setUserCategory then
-            Sorted.setUserCategory(fullType, category)
-        end
-    end
-end
-
-local function applyToInventory(inventory, categories)
-  if not inventory then
+function Sorted.Tracker.applyShiftingCategoriesToInventories()
+  if not Sorted.Tracker.Config.enabled then
     return
   end
 
-  local items = inventory:getItems()
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
+  local totalApplied = 0
+  Sorted.forEachPlayerItem(function(item)
     local fullType = item and item.getFullType and item:getFullType()
-    local savedCategory = categories[fullType]
+    if fullType then
+      -- Ensure fluid containers have their dynamic category applied to modData first
+      ensureFluidCategoryApplied(item)
 
-    if savedCategory then
-      local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
-      if currentCategory ~= savedCategory then
-        if item and item.setDisplayCategory then
-          item:setDisplayCategory(savedCategory)
+      -- Use ItemDictionary hierarchy: user > algorithm > mapped > original
+      local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
+
+      if effectiveCategory then
+        local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+        if currentCategory ~= effectiveCategory then
+          if item and item.setDisplayCategory then
+            item:setDisplayCategory(effectiveCategory)
+            totalApplied = totalApplied + 1
+          end
+        end
+      end
+    end
+  end)
+  return totalApplied
+end
+
+-- ========================================
+-- WORLD SCAN: Apply categories to ALL items in loaded world
+-- ========================================
+
+function Sorted.Tracker.applyCategoriesToWorldContainers()
+  -- Check if tracker is enabled
+  if not Sorted.Tracker.Config.enabled then
+    if Sorted and Sorted.log then
+      Sorted:log("[Tracker] World scan skipped - tracker disabled", 3)
+    end
+    return 0
+  end
+
+  local totalContainers = 0
+  local totalItems = 0
+  local totalApplied = 0
+
+  if Sorted and Sorted.log then
+    Sorted:log("[Tracker] Starting world scan for loaded containers...", 2)
+  end
+
+  -- Scan all loaded squares in the world
+  for playerNum = 0, getNumActivePlayers() - 1 do
+    local player = getPlayer(playerNum)
+    if player then
+      local playerX = player:getX()
+      local playerY = player:getY()
+      local playerZ = player:getZ()
+
+      -- Scan radius around player (configurable)
+      local scanRadius = Sorted.Tracker.Config.radius or 10
+
+      for x = playerX - scanRadius, playerX + scanRadius do
+        for y = playerY - scanRadius, playerY + scanRadius do
+          local square = getCell():getGridSquare(x, y, playerZ)
+          if square then
+            -- Get all objects on this square
+            local objects = square:getObjects()
+            if objects then
+              for i = 0, objects:size() - 1 do
+                local obj = objects:get(i)
+                if obj then
+                  -- Check if object has a container (furniture, etc)
+                  local container = obj:getContainer()
+                  if container then
+                    totalContainers = totalContainers + 1
+                    local items = container:getItems()
+                    if items then
+                      for j = 0, items:size() - 1 do
+                        local item = items:get(j)
+
+                        local fullType = item and item.getFullType and item:getFullType()
+
+                        if fullType then
+                          totalItems = totalItems + 1
+
+                          -- Ensure fluid containers have their dynamic category applied to modData first
+                          ensureFluidCategoryApplied(item)
+
+                          local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
+
+                          if effectiveCategory then
+                            local currentCategory = item and item.getDisplayCategory and item:getDisplayCategory()
+                            if currentCategory ~= effectiveCategory then
+                              if item and item.setDisplayCategory then
+                                item:setDisplayCategory(effectiveCategory)
+                                totalApplied = totalApplied + 1
+                              end
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
         end
       end
     end
   end
-end
 
-function Sorted.Tracker.applyShiftingCategoriesToInventories()
-  local categories = Sorted.Tracker.getSavedCategories()
-  if not categories or tableSize(categories) == 0 then
-    return
+  if Sorted and Sorted.log then
+    Sorted:log(string.format("[Tracker] World scan complete: %d containers, %d items checked, %d categories applied",
+      totalContainers, totalItems, totalApplied), 2)
   end
 
+  return totalApplied
+end
+
+-- Sync specific item type across entire world
+function Sorted.Tracker.syncItemTypeInWorld(fullType)
+  if not fullType then
+    return 0
+  end
+
+  local effectiveCategory = Sorted.getEffectiveCategory(fullType)
+  if not effectiveCategory then
+    if Sorted and Sorted.log then
+      Sorted:log("[Tracker] No effective category found for " .. fullType, 3)
+    end
+    return 0
+  end
+
+  local syncedCount = 0
+
+  if Sorted and Sorted.log then
+    Sorted:log("[Tracker] Syncing " .. fullType .. " -> " .. effectiveCategory .. " across world...", 2)
+  end
+
+  -- Sync player inventories
   for playerNum = 0, getNumActivePlayers() - 1 do
     local player = getPlayer(playerNum)
     if player then
-      applyToInventory(player:getInventory(), categories)
-    end
+      -- Player inventory
+      local playerInv = player:getInventory()
+      if playerInv then
+        local items = playerInv:getItems()
+        for i = 0, items:size() - 1 do
+          local item = items:get(i)
+          if item and item.getFullType and item:getFullType() == fullType then
+            if item.setDisplayCategory then
+              item:setDisplayCategory(effectiveCategory)
+              syncedCount = syncedCount + 1
+            end
+          end
+        end
+      end
 
-    local playerLoot = getPlayerLoot(playerNum)
-    if playerLoot and playerLoot.inventory then
-      applyToInventory(playerLoot.inventory, categories)
+      -- Loot windows
+      local playerLoot = getPlayerLoot(playerNum)
+      if playerLoot and playerLoot.inventory then
+        local items = playerLoot.inventory:getItems()
+        for i = 0, items:size() - 1 do
+          local item = items:get(i)
+          if item and item.getFullType and item:getFullType() == fullType then
+            if item.setDisplayCategory then
+              item:setDisplayCategory(effectiveCategory)
+              syncedCount = syncedCount + 1
+            end
+          end
+        end
+      end
+
+      -- World containers around player
+      local playerX = player:getX()
+      local playerY = player:getY()
+      local playerZ = player:getZ()
+      local scanRadius = Sorted.Tracker.Config.radius or 10
+
+      for x = playerX - scanRadius, playerX + scanRadius do
+        for y = playerY - scanRadius, playerY + scanRadius do
+          local square = getCell():getGridSquare(x, y, playerZ)
+          if square then
+            local objects = square:getObjects()
+            if objects then
+              for i = 0, objects:size() - 1 do
+                local obj = objects:get(i)
+                if obj then
+                  local container = obj:getContainer()
+                  if container then
+                    local items = container:getItems()
+                    if items then
+                      for j = 0, items:size() - 1 do
+                        local item = items:get(j)
+                        if item and item.getFullType and item:getFullType() == fullType then
+                          if item.setDisplayCategory then
+                            item:setDisplayCategory(effectiveCategory)
+                            syncedCount = syncedCount + 1
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
     end
   end
-end
 
-if Events and Events.OnRefreshInventoryWindowContainers then
-  Events.OnRefreshInventoryWindowContainers.Add(Sorted.Tracker.applyShiftingCategoriesToInventories)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
+    Sorted:log("[Tracker] Synced " .. syncedCount .. " instances of " .. fullType, 2)
   end
+
+  return syncedCount
 end
 
-local function applyWithThrottle()
-  local now = getTimestampMs()
-  if (now - lastApplyTime) < THROTTLE_MS then
+-- ========================================
+-- OnFillContainer: Apply categories upon creating container
+-- ========================================
+
+local function applyShiftingCategoriesToContainer(roomType, containerType, container)
+  if not container then
     return
   end
-  lastApplyTime = now
+
+  if not Sorted.Tracker.Config.enabled then
+    return
+  end
+
+  -- OnFillContainer sometimes passes ItemContainer object, sometimes ArrayList directly
+  local items
+  if container.getItems then
+    items = container:getItems()  -- ItemContainer object
+  elseif container.size then
+    items = container  -- ArrayList directly
+  else
+    return
+  end
+
+  if not items then
+    return
+  end
+
+  local appliedCount = 0
+
+  if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
+    Sorted:log("[DEBUG] OnFillContainer: " .. tostring(containerType) .. " has " .. tostring(items:size()) .. " items, items type: " .. tostring(items), 1)
+  end
+
+  for i = 0, items:size() - 1 do
+    local success, err = pcall(function()
+      local item = items:get(i)
+
+      if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
+        Sorted:log("[DEBUG] Item[" .. tostring(i) .. "] = " .. tostring(item) .. " (type: " .. tostring(type(item)) .. ")", 1)
+      end
+
+      local fullType = item and item.getFullType and item:getFullType()
+
+      if fullType then
+        if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
+          Sorted:log("[DEBUG]   fullType: " .. tostring(fullType), 1)
+        end
+
+        -- Ensure fluid containers have their dynamic category applied to modData first
+        ensureFluidCategoryApplied(item)
+
+        -- Use ItemDictionary hierarchy
+        local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
+
+        if Sorted and Sorted.log and Sorted.Tracker.Config.debug then
+          Sorted:log("[DEBUG]   Category: " .. tostring(effectiveCategory or "NIL"), 1)
+        end
+
+        if effectiveCategory then
+          if item and item.setDisplayCategory then
+            item:setDisplayCategory(effectiveCategory)
+            appliedCount = appliedCount + 1
+          end
+        end
+      end
+    end)
+
+    if not success and Sorted and Sorted.log then
+      Sorted:log("[ERROR] OnFillContainer item " .. tostring(i) .. " failed: " .. tostring(err), 1)
+    end
+  end
+
+  if appliedCount > 0 and Sorted and Sorted.log and Sorted.Tracker.Config.debug then
+    Sorted:log("[Tracker] OnFillContainer: Applied " .. appliedCount .. " custom categories in " .. tostring(containerType), 3)
+  end
+end
+
+if Events and Events.OnFillContainer then
+  Events.OnFillContainer.Add(applyShiftingCategoriesToContainer)
+  if Sorted and Sorted.log then
+    Sorted:log("Tracker: OnFillContainer registered - will apply custom categories at spawn time!", 2)
+  end
+end
+
+-- ========================================
+-- OnRefreshInventoryWindowContainers: Unified refresh handler
+-- Order matters: fluid sets modData -> container reads modData -> tracker reads ItemDictionary+modData
+-- ========================================
+
+local function onSortedInventoryRefresh()
+  Sorted.forEachPlayerItem(function(item)
+    if item and item.getFluidContainerFromSelfOrWorldItem then
+      local fc = item:getFluidContainerFromSelfOrWorldItem()
+      if fc and fc.getAmount and fc:getAmount() > 0 then
+        Sorted.ApplyFluidCategory(item)
+      end
+    end
+  end)
+  Sorted.container:updateAllPlayerContainers()
   Sorted.Tracker.applyShiftingCategoriesToInventories()
 end
 
-if Events and Events.OnPlayerUpdate then
-  Events.OnPlayerUpdate.Add(applyWithThrottle)
+if Events and Events.OnRefreshInventoryWindowContainers then
+  Events.OnRefreshInventoryWindowContainers.Add(onSortedInventoryRefresh)
   if Sorted and Sorted.log then
-    Sorted:log("Tracker: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
-  end
-else
-  if Sorted and Sorted.log then
-    Sorted:log("OnPlayerUpdate event not found!", 2)
+    Sorted:log("Tracker: OnRefreshInventoryWindowContainers registered - unified refresh (fluid -> container -> tracker)", 3)
   end
 end
 
@@ -174,27 +403,44 @@ function Sorted.Tracker.update()
     Sorted:log("[Sorted.Tracker] Update called (cache refreshed)", 3)
 end
 
+-- Full world scan command
+function Sorted.trackerWorldScan()
+    local applied = Sorted.Tracker.applyCategoriesToWorldContainers()
+    local invApplied = Sorted.Tracker.applyShiftingCategoriesToInventories()
+    Sorted:log("[Tracker] World scan complete: " .. (applied + invApplied) .. " categories applied", 2)
+end
+
+-- Sync specific item type
+function Sorted.trackerSyncItem(fullType)
+    if not fullType or fullType == "" then
+        Sorted:log("[Tracker] Usage: Sorted.trackerSyncItem(\"Mod.ItemName\")", 2)
+        return
+    end
+    Sorted.Tracker.syncItemTypeInWorld(fullType)
+end
+
 function Sorted.trackerStats()
     Sorted:log(table.concat({
         "=== Sorted.Tracker Stats ===",
-        "  Mode: Hybrid (INSTANT + BACKUP)",
-        "  INSTANT: OnRefreshInventoryWindowContainers (container open)",
-        "  BACKUP: OnPlayerUpdate with 1s throttle (edge cases)",
+        "  Mode: Event-driven (efficient, no polling)",
+        "  OnFillContainer: Applies categories when loot spawns",
+        "  OnRefreshInventoryWindowContainers: Applies when inventory opens",
+        "  Integration: ItemDictionary (hierarchical categories)",
+        "  Enabled: " .. tostring(Sorted.Tracker.Config.enabled),
         "  Debug: " .. tostring(Sorted.Tracker.Config.debug),
-        "  Cached categories: " .. (Sorted.Tracker._categoryCache and tableSize(Sorted.Tracker._categoryCache) or 0),
-        "  Cache lifetime: " .. (CACHE_LIFETIME / 1000) .. " seconds",
+        "  World scan radius: " .. tostring(Sorted.Tracker.Config.radius),
     }, "\n"), 3)
 end
 
 if Sorted and Sorted.log then
     Sorted:log(table.concat({
         "[Sorted.Tracker] Loaded! Commands:",
-        "  Sorted.trackerToggle()      - enable/disable tracker",
-        "  Sorted.trackerDebug()       - toggle debug mode",
-        "  Sorted.trackerRadius(n)     - set radius (default 10)",
-        "  Sorted.trackerForceUpdate() - force immediate update",
-        "  Sorted.trackerStats()       - show cache stats",
+        "  Sorted.trackerToggle()           - enable/disable tracker",
+        "  Sorted.trackerDebug()            - toggle debug mode",
+        "  Sorted.trackerRadius(n)          - set world scan radius (default 10)",
+        "  Sorted.trackerForceUpdate()      - force immediate update",
+        "  Sorted.trackerWorldScan()        - scan ALL loaded containers and apply categories",
+        "  Sorted.trackerSyncItem(fullType) - sync specific item type across world",
+        "  Sorted.trackerStats()            - show tracker stats",
     }, "\n"), 3)
-else
-    print("[Sorted.Tracker] Loaded!")
 end

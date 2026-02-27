@@ -1,0 +1,5 @@
+[ 27 II 2026 ]
+- (chore) a lot of fixes to the codebase architecture
+- (feat) Created UI expansion in manager to enable renaming whole categories to a different name
+- (fix) fixed the reset all button
+- (feat) add Tailoring, Masonry, Knapping crafting sub-category detectors

@@ -32,7 +32,7 @@ for _, category in ipairs({
   registerDynamicCategory(category)
 end
 
-local THROTTLE_MS = 0
+local THROTTLE_MS = 1000
 local lastApplyTime = 0
 local ALCOHOL_STRENGTH_THRESHOLD = 10
 
@@ -149,7 +149,7 @@ local function getDynamicFluidCategory(fluidContainer, item)
 end
 
 function Sorted.ApplyFluidCategory(item)
-  if not item or not item.getFluidContainer or not item.setDisplayCategory then
+  if not item or not item.getFluidContainer then
     return
   end
 
@@ -158,64 +158,95 @@ function Sorted.ApplyFluidCategory(item)
     return
   end
 
-  local fullType = item and item.getFullType and item:getFullType()
-  local userCategory = nil
-  if Sorted and Sorted.getSavedCategory then
-    userCategory = Sorted.getSavedCategory(fullType)
-  end
-
   local dynamicCategory = getDynamicFluidCategory(fluidContainer, item)
+  local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
+  local instanceCategory = dynamicCategory
 
-  if dynamicCategory then
-    if item and item.setDisplayCategory then
-      item:setDisplayCategory(dynamicCategory)
+  if not instanceCategory and amount <= 0 then
+    instanceCategory = "Fluid Container"
+  end
+
+  if Sorted and Sorted.setItemAlgorithmCategory then
+    Sorted.setItemAlgorithmCategory(item, instanceCategory)
+  elseif item.getModData then
+    local modData = item:getModData()
+    if modData then
+      modData.SortedAlgorithmCategory = instanceCategory
     end
-  elseif userCategory and userCategory ~= "none" then
-    if item and item.setDisplayCategory then
-      item:setDisplayCategory(userCategory)
-    end
-  else
-    local amount = fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() or 0
-    if amount <= 0 then
-      if item and item.setDisplayCategory then
-        item:setDisplayCategory("Container")
-      end
-    end
+  end
+
+  -- DISABLED: source-of-truth refactor - instance state must not pollute global dictionary
+  -- if dynamicCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+  --   Sorted.setAlgorithmCategory(fullType, dynamicCategory)
+  -- end
+
+  -- if instanceCategory and fullType and Sorted and Sorted.setAlgorithmCategory then
+  --   if not dynamicCategory then
+  --       Sorted.setAlgorithmCategory(fullType, instanceCategory)
+  --   end
+  -- end
+
+
+  if not item.setDisplayCategory then
+    return
+  end
+
+  local effectiveCategory = Sorted.getEffectiveCategoryForItem(item)
+
+  if effectiveCategory and effectiveCategory ~= "none" then
+    item:setDisplayCategory(effectiveCategory)
+  elseif instanceCategory then
+    item:setDisplayCategory(instanceCategory)
   end
 end
 
-local function applyFluidCategoriesToAllInventories()
+local function applyFluidCategoriesToWorldItems()
+  local scanRadius = 10
+  local totalProcessed = 0
+
   for playerNum = 0, getNumActivePlayers() - 1 do
-    local player = getPlayer(playerNum)
+    local player = getSpecificPlayer(playerNum)
     if player then
-      local playerInv = player:getInventory()
-      if playerInv then
-        local items = playerInv:getItems()
-        for i = 0, items:size() - 1 do
-          local item = items:get(i)
-          Sorted.ApplyFluidCategory(item)
-        end
-      end
+      local playerX = player:getX()
+      local playerY = player:getY()
+      local playerZ = player:getZ()
 
-      local playerLoot = getPlayerLoot(playerNum)
-      if playerLoot and playerLoot.inventory then
-        local items = playerLoot.inventory:getItems()
-        for i = 0, items:size() - 1 do
-          local item = items:get(i)
-          Sorted.ApplyFluidCategory(item)
+      for x = playerX - scanRadius, playerX + scanRadius do
+        for y = playerY - scanRadius, playerY + scanRadius do
+          local square = getCell():getGridSquare(x, y, playerZ)
+          if square then
+            local worldItems = square:getWorldObjects()
+            if worldItems then
+              for i = 0, worldItems:size() - 1 do
+                local worldObj = worldItems:get(i)
+                if worldObj then
+                  local item = worldObj:getItem()
+                  if item and item.getFluidContainer then
+                    Sorted.ApplyFluidCategory(item)
+                    totalProcessed = totalProcessed + 1
+                  end
+                end
+              end
+            end
+          end
         end
       end
     end
   end
-end
 
-if Events and Events.OnRefreshInventoryWindowContainers then
-  Events.OnRefreshInventoryWindowContainers.Add(applyFluidCategoriesToAllInventories)
-  Sorted._fluidDynamicPatch = true
-  if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: INSTANT refresh registered (OnRefreshInventoryWindowContainers)", 3)
+  if totalProcessed > 0 and Sorted and Sorted.log then
+    Sorted:log("[FluidDynamic] World scan: processed " .. totalProcessed .. " fluid items on ground", 3)
   end
 end
+
+-- OnFillContainer ownership belongs to Sorted_Shifting_Tracker.lua.
+-- This module only provides Sorted.ApplyFluidCategory and world-item refresh.
+if Sorted and Sorted.log then
+  Sorted:log("FluidDynamicPatch: OnFillContainer handled by Tracker (single-owner architecture)", 3)
+end
+
+-- OnRefreshInventoryWindowContainers handled by unified handler in Sorted_Shifting_Tracker.lua
+Sorted._fluidDynamicPatch = true
 
 local function applyFluidWithThrottle()
   local now = getTimestampMs()
@@ -223,13 +254,13 @@ local function applyFluidWithThrottle()
     return
   end
   lastApplyTime = now
-  applyFluidCategoriesToAllInventories()
+  applyFluidCategoriesToWorldItems()
 end
 
 if Events and Events.OnPlayerUpdate then
   Events.OnPlayerUpdate.Add(applyFluidWithThrottle)
   if Sorted and Sorted.log then
-    Sorted:log("FluidDynamicPatch: BACKUP refresh registered (OnPlayerUpdate 1s throttle)", 3)
+    Sorted:log("FluidDynamicPatch: world-items refresh registered (OnPlayerUpdate 1s throttle)", 3)
   end
 else
   if Sorted and Sorted.log then

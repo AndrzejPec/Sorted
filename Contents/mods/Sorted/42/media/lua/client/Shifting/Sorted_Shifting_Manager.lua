@@ -312,7 +312,7 @@ function Sorted.ManagerMC:createChildren()
     local btnW = 130 * self.uiScale
     local btnGap = 6 * self.uiScale
 
-    local bottomHgt = (btnHgt * 2) + (pad * 3)
+    local bottomHgt = (btnHgt * 3) + (pad * 4)
     local listHeight = self.height - titleHeight - bottomHgt - pad
 
     self.advPanel = ISTabPanel:new(pad, titleHeight + pad, self.width - pad * 2, listHeight)
@@ -375,7 +375,51 @@ function Sorted.ManagerMC:createChildren()
     self.resetAllBtn.backgroundColorMouseOver = {r=0.15, g=0.15, b=0.5, a=0.7}
     self:addChild(self.resetAllBtn)
 
+    local row3Y = row2Y + btnHgt + pad
+
+    local renameLabel = "Rename:"
+    local renameLabelW = getTextManager():MeasureStringX(UIFont.Small, renameLabel)
+    self.renameLabel = ISLabel:new(pad, row3Y + 4, FONT_HGT_SMALL, renameLabel, 1, 0.8, 0.2, 1, UIFont.Small, true)
+    self:addChild(self.renameLabel)
+
+    local renameStartX = pad + renameLabelW + 6
+    local renameAvailW = applyX - btnGap - renameStartX
+    local arrowW = getTextManager():MeasureStringX(UIFont.Small, "  ->  ") + 8
+    local halfW = math.floor((renameAvailW - arrowW) / 2)
+
+    self.mappingSourceCombo = ISComboBox:new(renameStartX, row3Y, halfW, btnHgt)
+    self.mappingSourceCombo:initialise()
+    self.mappingSourceCombo:instantiate()
+    self.mappingSourceCombo.maxListHeight = 400
+    self.mappingSourceCombo.onChange = Sorted.ManagerMC.onMappingSourceChange
+    self.mappingSourceCombo.target = self
+    self:addChild(self.mappingSourceCombo)
+
+    local arrowX = renameStartX + halfW
+    self.mappingArrow = ISLabel:new(arrowX + 2, row3Y + 4, arrowW, "->", 1, 0.8, 0.2, 1, UIFont.Small, true)
+    self:addChild(self.mappingArrow)
+
+    local targetX = arrowX + arrowW
+    local targetW = renameAvailW - halfW - arrowW
+    self.mappingTargetInput = ISTextEntryBox:new("", targetX, row3Y, targetW, btnHgt)
+    self.mappingTargetInput:initialise()
+    self.mappingTargetInput:instantiate()
+    self:addChild(self.mappingTargetInput)
+
+    self.mapCategoryBtn = ISButton:new(applyX, row3Y, btnW, btnHgt, "Map Category", self, Sorted.ManagerMC.onApplyMapping)
+    self.mapCategoryBtn.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+    self.mapCategoryBtn.backgroundColor = {r=0.3, g=0.2, b=0.05, a=0.5}
+    self.mapCategoryBtn.backgroundColorMouseOver = {r=0.5, g=0.35, b=0.1, a=0.7}
+    self:addChild(self.mapCategoryBtn)
+
+    self.removeMappingBtn = ISButton:new(resetX, row3Y, btnW, btnHgt, "Remove Mapping", self, Sorted.ManagerMC.onRemoveMapping)
+    self.removeMappingBtn.borderColor = {r=0.8, g=0.2, b=0.2, a=1}
+    self.removeMappingBtn.backgroundColor = {r=0.3, g=0.1, b=0.1, a=0.5}
+    self.removeMappingBtn.backgroundColorMouseOver = {r=0.5, g=0.15, b=0.15, a=0.7}
+    self:addChild(self.removeMappingBtn)
+
     self:populateCategoryCombo()
+    self:populateMappingSourceCombo()
 end
 
 function Sorted.ManagerMC:buildLists()
@@ -491,6 +535,114 @@ function Sorted.ManagerMC:populateCategoryCombo()
     end
 end
 
+function Sorted.ManagerMC:populateMappingSourceCombo()
+    if not self.mappingSourceCombo then return end
+    self.mappingSourceCombo:clear()
+
+    -- Build unique set of PRE-MAPPING categories from ItemDictionary
+    -- We need original resolved categories (before resolveMapping), not post-mapping DisplayCategory
+    local raw = {}
+    for fullType, entry in pairs(Sorted.ItemDictionary) do
+        local resolved
+        if entry.user and entry.user ~= "" then
+            resolved = entry.user
+        elseif entry.algorithm and entry.algorithm ~= "" then
+            resolved = entry.algorithm
+        elseif entry.mapped and entry.mapped ~= "" then
+            resolved = entry.mapped
+        elseif entry.original and entry.original ~= "" then
+            resolved = entry.original
+        end
+        if resolved and resolved ~= "" and resolved ~= "_Sorted.Uncategorized" then
+            raw[resolved] = true
+        end
+    end
+
+    -- Also include source keys from existing mappings (in case no items resolve to them anymore)
+    if Sorted.CategoryMappings then
+        for source, _ in pairs(Sorted.CategoryMappings) do
+            raw[source] = true
+        end
+    end
+
+    local sorted = {}
+    for cat, _ in pairs(raw) do
+        table.insert(sorted, cat)
+    end
+    table.sort(sorted)
+
+    for _, cat in ipairs(sorted) do
+        local label
+        local textKey = "IGUI_ItemCat_" .. cat
+        local translated = getText(textKey)
+        if translated and translated ~= textKey then
+            label = translated
+        else
+            label = cat
+        end
+        if Sorted.CategoryMappings and Sorted.CategoryMappings[cat] then
+            label = label .. "  ->  " .. Sorted.CategoryMappings[cat]
+        end
+        self.mappingSourceCombo:addOptionWithData(label, cat)
+    end
+
+    if self.mappingSourceCombo.options and #self.mappingSourceCombo.options > 0 then
+        self.mappingSourceCombo.selected = 1
+        self:onMappingSourceChange()
+    end
+
+    Sorted:log("[ManagerMC] Mapping source combo populated with " .. #sorted .. " pre-mapping categories", 3)
+end
+
+function Sorted.ManagerMC:onMappingSourceChange()
+    if not self.mappingTargetInput or not self.mappingSourceCombo then return end
+    local combo = self.mappingSourceCombo
+    local option = combo.options and combo.options[combo.selected]
+    if not option then return end
+    local source = option.data or option.text
+    local existing = Sorted.CategoryMappings and Sorted.CategoryMappings[source]
+    self.mappingTargetInput:setText(existing or "")
+    Sorted:log("[ManagerMC] Mapping source changed to: " .. tostring(source) .. ", existing mapping: " .. tostring(existing), 3)
+end
+
+function Sorted.ManagerMC:onApplyMapping()
+    local option = self.mappingSourceCombo.options[self.mappingSourceCombo.selected]
+    local source = option and (option.data or option.text)
+    local target = self.mappingTargetInput:getInternalText() or ""
+
+    if not source or source == "" then
+        Sorted:log("[ManagerMC] onApplyMapping: no source selected", 2)
+        return
+    end
+    if target == "" then
+        Sorted:log("[ManagerMC] onApplyMapping: empty target, use Remove Mapping to clear", 2)
+        return
+    end
+
+    Sorted:log("[ManagerMC] Applying mapping: " .. source .. " -> " .. target, 2)
+    Sorted.setCategoryMapping(source, target)
+    Sorted.applyMappingAndRefresh()
+    self:populateMappingSourceCombo()
+    self:populateCategoryCombo()
+end
+
+function Sorted.ManagerMC:onRemoveMapping()
+    local option = self.mappingSourceCombo.options[self.mappingSourceCombo.selected]
+    local source = option and (option.data or option.text)
+
+    if not source or source == "" then
+        Sorted:log("[ManagerMC] onRemoveMapping: no source selected", 2)
+        return
+    end
+
+    Sorted:log("[ManagerMC] Removing mapping for: " .. source, 2)
+    Sorted.setCategoryMapping(source, nil)
+    self.mappingTargetInput:setText("")
+    Sorted.applyMappingAndRefresh()
+    self:populateMappingSourceCombo()
+    self:populateCategoryCombo()
+end
+
 function Sorted.ManagerMC:onApplySelected()
     local selected = self:getSelectedFullTypes()
     if #selected == 0 then
@@ -577,7 +729,7 @@ function Sorted.ManagerMC:onResetAll()
         getCore():getScreenWidth() / 2 - 150,
         getCore():getScreenHeight() / 2 - 50,
         300, 100,
-        "Reset ALL items to default categories?\nThis will clear your INI file!",
+        "Reset ALL user category assignments?\nThis cannot be undone.",
         true, self, Sorted.ManagerMC.onResetAllConfirm
     )
     modal:initialise()
@@ -589,25 +741,38 @@ function Sorted.ManagerMC:onResetAllConfirm(button)
         return
     end
 
+    Sorted:log("[ManagerMC] Reset All: clearing all user assignments from ItemDictionary", 2)
+
     if Sorted.collectDefaultCategories then
         Sorted.collectDefaultCategories()
     end
 
-    local writer = getFileWriter("Sorted_CategoryAssignments.ini", true, false)
-    if writer then
-        writer:close()
+    local cleared = 0
+    for fullType, entry in pairs(Sorted.ItemDictionary) do
+        if entry.user and entry.user ~= "" then
+            entry.user = nil
+            cleared = cleared + 1
+        end
+    end
+
+    Sorted:log("[ManagerMC] Reset All: cleared " .. cleared .. " user assignments", 2)
+
+    if Sorted.saveDictionary then
+        Sorted.saveDictionary()
     end
 
     local scripts = getScriptManager():getAllItems()
     for i = 0, scripts:size() - 1 do
         local scriptItem = scripts:get(i)
         local fullType = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
-        local defaultCategory = Sorted.defaultCategories and Sorted.defaultCategories[fullType]
-        if defaultCategory and defaultCategory ~= "none" then
+        local effectiveCategory = Sorted.getEffectiveCategory and Sorted.getEffectiveCategory(fullType)
+        if effectiveCategory and effectiveCategory ~= "" and effectiveCategory ~= "_Sorted.Uncategorized" then
             if scriptItem and scriptItem.DoParam then
-                scriptItem:DoParam("DisplayCategory = " .. defaultCategory)
+                scriptItem:DoParam("DisplayCategory = " .. effectiveCategory)
             end
-            Sorted.syncAllItemsOfType(fullType, defaultCategory, true)
+            if Sorted.syncAllItemsOfType then
+                Sorted.syncAllItemsOfType(fullType, effectiveCategory, true)
+            end
         end
     end
 
@@ -619,6 +784,8 @@ function Sorted.ManagerMC:onResetAllConfirm(button)
     if Sorted.collectDisplayCategories then
         Sorted.collectDisplayCategories()
     end
+
+    Sorted:log("[ManagerMC] Reset All: done", 2)
 end
 
 function Sorted.ManagerMC:close()
@@ -653,6 +820,4 @@ end
 
 if Sorted and Sorted.log then
     Sorted:log("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.", 3)
-else
-    print("[Sorted.ManagerMC] Loaded. Use Sorted.openManagerMC() to open.")
 end

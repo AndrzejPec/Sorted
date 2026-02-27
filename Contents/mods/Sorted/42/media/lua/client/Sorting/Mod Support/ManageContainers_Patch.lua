@@ -10,14 +10,6 @@ local function normalizeModId(modId)
   return string.lower(modId)
 end
 
-local function mcLog(message)
-  if Sorted and Sorted.log then
-    Sorted:log(message)
-  else
-    print(message)
-  end
-end
-
 local _sorted_mc_logged_mods = false
 
 function isManageContainersActive()
@@ -28,9 +20,9 @@ function isManageContainersActive()
 
   if not _sorted_mc_logged_mods then
     _sorted_mc_logged_mods = true
-    mcLog("[Sorted] ManageContainers: Active mods list:")
+    Sorted:log("[Sorted] ManageContainers: Active mods list:")
     for i = 0, mods:size() - 1 do
-      mcLog("[Sorted]   [" .. tostring(i) .. "] " .. tostring(mods:get(i)))
+      Sorted:log("[Sorted]   [" .. tostring(i) .. "] " .. tostring(mods:get(i)))
     end
   end
 
@@ -51,10 +43,15 @@ if not isManageContainersActive() then
   return
 end
 
-mcLog("[Sorted] ManageContainers patch loading...")
+Sorted:log("[Sorted] ManageContainers patch loading...")
 
 function MCPatch_GetSortedCategoryKeys()
   local keys = {}
+  local function mcLog(message, level)
+    if Sorted and Sorted.log then
+      Sorted:log(message, level or 3)
+    end
+  end
 
   local function add(category)
     if category and category ~= "" then
@@ -62,20 +59,20 @@ function MCPatch_GetSortedCategoryKeys()
     end
   end
 
-  print("[MC_Patch] MCPatch_GetSortedCategoryKeys() called")
+  mcLog("[MC_Patch] MCPatch_GetSortedCategoryKeys() called", 3)
 
   if not Sorted then
-    print("[MC_Patch] ERROR: Sorted is nil!")
+    mcLog("[MC_Patch] ERROR: Sorted is nil!", 1)
     return keys
   end
 
-  print("[MC_Patch] Sorted exists, checking collectDisplayCategories...")
+  mcLog("[MC_Patch] Sorted exists, checking collectDisplayCategories...", 3)
 
   if Sorted.collectDisplayCategories then
-    print("[MC_Patch] Calling Sorted.collectDisplayCategories()...")
+    mcLog("[MC_Patch] Calling Sorted.collectDisplayCategories()...", 3)
     Sorted.collectDisplayCategories()
   else
-    print("[MC_Patch] WARNING: Sorted.collectDisplayCategories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.collectDisplayCategories is nil!", 2)
   end
 
   local staticCount = 0
@@ -84,41 +81,41 @@ function MCPatch_GetSortedCategoryKeys()
       add(entry.key)
       staticCount = staticCount + 1
     end
-    print("[MC_Patch] Added " .. staticCount .. " STATIC categories from Sorted.categories")
+    mcLog("[MC_Patch] Added " .. staticCount .. " STATIC categories from Sorted.categories", 3)
   else
-    print("[MC_Patch] WARNING: Sorted.categories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.categories is nil!", 2)
   end
 
   local dynamicCount = 0
   if Sorted.DynamicCategories then
-    print("[MC_Patch] Sorted.DynamicCategories EXISTS, iterating...")
+    mcLog("[MC_Patch] Sorted.DynamicCategories EXISTS, iterating...", 3)
     for category, value in pairs(Sorted.DynamicCategories) do
-      print("[MC_Patch]   DynamicCategory: '" .. tostring(category) .. "' = " .. tostring(value))
+      mcLog("[MC_Patch]   DynamicCategory: '" .. tostring(category) .. "' = " .. tostring(value), 3)
       if value then
         add(category)
         dynamicCount = dynamicCount + 1
       end
     end
-    print("[MC_Patch] Added " .. dynamicCount .. " DYNAMIC categories")
+    mcLog("[MC_Patch] Added " .. dynamicCount .. " DYNAMIC categories", 3)
   else
-    print("[MC_Patch] WARNING: Sorted.DynamicCategories is nil!")
+    mcLog("[MC_Patch] WARNING: Sorted.DynamicCategories is nil!", 2)
   end
 
   local totalCount = 0
   for _ in pairs(keys) do totalCount = totalCount + 1 end
-  print("[MC_Patch] TOTAL categories returned: " .. totalCount)
+  mcLog("[MC_Patch] TOTAL categories returned: " .. totalCount, 3)
 
   return keys
 end
 
 local function patchManageContainers()
   if not ISItemsIncludeExclude then
-    mcLog("[Sorted] ManageContainers: ISItemsIncludeExclude not loaded yet, waiting...")
+    Sorted:log("[Sorted] ManageContainers: ISItemsIncludeExclude not loaded yet, waiting...")
     return false
   end
 
   if not ISConfigureContainerWindow then
-    mcLog("[Sorted] ManageContainers: ISConfigureContainerWindow not loaded yet, waiting...")
+    Sorted:log("[Sorted] ManageContainers: ISConfigureContainerWindow not loaded yet, waiting...")
     return false
   end
 
@@ -138,13 +135,13 @@ local function patchManageContainers()
       end
 
       if added > 0 then
-        mcLog("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to main list")
+        Sorted:log("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to main list")
       end
 
       return cats
     end
 
-    mcLog("[Sorted] ManageContainers: fetchCategories() patch installed")
+    Sorted:log("[Sorted] ManageContainers: fetchCategories() patch installed")
   end
 
   if not ISItemsIncludeExclude._original_populate then
@@ -177,11 +174,11 @@ local function patchManageContainers()
       end
 
       if added > 0 then
-        mcLog("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to filter")
+        Sorted:log("[Sorted] ManageContainers: Added " .. added .. " Sorted categories to filter")
       end
     end
 
-    mcLog("[Sorted] ManageContainers: populate() patch installed")
+    Sorted:log("[Sorted] ManageContainers: populate() patch installed")
   end
 
   if not ISConfigureContainerWindow._sorted_loadPreset then
@@ -192,7 +189,7 @@ local function patchManageContainers()
       local presetData = ContainerPreset:loadPreset(presetName)
 
       if presetData == nil then
-        mcLog("[Sorted] ManageContainers: Failed to load preset: " .. tostring(presetName))
+        Sorted:log("[Sorted] ManageContainers: Failed to load preset: " .. tostring(presetName))
         return
       end
 
@@ -204,13 +201,13 @@ local function patchManageContainers()
         if validCategories[cat] then
           table.insert(validFilters, cat)
         else
-          mcLog("[Sorted] ManageContainers: Removed dead category from preset: " .. tostring(cat))
+          Sorted:log("[Sorted] ManageContainers: Removed dead category from preset: " .. tostring(cat))
         end
       end
 
       local removedCount = originalCount - #validFilters
       if removedCount > 0 then
-        mcLog("[Sorted] ManageContainers: Cleaned " .. removedCount .. " dead categories from preset '" .. presetName .. "'")
+        Sorted:log("[Sorted] ManageContainers: Cleaned " .. removedCount .. " dead categories from preset '" .. presetName .. "'")
       end
 
       presetData.containersFilters = validFilters
@@ -240,7 +237,7 @@ local function patchManageContainers()
       self.textBoxName:setText(presetData.containerName)
     end
 
-    mcLog("[Sorted] ManageContainers: loadPreset() patch installed (with dead category cleanup)")
+    Sorted:log("[Sorted] ManageContainers: loadPreset() patch installed (with dead category cleanup)")
   end
 
   local SORTED_WINDOW_WIDTH = 650
@@ -292,14 +289,14 @@ local function patchManageContainers()
     function ISConfigureContainerWindow:createChildren()
       applySimpleViewWidth(self)
 
-      mcLog("[Sorted] ManageContainers: Widened simple view to " .. SORTED_WINDOW_WIDTH .. "px (in createChildren)")
+      Sorted:log("[Sorted] ManageContainers: Widened simple view to " .. SORTED_WINDOW_WIDTH .. "px (in createChildren)")
 
       self:_original_createChildren()
 
       applySimpleViewWidth(self)
     end
 
-    mcLog("[Sorted] ManageContainers: createChildren patch installed")
+    Sorted:log("[Sorted] ManageContainers: createChildren patch installed")
   end
 
   if not ISConfigureContainerWindow._original_new then
@@ -310,21 +307,21 @@ local function patchManageContainers()
 
       applySimpleViewWidth(instance)
 
-      mcLog("[Sorted] ManageContainers: Set initial width to " .. SORTED_WINDOW_WIDTH .. "px (in new)")
+      Sorted:log("[Sorted] ManageContainers: Set initial width to " .. SORTED_WINDOW_WIDTH .. "px (in new)")
 
       return instance
     end
 
-    mcLog("[Sorted] ManageContainers: new() patch installed")
+    Sorted:log("[Sorted] ManageContainers: new() patch installed")
   end
 
-  mcLog("[Sorted] ManageContainers patch installed successfully!")
+  Sorted:log("[Sorted] ManageContainers patch installed successfully!")
   return true
 end
 
 local function attemptPatch()
   if patchManageContainers() then
-    mcLog("[Sorted] ManageContainers patch ready")
+    Sorted:log("[Sorted] ManageContainers patch ready")
   else
     Events.OnGameBoot.Add(function()
       patchManageContainers()

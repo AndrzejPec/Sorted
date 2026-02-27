@@ -254,6 +254,41 @@ function Sorted.syncAllItemsOfType(fullType, category, skipNormalize)
     end
 end
 
+function Sorted.syncAllOpenItems()
+    local count = 0
+    for playerNum = 0, getNumActivePlayers() - 1 do
+        local playerInv = getPlayerInventory(playerNum)
+        if playerInv and playerInv.inventory then
+            local items = playerInv.inventory:getItems()
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and item.getFullType and item.setDisplayCategory then
+                    local category = Sorted.getEffectiveCategory(item:getFullType())
+                    if category and category ~= "" and category ~= "_Sorted.Uncategorized" then
+                        item:setDisplayCategory(category)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+        local playerLoot = getPlayerLoot(playerNum)
+        if playerLoot and playerLoot.inventory then
+            local items = playerLoot.inventory:getItems()
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and item.getFullType and item.setDisplayCategory then
+                    local category = Sorted.getEffectiveCategory(item:getFullType())
+                    if category and category ~= "" and category ~= "_Sorted.Uncategorized" then
+                        item:setDisplayCategory(category)
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+    Sorted:log("[Sorted] syncAllOpenItems: updated " .. count .. " item instances", 3)
+end
+
 function Sorted.collectDisplayCategories()
     local raw = {}
     local scripts = getScriptManager():getAllItems()
@@ -367,20 +402,9 @@ function Sorted.openModal(item)
 end
 
 function Sorted.getSavedCategory(fullType)
-    local reader = getFileReader(ASSIGNMENTS_FILE, false)
-    if not reader then return "none" end
-
-    while true do
-        local line = reader:readLine()
-        if not line then break end
-        local k, v = line:match("^(.-)=(.+)$")
-        if k == fullType then
-            reader:close()
-            return normalizeCategoryKey(v)
-        end
+    if Sorted.getEffectiveCategory then
+        return Sorted.getEffectiveCategory(fullType) or "none"
     end
-
-    reader:close()
     return "none"
 end
 
@@ -463,42 +487,79 @@ function Sorted.Modal:initialise()
     self:addChild(cancelButton)
 end
 
+-- function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
+--     if not skipNormalize then
+--         category = normalizeCategoryKey(category)
+--     end
+--     local lines = {}
+--     local found = false
+
+--     local reader = getFileReader(ASSIGNMENTS_FILE, false)
+--     if reader then
+--         while true do
+--             local line = reader:readLine()
+--             if not line then break end
+--             local k = line:match("^(.-)=")
+--             if k == fullType then
+--                 table.insert(lines, fullType .. "=" .. category)
+--                 found = true
+--             else
+--                 table.insert(lines, line)
+--             end
+--         end
+--         reader:close()
+--     end
+
+--     if not found then
+--         table.insert(lines, fullType .. "=" .. category)
+--     end
+
+--     local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
+--     if not writer then
+--         return
+--     end
+--     for _, line in ipairs(lines) do
+--         writer:write(line .. "\n")
+--     end
+--     writer:close()
+
+--     if Sorted.setUserCategory then
+--         Sorted.setUserCategory(fullType, category)
+--     end
+--     if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
+--         Sorted.Tracker.syncItemTypeInWorld(fullType)
+--     end
+--     if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
+--         Sorted.Tracker.invalidateCategoryCache()
+--     end
+-- end
+
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
+    if not fullType or fullType == "" or not category or category == "" then
+        return
+    end
+
     if not skipNormalize then
         category = normalizeCategoryKey(category)
     end
-    local lines = {}
-    local found = false
 
-    local reader = getFileReader(ASSIGNMENTS_FILE, false)
-    if reader then
-        while true do
-            local line = reader:readLine()
-            if not line then break end
-            local k = line:match("^(.-)=")
-            if k == fullType then
-                table.insert(lines, fullType .. "=" .. category)
-                found = true
-            else
-                table.insert(lines, line)
-            end
-        end
-        reader:close()
+    -- Legacy shim: keep API name, but persist to ItemDictionary (single source of truth).
+    if Sorted.setUserCategory then
+        Sorted.setUserCategory(fullType, category)
     end
 
-    if not found then
-        table.insert(lines, fullType .. "=" .. category)
+    if Sorted.saveDictionary then
+        Sorted.saveDictionary()
     end
 
-    local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
-    if not writer then
-        return
+    if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
+        Sorted.Tracker.syncItemTypeInWorld(fullType)
     end
-    for _, line in ipairs(lines) do
-        writer:write(line .. "\n")
+    if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
+        Sorted.Tracker.invalidateCategoryCache()
     end
-    writer:close()
 end
+
 
 function Sorted.Modal:onClick()
     local customText = self.customInput:getText()
@@ -563,23 +624,54 @@ function Sorted.Modal:onReset()
 end
 
 function Sorted.applyDisplayCategories()
+    -- If dictionary already has any user assignments, skip legacy INI import.
+    local hasUserAssignments = false
+    if Sorted.ItemDictionary then
+        for _, entry in pairs(Sorted.ItemDictionary) do
+            if entry and entry.user and entry.user ~= "" then
+                hasUserAssignments = true
+                break
+            end
+        end
+    end
+    if hasUserAssignments then
+        return
+    end
+    
+    -- Migration adapter: imports user assignments from legacy CategoryAssignments.ini
+    -- into ItemDictionary (user field). Becomes a no-op once all data is migrated.
+    -- Actual category application is handled by Sorted.applyAllCategories() in OnGameBoot.
+    if not Sorted.ItemDictionary or not Sorted.setUserCategory then
+        return
+    end
+
     local reader = getFileReader(ASSIGNMENTS_FILE, false)
     if not reader then
         return
     end
+
+    local migrated = 0
     while true do
         local line = reader:readLine()
         if not line then break end
         local fullType, category = line:match("^(.-)=(.+)$")
         if fullType and category then
             category = normalizeCategoryKey(category)
-            local scriptItem = ScriptManager.instance:getItem(fullType)
-            if scriptItem then
-                scriptItem:DoParam("DisplayCategory = " .. category)
+            local entry = Sorted.ItemDictionary[fullType]
+            if entry and (not entry.user or entry.user == "") then
+                Sorted.setUserCategory(fullType, category)
+                migrated = migrated + 1
             end
         end
     end
     reader:close()
+
+    if migrated > 0 then
+        Sorted:log("[Sorted] Migrated " .. migrated .. " user categories from legacy CategoryAssignments.ini", 2)
+        if Sorted.saveDictionary then
+            Sorted.saveDictionary()
+        end
+    end
 end
 
 Events.OnFillInventoryObjectContextMenu.Add(Sorted.addContextMenu)

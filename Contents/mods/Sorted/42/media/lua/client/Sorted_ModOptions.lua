@@ -153,30 +153,20 @@ Sorted.ModOptions.CategoryGroups = {
 -- Get grouped category name (or return original if not grouped)
 function Sorted.ModOptions:getGroupedCategory(categoryName)
     if not categoryName then
-        Sorted:log("[ModOptions] getGroupedCategory: categoryName is nil", 3)
         return nil
     end
 
     local grouped = self.CategoryGroups[categoryName] or categoryName
-
-    if grouped ~= categoryName then
-        Sorted:log("[ModOptions] Grouped: '" .. categoryName .. "' -> '" .. grouped .. "'", 3)
-    end
-
     return grouped
 end
 
 -- Get separator based on settings
 function Sorted.ModOptions:getSeparator()
-    Sorted:log("[ModOptions] getSeparator: config.separatorStyle = " .. tostring(config.separatorStyle), 3)
-
     if not config.separatorStyle then
-        Sorted:log("[ModOptions] No separatorStyle config, using default 'w/'", 3)
         return "w/"
     end
 
     local style = config.separatorStyle:getValue()
-    Sorted:log("[ModOptions] separatorStyle getValue() = " .. tostring(style), 3)
 
     if style == 1 then
         return "w/"
@@ -185,22 +175,17 @@ function Sorted.ModOptions:getSeparator()
     elseif style == 3 then
         return ""  -- Special case, handled differently
     else
-        Sorted:log("[ModOptions] Unknown style value, defaulting to 'w/'", 2)
         return "w/"  -- Default
     end
 end
 
 -- Get conjunction (" & " or " and ")
 function Sorted.ModOptions:getConjunction()
-    Sorted:log("[ModOptions] getConjunction: config.useAndInsteadOfAmpersand = " .. tostring(config.useAndInsteadOfAmpersand), 3)
-
     if not config.useAndInsteadOfAmpersand then
-        Sorted:log("[ModOptions] No useAndInsteadOfAmpersand config, using default ' & '", 3)
         return " & "
     end
 
     local useAnd = config.useAndInsteadOfAmpersand:getValue()
-    Sorted:log("[ModOptions] useAndInsteadOfAmpersand getValue() = " .. tostring(useAnd), 3)
 
     if useAnd then
         return " and "
@@ -210,15 +195,11 @@ function Sorted.ModOptions:getConjunction()
 end
 
 function Sorted.ModOptions:useDetailedClothing()
-    Sorted:log("[ModOptions] useDetailedClothing: config.clothingCategoryMode = " .. tostring(config.clothingCategoryMode), 3)
-
     if not config.clothingCategoryMode then
-        Sorted:log("[ModOptions] No clothingCategoryMode config, using default detailed", 3)
         return true
     end
 
     local mode = config.clothingCategoryMode:getValue()
-    Sorted:log("[ModOptions] clothingCategoryMode getValue() = " .. tostring(mode), 3)
     return mode == 2
 end
 
