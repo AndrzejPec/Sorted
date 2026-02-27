@@ -532,11 +532,38 @@ end
 function Sorted.applyMappingAndRefresh()
     Sorted:log("[Sorted] Applying category mappings and refreshing all items...", 2)
     Sorted.saveMappings()
-    if Sorted.applyAllCategories then
-        Sorted.applyAllCategories()
-        Sorted:log("[Sorted] Category mappings applied successfully", 2)
-    else
+    if not Sorted.applyAllCategories then
         Sorted:log("[Sorted] WARNING: applyAllCategories not available yet", 1)
+        return
+    end
+
+    Sorted.applyAllCategories()
+    Sorted:log("[Sorted] Category mappings applied to script items", 2)
+
+    if Sorted.Tracker then
+        if Sorted.Tracker.clearAllCache then
+            Sorted.Tracker.clearAllCache()
+        end
+    end
+
+    if Sorted.collectDisplayCategories then
+        Sorted.collectDisplayCategories()
+    end
+
+    triggerEvent("OnRefreshInventoryWindowContainers")
+    Sorted:log("[Sorted] Inventory refresh event fired", 3)
+
+    for playerNum = 0, getNumActivePlayers() - 1 do
+        local invPage = getPlayerInventory(playerNum)
+        if invPage and invPage.inventory and invPage.inventory.refreshView then
+            invPage.inventory:refreshView()
+            Sorted:log("[Sorted] Player " .. playerNum .. " inventory view refreshed", 3)
+        end
+        local lootPage = getPlayerLoot(playerNum)
+        if lootPage and lootPage.inventory and lootPage.inventory.refreshView then
+            lootPage.inventory:refreshView()
+            Sorted:log("[Sorted] Player " .. playerNum .. " loot inventory view refreshed", 3)
+        end
     end
 end
 

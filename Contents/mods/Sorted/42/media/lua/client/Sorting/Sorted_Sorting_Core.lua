@@ -1030,16 +1030,16 @@ local function getClothingCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
 
   local mapping = BODYLOCATION_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
-    Sorted:log("Mapped to: " .. category, 3)
+    Sorted:log("Mapped to: " .. category, 0)
     return category
   end
 
-  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
   return "ClothMisc"
 end
 
@@ -1086,18 +1086,18 @@ local function getProtectiveGearCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
 
   local mapping = PROTECTIVE_GEAR_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
     if category and type(category) == "string" then
-      Sorted:log("PGear mapped to: " .. category, 3)
+      Sorted:log("PGear mapped to: " .. category, 0)
       return category
     end
   end
 
-  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
+  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
   return "ProtGearMisc"
 end
 
