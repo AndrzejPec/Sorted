@@ -47,6 +47,8 @@ if ($mode -eq "First") {
 
 $lines = @()
 if ($mode -eq "First") {
+    $lines += ""
+    $lines += ""
     $lines += "[ $date ]"
 }
 

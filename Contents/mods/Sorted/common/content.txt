@@ -1,16 +1,11 @@
-v0.3 - 27 Feb 2026
+28 Feb 2026
 
-- Major codebase refactor
-- Category Manager: rename entire categories in one click
-- Fixed "Reset All" button
-- New crafting sub-categories: Tailoring, Masonry, Knapping
+Only one change as a hotfix (thanks to SP4RTAN for this one) - now you can actually use the Category Manager `:D
+So press ALT + CTRL (by default) to access the category manager where you'll be able to rename whole categories
+and change the categories for multiple items at once. Yay!
 
-This update has been a while coming - took some time to get back
-But the latest version is getting us close to announcing this as beta version of the mod...
-since the AI said that the mod is "~88% production ready", with... 4500 lines of functional code!!1
+Oh and one more thing - please attend the poll in the α-info-kiosk section of the discord.. :)
+Where you can select whether you see this mod as: still alpha, actually beta, or maybe production-ready?
 
-Still not perfect yet, but the core idea
-is that YOU have the tools to get everything... Sorted. Yourself.
-Have we nailed that? Let me know in the Discord - poll incoming.
-
+(it's officially already beta nevertheless but I'm curious)
 Happy dying!
