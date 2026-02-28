@@ -1,0 +1,51 @@
+RROR: General      f:739, t:1768221993042> KahluaThread.flushErrorMessage      > -------------------------------------------------------------
+attempted index: new of non-table: null
+ERROR: General      f:739, t:1768221993042> KahluaThread.flushErrorMessage      > dumping Lua stack trace
+-----------------------------------------
+STACK TRACE
+-----------------------------------------
+function: createChildren -- file: Sorted_Shifting_Manager.lua line # 71 | MOD: Sorted.
+function: instantiate -- file: ISUIElement.lua line # 861 | Vanilla
+function: addChild -- file: ISUIElement.lua line # 1236 | Vanilla
+function: addView -- file: ISTabPanel.lua line # 508 | Vanilla
+function: buildLists -- file: Sorted_Shifting_Manager.lua line # 403 | MOD: Sorted.
+function: createChildren -- file: Sorted_Shifting_Manager.lua line # 323 | MOD: Sorted.
+function: instantiate -- file: ISUIElement.lua line # 861 | Vanilla
+function: addToUIManager -- file: ISUIElement.lua line # 1186 | Vanilla
+function: toggle -- file: Sorted_Shifting_Manager.lua line # 644 | MOD: Sorted.
+function: UI_Sorted_openManager -- file: Sorted_Shifting_Core.lua line # 300 | MOD: Sorted.
+function: onMouseUp -- file: ISContextMenu.lua line # 71 | Vanilla
+ERROR: General      f:739, t:1768221993042> ExceptionLogger.logException> Exception thrown
+	java.lang.RuntimeException: attempted index: new of non-table: null at KahluaThread.tableget(KahluaThread.java:1447).
+	Stack trace:
+		se.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1447)
+		se.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:457)
+		se.krka.kahlua.vm.KahluaThread.call(KahluaThread.java:167)
+		se.krka.kahlua.vm.KahluaThread.pcall(KahluaThread.java:1756)
+		se.krka.kahlua.vm.KahluaThread.pcallBoolean(KahluaThread.java:1692)
+		se.krka.kahlua.integration.LuaCaller.protectedCallBoolean(LuaCaller.java:96)
+		zombie.ui.UIElement.onMouseUp(UIElement.java:1383)
+		zombie.ui.UIElement.onConsumeMouseButtonUp(UIElement.java:1446)
+		zombie.ui.UIManager.updateMouseButtons(UIManager.java:745)
+		zombie.ui.UIManager.update(UIManager.java:618)
+		zombie.GameWindow.logic(GameWindow.java:349)
+		zombie.GameWindow.frameStep(GameWindow.java:825)
+		zombie.GameWindow.mainThreadStep(GameWindow.java:597)
+		zombie.MainThread.mainLoop(MainThread.java:68)
+		java.base/java.lang.Thread.run(Unknown Source)
+ERROR: General      f:739, t:1768221993042> KahluaThread.flushErrorMessage      > dumping Lua stack trace
+-----------------------------------------
+STACK TRACE
+-----------------------------------------
+function: createChildren -- file: Sorted_Shifting_Manager.lua line # 71 | MOD: Sorted.
+function: instantiate -- file: ISUIElement.lua line # 861 | Vanilla
+function: addChild -- file: ISUIElement.lua line # 1236 | Vanilla
+function: addView -- file: ISTabPanel.lua line # 508 | Vanilla
+function: buildLists -- file: Sorted_Shifting_Manager.lua line # 403 | MOD: Sorted.
+function: createChildren -- file: Sorted_Shifting_Manager.lua line # 323 | MOD: Sorted.
+function: instantiate -- file: ISUIElement.lua line # 861 | Vanilla
+function: addToUIManager -- file: ISUIElement.lua line # 1186 | Vanilla
+function: toggle -- file: Sorted_Shifting_Manager.lua line # 644 | MOD: Sorted.
+function: UI_Sorted_openManager -- file: Sorted_Shifting_Core.lua line # 300 | MOD: Sorted.
+function: onMouseUp -- file: ISContextMenu.lua line # 71 | Vanilla
+LOG  : General      f:739, t:1768221993043> 

@@ -1,5 +1,16 @@
-[ 27 II 2026 ]
-- (chore) a lot of fixes to the codebase architecture
-- (feat) Created UI expansion in manager to enable renaming whole categories to a different name
-- (fix) fixed the reset all button
-- (feat) add Tailoring, Masonry, Knapping crafting sub-category detectors
+v0.3 - 27 Feb 2026
+
+- Major codebase refactor
+- Category Manager: rename entire categories in one click
+- Fixed "Reset All" button
+- New crafting sub-categories: Tailoring, Masonry, Knapping
+
+This update has been a while coming - took some time to get back
+But the latest version is getting us close to announcing this as beta version of the mod...
+since the AI said that the mod is "~88% production ready", with... 4500 lines of functional code!!1
+
+Still not perfect yet, but the core idea
+is that YOU have the tools to get everything... Sorted. Yourself.
+Have we nailed that? Let me know in the Discord - poll incoming.
+
+Happy dying!
