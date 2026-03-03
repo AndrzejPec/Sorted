@@ -38,3 +38,4 @@
 
 [ 03 Mar 2026 ]
 - (fix) a lot of fixes to the codebase
+- (fix) Add circular reference prevention in category mappings

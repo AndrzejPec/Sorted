@@ -72,24 +72,6 @@ local function getScriptItemBooleanField(item, fieldName)
   return false
 end
 
-function Sorted:getAllItemsPredicate(predicate)
-  local result = {}
-  local count = 0
-  local items = getScriptManager():getAllItems()
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    if predicate(item) == true then
-      table.insert(result, item)
-    end
-    count = count + 1
-  end
-
-  for i, item in ipairs(result) do
-    Sorted:log("Item #" .. i .. " is " .. tostring(item), 3)
-  end
-  Sorted:log("Found " .. #result .. " items out of all " .. count .. " items in game", 3)
-  return result
-end
 
 local function hasCannedMarkers(item)
   if not item or not item.getFullName then
@@ -580,74 +562,6 @@ local function getContainerCategory(item)
   end
 end
 
-function Sorted:getAllInventoryItems()
-  local result = {}
-  local allItems = getScriptManager():getAllItems()
-  for i = 0, allItems:size() - 1 do
-    local item = allItems:get(i)
-    local invItem = instanceItem(item)
-    local displayName = invItem and invItem.getDisplayName and invItem:getDisplayName()
-    if displayName == "Duffel Bag" then
-      table.insert(result, invItem)
-    end
-  end
-
-  self:log("Result array has " .. #result .. " items.")
-  return result
-end
-
-function Sorted:spawnItems()
-  local items = self:getAllInventoryItems()
-  for _, v in pairs(items) do
-    getPlayer():getInventory():DoAddItem(v)
-  end
-end
-
-function Sorted:logInventory()
-  local invItems = getPlayer():getInventory():getItems()
-  local lines = {}
-
-  for i = 0, invItems:size() - 1 do
-    local item = invItems:get(i)
-    table.insert(lines, "Item fullType: " .. item:getFullType())
-  end
-
-  self:startThrottle(lines)
-end
-
-function Sorted.equipSound(item)
-  local equipSound = item.getEquipSound and item:getEquipSound()
-  return equipSound == "EquipDuffleBag"
-end
-
-function Sorted.getAllScriptItemsList()
-  local result = {}
-  local allItems = getScriptManager():getAllItems()
-  for i = 0, allItems:size() - 1 do
-    local item = allItems:get(i)
-    local isContainer = item:isItemType(ItemType.CONTAINER)
-    if isContainer then
-      local equipSound = item.getEquipSound and item:getEquipSound()
-      local isSoundsExpected = "EquipDuffleBag"
-      if equipSound == isSoundsExpected then
-        table.insert(result, item)
-        local name = item.getFullName and item:getFullName()
-        -- instanceItem(name)
-        getPlayer():getInventory():AddItem(name)
-      else
-        Sorted:log("Wrong equip sound for: " .. item:getFullName())
-      end
-    end
-  end
-
-  local label = "Condition"
-  for _, it in ipairs(result) do
-    local fullType = it and it.getFullName and it:getFullName()
-    Sorted:log(label .. " was met by item: " .. tostring(fullType))
-  end
-
-  return result
-end
 
 ------------------------------------------------
 --#endregion:Backpack/bags/fannypacks indication
@@ -1330,50 +1244,7 @@ function Sorted.OnGameBoot()
   orphanTheUnfit()
   Sorted:log("[OnGameBoot] orphanTheUnfit DONE", 1)
 
-  -- TODO: this was supposed to be showing a panel with items that couldn't be categorised, but I think that the panel cannot be shown in the main menu (where the onGameBoot is loaded)
-  -- if #unknownItems > 0 then
-  --   Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 1)
-  --   local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
-  --   local pendingCount = #unknownItems
-  --   local tickCount = 0
-  --   local function onTickNotify()
-  --     tickCount = tickCount + 1
-  --     if tickCount >= 120 then
-  --       Events.OnTick.Remove(onTickNotify)
-  --       if ISLabel and ISButton and ISPanel then
-  --         local sw = getCore():getScreenWidth()
-  --         local sh = getCore():getScreenHeight()
-  --         local w, h = 360, 70
-  --         local panel = ISPanel:new(sw - w - 20, sh - h - 60, w, h)
-  --         panel.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
-  --         panel.backgroundColor = {r=0.15, g=0.12, b=0.05, a=0.92}
-  --         panel:initialise()
-  --         panel:addToUIManager()
-
-  --         local msg = pendingCount .. " item(s) could not be auto-categorized."
-  --         local lbl = ISLabel:new(8, 8, FONT_HGT_SMALL, msg, 1, 0.85, 0.5, 1, UIFont.Small, true)
-  --         panel:addChild(lbl)
-
-  --         local btnW = 140
-  --         local btn = ISButton:new(w - btnW - 8, 8, btnW, FONT_HGT_SMALL + 8, "Open Category Manager", panel, function()
-  --           panel:setVisible(false)
-  --           panel:removeFromUIManager()
-  --           if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
-  --             Sorted.ManagerMC.toggle()
-  --           end
-  --         end)
-  --         btn.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
-  --         btn.backgroundColor = {r=0.3, g=0.2, b=0.05, a=0.8}
-  --         btn.backgroundColorMouseOver = {r=0.5, g=0.35, b=0.1, a=0.9}
-  --         btn:initialise()
-  --         panel:addChild(btn)
-
-  --         Sorted:log("[Sorted] Uncategorized items notification shown: " .. pendingCount .. " items", 2)
-  --       end
-  --     end
-  --   end
-  --   Events.OnTick.Add(onTickNotify)
-  -- end
+  Sorted._pendingUnknownItems = unknownItems
 
   Sorted:log("--- Sorted End (redux) ---", 1)
 
@@ -1383,72 +1254,60 @@ function Sorted.OnGameBoot()
     Sorted:log("[OnGameBoot] collectDefaultCategories DONE", 1)
   end
 
-  Sorted:log("[OnGameBoot] ===== TESTING: Check sample item categories =====", 1)
-  local testItems = {"Base.Axe", "Base.Shirt_LumberjackGREEN", "Base.Apple"}
-  for _, itemName in ipairs(testItems) do
-    local scriptItem = ScriptManager.instance:getItem(itemName)
-    if scriptItem then
-      local category = scriptItem:getDisplayCategory()
-      Sorted:log("[OnGameBoot] TEST: " .. itemName .. " -> Category: " .. tostring(category), 1)
-    else
-      Sorted:log("[OnGameBoot] TEST: " .. itemName .. " NOT FOUND", 1)
-    end
-  end
-  Sorted:log("[OnGameBoot] ===== END TESTING =====", 1)
 end
 
 Events.OnGameBoot.Add(Sorted.OnGameBoot)
 Sorted._reduxLoaded = true
 
--- TODO: Item Category Overrides
--- Items that need manual categorization override:
--- - Hat_HazmatSuit -> Move from "Breathing" to proper category
-local overrides = {
-  Hat_HazmatSuit = "Breathing",
-}
-
-function Sorted.testIsCannedFood()
-  local player = getPlayer()
-  if not player then
-    Sorted:log("Player not found")
+local function showUncategorizedNotification()
+  local unknownItems = Sorted._pendingUnknownItems
+  if not unknownItems or #unknownItems == 0 then
     return
   end
 
-  local inventory = player:getInventory()
-  if not inventory then
-    Sorted:log("Inventory not found")
-    return
-  end
+  Sorted:log("[Sorted] " .. #unknownItems .. " items need user categorization", 2)
+  local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
+  local pendingCount = #unknownItems
+  local tickCount = 0
 
-  local items = inventory:getItems()
-  if not items or items:isEmpty() then
-    Sorted:log("No items in inventory to test")
-    return
-  end
+  local function onTickNotify()
+    tickCount = tickCount + 1
+    if tickCount >= 120 then
+      Events.OnTick.Remove(onTickNotify)
+      if ISLabel and ISButton and ISPanel then
+        local sw = getCore():getScreenWidth()
+        local sh = getCore():getScreenHeight()
+        local w, h = 360, 70
+        local panel = ISPanel:new(sw - w - 20, sh - h - 60, w, h)
+        panel.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+        panel.backgroundColor = {r=0.15, g=0.12, b=0.05, a=0.92}
+        panel:initialise()
+        panel:addToUIManager()
 
-  Sorted:log("=== Testing isCannedFood function ===")
-  Sorted:log("Total items in inventory: " .. items:size())
+        local msg = pendingCount .. " item(s) could not be auto-categorized."
+        local lbl = ISLabel:new(8, 8, FONT_HGT_SMALL, msg, 1, 0.85, 0.5, 1, UIFont.Small, true)
+        panel:addChild(lbl)
 
-  for i = 0, items:size() - 1 do
-    local item = items:get(i):getScriptItem()
-    local fullName = item:getFullName()
-    local result = isCannedFood(item)
+        local btnW = 140
+        local btn = ISButton:new(w - btnW - 8, 8, btnW, FONT_HGT_SMALL + 8, "Open Category Manager", panel, function()
+          panel:setVisible(false)
+          panel:removeFromUIManager()
+          if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
+            Sorted.ManagerMC.toggle()
+          end
+        end)
+        btn.borderColor = {r=0.8, g=0.6, b=0.1, a=1}
+        btn.backgroundColor = {r=0.3, g=0.2, b=0.05, a=0.8}
+        btn.backgroundColorMouseOver = {r=0.5, g=0.35, b=0.1, a=0.9}
+        btn:initialise()
+        panel:addChild(btn)
 
-    Sorted:log(fullName .. " -> isCannedFood: " .. tostring(result))
-  end
-
-  Sorted:log("=== Test complete ===")
-end
-
-function Sorted.addCanToInv()
-  local items = getScriptManager():getAllItems()
-  for i = 0, items:size() - 1 do
-    local item = items:get(i)
-    local isCan = isCannedFood(item)
-    local name = item:getFullName()
-    if isCan and string.lower(name):find("can") then
-      local invItem = instanceItem(name)
-      getPlayer():getInventory():DoAddItem(invItem)
+        Sorted:log("[Sorted] Uncategorized items notification shown: " .. pendingCount .. " items", 2)
+      end
     end
   end
+  Events.OnTick.Add(onTickNotify)
+  Sorted._pendingUnknownItems = nil
 end
+
+Events.OnGameStart.Add(showUncategorizedNotification)

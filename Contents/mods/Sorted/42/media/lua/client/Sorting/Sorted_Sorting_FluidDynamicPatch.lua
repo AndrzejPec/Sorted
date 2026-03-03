@@ -57,7 +57,8 @@ local function getAlcoholCategoryDetailed(fluidContainer)
       end
     end
   else
-    local totalAlcohol = fluidContainer.getProperties and fluidContainer:getProperties():getAlcohol() or 0
+    local properties = fluidContainer.getProperties and fluidContainer:getProperties()
+    local totalAlcohol = (properties and properties.getAlcohol) and properties:getAlcohol() or 0
     local totalAmount = fluidContainer.getAmount and fluidContainer:getAmount() or 0
 
     if totalAmount > 0 then
