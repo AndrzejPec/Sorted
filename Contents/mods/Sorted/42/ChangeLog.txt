@@ -35,3 +35,6 @@
 [ 28 Feb 2026 ]
 - (fix) Fixed bug that would not let category manager to open properly
 [ ------ ]
+
+[ 03 Mar 2026 ]
+- (fix) a lot of fixes to the codebase
