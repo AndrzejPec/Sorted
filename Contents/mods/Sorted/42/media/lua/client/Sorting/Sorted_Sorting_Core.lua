@@ -85,9 +85,9 @@ function Sorted:getAllItemsPredicate(predicate)
   end
 
   for i, item in ipairs(result) do
-    print("Item #" .. i .. " is " .. tostring(item))
+    Sorted:log("Item #" .. i .. " is " .. tostring(item), 3)
   end
-  print("Found " .. #result .. " items out of all " .. count .. " items in game")
+  Sorted:log("Found " .. #result .. " items out of all " .. count .. " items in game", 3)
   return result
 end
 
@@ -550,9 +550,9 @@ local function isBag(item)
     return false
   end
 
-  local instanceItem = instanceItem(item)
-  if instanceItem then
-    local bodyLocation = instanceItem:canBeEquipped()
+  local invItem = instanceItem(item)
+  if invItem then
+    local bodyLocation = invItem:canBeEquipped()
     if bodyLocation == ItemBodyLocation.SATCHEL or bodyLocation == ItemBodyLocation.BACK then
       return true
     end
@@ -566,10 +566,10 @@ local function getContainerCategory(item)
   if isFannyPack(item) then
     return "ContainerFanny"
   elseif isBackpack(item) then
-    Sorted:log("Item " .. itemType or "?" .. " categorized as backpack", 3)
+    Sorted:log("Item " .. (itemType or "?") .. " categorized as backpack", 3)
     return "ContainerBackpack"
   elseif isBag(item) then
-    Sorted:log("Item " .. itemType or "?" .. " categorized as bag", 3)
+    Sorted:log("Item " .. (itemType or "?") .. " categorized as bag", 3)
     return "ContainerBag"
   else
     local displayCategory = item.getDisplayCategory and item:getDisplayCategory()
@@ -965,18 +965,6 @@ local function isClothing(item)
   return false
 end
 
-local function logClothingDecision(message)
-  if Sorted and Sorted.Throttle and Sorted.Throttle.queue then
-    table.insert(Sorted.Throttle.queue, message)
-    Sorted.Throttle.active = true
-    return
-  end
-
-  if Sorted and Sorted.log then
-    Sorted:log(message, 3)
-  end
-end
-
 local function getMementoClothingCategory(item, useDetailed)
   if not item or not item.getDisplayCategory or item:getDisplayCategory() ~= "Memento" then
     return nil
@@ -1015,13 +1003,9 @@ local function getClothingCategory(item, useDetailed)
     local bloodLoc = item.getBloodBodyPartType and item:getBloodBodyPartType()
     if bloodLoc and bloodLoc ~= "" then
       bodyLoc = bloodLoc
-      -- logClothingDecision("Clothing source=BloodBodyPartType for " .. item:getFullName())
     else
-      -- logClothingDecision("ClothMisc: No BodyLocation/BloodBodyPartType for " .. item:getFullName())
       return "ClothMisc"
     end
-  else
-    -- logClothingDecision("Clothing source=BodyLocation for " .. item:getFullName())
   end
 
   local bodyLocStr = tostring(bodyLoc)
@@ -1030,16 +1014,16 @@ local function getClothingCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
 
   local mapping = BODYLOCATION_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
-    Sorted:log("Mapped to: " .. category, 0)
+    Sorted:log("Mapped to: " .. category, 3)
     return category
   end
 
-  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("ClothMisc: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
   return "ClothMisc"
 end
 
@@ -1086,18 +1070,18 @@ local function getProtectiveGearCategory(item, useDetailed)
     bodyLocStr = string.upper(bodyLocStr)
   end
 
-  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("Checking BodyLocation: " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
 
   local mapping = PROTECTIVE_GEAR_MAP[bodyLocStr]
   if mapping then
     local category = useDetailed and mapping.detailed or mapping.simple
     if category and type(category) == "string" then
-      Sorted:log("PGear mapped to: " .. category, 0)
+      Sorted:log("PGear mapped to: " .. category, 3)
       return category
     end
   end
 
-  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 0)
+  Sorted:log("PGear: Unknown BodyLocation " .. tostring(bodyLocStr) .. " for " .. item:getFullName(), 3)
   return "ProtGearMisc"
 end
 

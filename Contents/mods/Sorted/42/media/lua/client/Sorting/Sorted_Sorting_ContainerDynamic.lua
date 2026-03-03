@@ -71,7 +71,7 @@ function Sorted.container.analyzeContents(containerItem)
                 category = item:getDisplayCategory()
             end
 
-            category = category or "_Sorted.Uncategorize"
+            category = category or "_Sorted.Uncategorized"
 
             -- BULLETPROOF FIX: Ignore nested containers to avoid recursive/nonsensical naming
             -- We don't care that there's a bag inside a bag - we care what's IN the bags!

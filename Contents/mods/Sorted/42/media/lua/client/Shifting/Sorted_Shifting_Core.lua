@@ -487,53 +487,6 @@ function Sorted.Modal:initialise()
     self:addChild(cancelButton)
 end
 
--- function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
---     if not skipNormalize then
---         category = normalizeCategoryKey(category)
---     end
---     local lines = {}
---     local found = false
-
---     local reader = getFileReader(ASSIGNMENTS_FILE, false)
---     if reader then
---         while true do
---             local line = reader:readLine()
---             if not line then break end
---             local k = line:match("^(.-)=")
---             if k == fullType then
---                 table.insert(lines, fullType .. "=" .. category)
---                 found = true
---             else
---                 table.insert(lines, line)
---             end
---         end
---         reader:close()
---     end
-
---     if not found then
---         table.insert(lines, fullType .. "=" .. category)
---     end
-
---     local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
---     if not writer then
---         return
---     end
---     for _, line in ipairs(lines) do
---         writer:write(line .. "\n")
---     end
---     writer:close()
-
---     if Sorted.setUserCategory then
---         Sorted.setUserCategory(fullType, category)
---     end
---     if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
---         Sorted.Tracker.syncItemTypeInWorld(fullType)
---     end
---     if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
---         Sorted.Tracker.invalidateCategoryCache()
---     end
--- end
-
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
     if not fullType or fullType == "" or not category or category == "" then
         return
