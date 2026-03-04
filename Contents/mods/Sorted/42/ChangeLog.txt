@@ -32,10 +32,11 @@
 - (feat) add Tailoring, Masonry, Knapping crafting sub-category detectors
 [ ------ ]
 
-[ 28 Feb 2026 ]
+[ 28 II 2026 ]
 - (fix) Fixed bug that would not let category manager to open properly
 [ ------ ]
 
-[ 03 Mar 2026 ]
+[ XX III 2026 ]
 - (fix) a lot of fixes to the codebase
 - (fix) Add circular reference prevention in category mappings
+- (cleanup) Move dev tools to _archived, add uncategorized items notification, add nil guard for fluid properties

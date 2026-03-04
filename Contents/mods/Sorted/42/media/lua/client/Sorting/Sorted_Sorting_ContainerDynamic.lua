@@ -104,6 +104,13 @@ function Sorted.container:getDynamicCategory(container)
 
     -- Empty container
     if not analysis then
+        local fullType = container.getFullType and container:getFullType()
+        if fullType and Sorted.ItemDictionary[fullType] then
+            local alg = Sorted.ItemDictionary[fullType].algorithm
+            if alg and alg ~= "" and alg ~= "Container" and alg:find("^Container") then
+                return alg
+            end
+        end
         return "ContainerEmpty"
     end
 

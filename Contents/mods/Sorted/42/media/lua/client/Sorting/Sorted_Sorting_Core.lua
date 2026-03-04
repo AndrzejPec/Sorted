@@ -1000,7 +1000,7 @@ local function getProtectiveGearCategory(item, useDetailed)
 end
 
 local function isFirearmLootContainers(item)
-  if item:getItemType() ~= ItemType.CONTAINER or item:getDisplayCategory() ~= "Bag" then
+  if item:getItemType() ~= ItemType.CONTAINER then
     return false
   end
 
