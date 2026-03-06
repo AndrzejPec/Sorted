@@ -187,7 +187,6 @@ function Sorted.ApplyFluidCategory(item)
   --   end
   -- end
 
-
   if not item.setDisplayCategory then
     return
   end

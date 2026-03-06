@@ -291,9 +291,9 @@ local function InitializeModOptions()
     options:addSeparator()
 
     config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
-    config.separatorStyle:addItem("w/ (Container w/ Food)", true)
+    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", true)
+    config.separatorStyle:addItem("w/ (Container w/ Food)", false)
     config.separatorStyle:addItem("with (Container with Food)", false)
-    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", false)
 
     config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
 

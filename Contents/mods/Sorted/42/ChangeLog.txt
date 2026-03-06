@@ -40,3 +40,5 @@
 - (fix) a lot of fixes to the codebase
 - (fix) Add circular reference prevention in category mappings
 - (cleanup) Move dev tools to _archived, add uncategorized items notification, add nil guard for fluid properties
+- (fix) fixed non-generic containers not returning to their category once emptied
+- (fix) fixed some firearm containers not being categorised as such
