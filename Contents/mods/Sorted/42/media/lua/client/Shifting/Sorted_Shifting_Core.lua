@@ -368,6 +368,7 @@ function Sorted.Modal:new(x, y, width, height, item)
     o.backgroundColor = {r=0, g=0, b=0, a=0.8}
     o.borderColor     = {r=0.6, g=0.6, b=0.6, a=0.9}
     o.drawBorder = true
+    o:setWantKeyEvents(true)
     return o
 end
 
@@ -591,6 +592,16 @@ end
 function Sorted.Modal:onCancel()
     self:setVisible(false)
     self:removeFromUIManager()
+end
+
+function Sorted.Modal:isKeyConsumed(key)
+    return key == Keyboard.KEY_ESCAPE
+end
+
+function Sorted.Modal:onKeyRelease(key)
+    if key == Keyboard.KEY_ESCAPE then
+        self:onCancel()
+    end
 end
 
 function Sorted.Modal:onReset()

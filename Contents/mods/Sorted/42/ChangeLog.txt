@@ -43,3 +43,4 @@
 - (fix) fixed non-generic containers not returning to their category once emptied
 - (fix) fixed some firearm containers not being categorised as such
 - (feat) added ability to force some categories not to turn into <Fluid Container> when emtied i.e. Gas Can will always fallback to <Fuel> category
+- (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from

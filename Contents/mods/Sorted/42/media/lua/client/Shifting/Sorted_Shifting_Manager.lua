@@ -295,6 +295,7 @@ function Sorted.ManagerMC:new(x, y, width, height)
     o.uiScale = Sorted.ManagerMC.UIScaleFactor()
     o.resizable = false
     o.module = {}
+    o:setWantKeyEvents(true)
     return o
 end
 
@@ -405,7 +406,8 @@ function Sorted.ManagerMC:createChildren()
     self:addChild(self.mappingSourceCombo)
 
     local arrowX = renameStartX + halfW
-    self.mappingArrow = ISLabel:new(arrowX + 2, row3Y + 4, arrowW, "->", 1, 0.8, 0.2, 1, UIFont.Small, true)
+    local arrowTextW = getTextManager():MeasureStringX(UIFont.Small, "->")
+    self.mappingArrow = ISLabel:new(arrowX + math.floor((arrowW - arrowTextW) / 2), row3Y + 4, arrowTextW, "->", 1, 0.8, 0.2, 1, UIFont.Small, true)
     self:addChild(self.mappingArrow)
 
     local targetX = arrowX + arrowW
@@ -833,6 +835,16 @@ function Sorted.ManagerMC:close()
     self:setVisible(false)
     self:removeFromUIManager()
     Sorted.ManagerMC.instance = nil
+end
+
+function Sorted.ManagerMC:isKeyConsumed(key)
+    return key == Keyboard.KEY_ESCAPE
+end
+
+function Sorted.ManagerMC:onKeyRelease(key)
+    if key == Keyboard.KEY_ESCAPE then
+        self:close()
+    end
 end
 
 function Sorted.ManagerMC.toggle()
