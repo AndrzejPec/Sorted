@@ -384,7 +384,7 @@ function Sorted.openModal(item)
     local rawSaved = Sorted.getSavedCategory(fullType)
     ensureCategories({ rawDefault, rawSaved })
 
-    local width, height = desiredWidth, 270
+    local width, height = desiredWidth, 290
 
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
@@ -443,13 +443,24 @@ function Sorted.Modal:initialise()
     self:addChild(labelChoose)
     yOffset = yOffset + 20
 
+    local labelSearch = ISLabel:new(10, yOffset, 20, "Search:", 1, 1, 0.4, 1, UIFont.Small, true)
+    self:addChild(labelSearch)
+
+    self.searchInput = ISTextEntryBox:new("", 50, yOffset, self.width - 60, 20)
+    self.searchInput:initialise()
+    self.searchInput:instantiate()
+    self:addChild(self.searchInput)
+    yOffset = yOffset + 25
+
     self.comboBox = ISComboBox:new(10, yOffset, self.width - 20, 25)
-    for _, entry in ipairs(Sorted.categories) do
-        self.comboBox:addOptionWithData(entry.label, entry.key)
-    end
     self.comboBox.maxListHeight = 400
     self:addChild(self.comboBox)
     yOffset = yOffset + 30
+
+    -- Save full list of categories for filtering
+    self.allCategories = Sorted.categories
+
+    self:refreshComboBox("")
 
     local labelCustom = ISLabel:new(10, yOffset, 20, getText("UI_Sorted_orTypeCustom"), 0.8, 0.8, 0.8, 1, UIFont.Small, true)
     self:addChild(labelCustom)
@@ -485,6 +496,38 @@ function Sorted.Modal:initialise()
     cancelButton.backgroundColor = { r=0.4, g=0.1, b=0.1, a=0.3 }
     cancelButton.backgroundColorMouseOver = { r=0.4, g=0.1, b=0.1, a=0.6 }
     self:addChild(cancelButton)
+end
+
+-- Refreshes combobox options, showing only those whose label starts with the filter text
+function Sorted.Modal:refreshComboBox(filter)
+    -- Clear all existing options
+    self.comboBox.options = {}
+    self.comboBox.optionCount = 0
+    self.comboBox.selected = 1
+
+    local lowerFilter = string.lower(filter)
+
+    local count = 0
+
+    for _, entry in ipairs(self.allCategories) do
+        if lowerFilter == "" or string.sub(string.lower(entry.label), 1, #lowerFilter) == lowerFilter then
+            self.comboBox:addOptionWithData(entry.label, entry.key)
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        self.comboBox:addOptionWithData("(no match)", "")
+    end
+end
+
+function Sorted.Modal:update()
+    ISPanel.update(self)
+    local currentSearch = self.searchInput and self.searchInput:getText() or ""
+    if currentSearch ~= (self.lastSearch or "") then
+        self.lastSearch = currentSearch
+        self:refreshComboBox(currentSearch)
+    end
 end
 
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)

@@ -180,18 +180,7 @@ function Sorted.container:getDynamicCategory(container)
 
     if percentage > 50 then
         local separator = Sorted.ModOptions:getSeparator()
-        local showPrefix = true
-        if Sorted.ModOptions and Sorted.ModOptions.config and Sorted.ModOptions.config.showContainerPrefix then
-            showPrefix = Sorted.ModOptions.config.showContainerPrefix:getValue()
-        end
-
-        local result
-        if showPrefix then
-            result = "Cont " .. separator .. " mostly " .. dominantCategory.name
-        else
-            result = "mostly " .. dominantCategory.name
-        end
-        return result
+        return "Container " .. separator .. " mostly " .. dominantCategory.name
     end
 
     -- Case 4: Mixed contents, no clear majority
@@ -202,7 +191,7 @@ end
 ---@param container InventoryItem
 function Sorted.container:applyDynamicCategory(container)
     local fullType = container.getFullType and container:getFullType()
-    
+
     if fullType and Sorted.ItemDictionary[fullType] then
         local entry = Sorted.ItemDictionary[fullType]
         if entry.user and entry.user ~= "" then

@@ -6,7 +6,6 @@ Sorted.ModOptions = Sorted.ModOptions or {}
 Sorted.ModOptions.config = Sorted.ModOptions.config or {
     separatorStyle = nil,
     useAndInsteadOfAmpersand = nil,
-    showContainerPrefix = nil,
     clothingCategoryMode = nil,
     managerModifierKey = nil,
     persistentCooking = nil,
@@ -253,51 +252,26 @@ function Sorted.ModOptions:buildContainerName(categories)
 
     local separator = self:getSeparator()
     local conjunction = self:getConjunction()
-    local showPrefix = true
-
-    if config.showContainerPrefix then
-        showPrefix = config.showContainerPrefix:getValue()
-    end
-
-    if not showPrefix then
-        -- Avoid category-only labels that look like item categories.
-        showPrefix = true
-    end
 
     local useBrackets = false
     if config.separatorStyle then
         useBrackets = config.separatorStyle:getValue() == 3
     end
 
-    local result = ""
-
-    -- Build the category part
     local categoryPart = ""
     if #categories == 1 then
         categoryPart = categories[1]
     elseif #categories == 2 then
         categoryPart = categories[1] .. conjunction .. categories[2]
     else
-        -- More than 2 categories - shouldn't happen with current logic
         categoryPart = categories[1]
     end
 
-    -- Combine with prefix/separator
-    if showPrefix then
-        if useBrackets then
-            result = "Container (" .. categoryPart .. ")"
-        else
-            result = "Cont " .. separator .. " " .. categoryPart
-        end
+    if useBrackets then
+        return "Container (" .. categoryPart .. ")"
     else
-        if useBrackets then
-            result = "(" .. categoryPart .. ")"
-        else
-            result = categoryPart
-        end
+        return "Container " .. separator .. " " .. categoryPart
     end
-
-    return result
 end
 
 -- Initialize B42 ModOptions
@@ -311,7 +285,7 @@ local function InitializeModOptions()
         return
     end
 
-    local options = PZAPI.ModOptions:create("Sorted", "Sorted - Container Display")
+    local options = PZAPI.ModOptions:create("Sorted", "Sorted")
 
     -- Container Naming Options section
     options:addTitle("Container Naming Options")
@@ -324,8 +298,6 @@ local function InitializeModOptions()
     config.separatorStyle:addItem("with (Container with Food)", false)
 
     config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
-
-    config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
 
     -- Clothing Categorization section
     options:addTitle("Clothing Categorization")

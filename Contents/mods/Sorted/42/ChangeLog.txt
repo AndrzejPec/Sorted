@@ -42,3 +42,4 @@
 - (cleanup) Move dev tools to _archived, add uncategorized items notification, add nil guard for fluid properties
 - (fix) fixed non-generic containers not returning to their category once emptied
 - (fix) fixed some firearm containers not being categorised as such
+- (feat) added ability to force some categories not to turn into <Fluid Container> when emtied i.e. Gas Can will always fallback to <Fuel> category
