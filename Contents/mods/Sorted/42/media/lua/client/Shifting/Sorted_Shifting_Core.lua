@@ -315,6 +315,13 @@ function Sorted.collectDisplayCategories()
         end
     end
 
+    -- Remove source keys that have an active mapping; the target key is already present
+    if Sorted.CategoryMappings then
+        for source, _ in pairs(Sorted.CategoryMappings) do
+            raw[source] = nil
+        end
+    end
+
     Sorted.categories = buildCategoryList(raw)
 end
 

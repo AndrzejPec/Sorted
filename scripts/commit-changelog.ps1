@@ -1,3 +1,13 @@
+# DO NOT RUN THIS SCRIPT MANUALLY. It is called automatically by the git commit-msg hook.
+#
+# It reads the commit message and appends an entry to ChangeLog.txt based on a prefix:
+#   "First: <message>"    - starts a new changelog section with today's date
+#   "Following: <message>"- adds a bullet point to the current section
+#   "Last: <message>"     - adds a bullet point and closes the section with [ ------ ]
+#
+# Commits without one of these prefixes are ignored by this hook.
+# Install the hook with:  .\scripts\install-hooks.ps1
+
 param(
     [Parameter(Mandatory = $true)]
     [string]$CommitMsgPath

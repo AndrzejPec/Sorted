@@ -36,11 +36,13 @@
 - (fix) Fixed bug that would not let category manager to open properly
 [ ------ ]
 
-[ XX III 2026 ]
-- (fix) a lot of fixes to the codebase
+[ 6 III 2026 ]
+- (fix) A lot of fixes to the codebase
 - (fix) Add circular reference prevention in category mappings
-- (cleanup) Move dev tools to _archived, add uncategorized items notification, add nil guard for fluid properties
-- (fix) fixed non-generic containers not returning to their category once emptied
-- (fix) fixed some firearm containers not being categorised as such
-- (feat) added ability to force some categories not to turn into <Fluid Container> when emtied i.e. Gas Can will always fallback to <Fuel> category
+- (fix) Fixed non-generic containers not returning to their category once emptied
+- (fix) Fixed some firearm containers not being categorised as such
+- (fix) Hide mapped source categories from category picker
+- (feat) Added ability to force some categories not to turn into <Fluid Container> when emptied i.e. Gas Can will always fallback to <Fuel> category
+- (feat) ESC key now collapses both category change modal and the category manager windows
 - (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
+[ ------ ]

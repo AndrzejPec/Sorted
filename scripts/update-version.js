@@ -1,3 +1,17 @@
+// USAGE: Run this script LAST, after bump-version.ps1 and its commit are done.
+//
+//   node scripts/update-version.js
+//
+// This is the RELEASE script. It:
+//   1. Requires a clean working tree (no uncommitted changes)
+//   2. Asks for the version number interactively (e.g. "3.5")
+//   3. Merges the current dev branch into "stable" (no-ff)
+//   4. Creates a release tag vX.X on stable
+//   5. Creates a vX.X-source tag on the dev branch
+//
+// After it finishes, push manually:
+//   git push origin stable develop-beta --tags
+
 const readline = require("readline");
 const { execSync } = require("child_process");
 
