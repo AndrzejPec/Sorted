@@ -65,8 +65,27 @@ function Sorted.setCategoryMapping(sourceCategory, targetCategory)
         return false
     end
     if targetCategory and targetCategory ~= "" then
-        Sorted.CategoryMappings[sourceCategory] = targetCategory
-        Sorted:log("[Sorted] Category mapped: " .. sourceCategory .. " -> " .. targetCategory, 2)
+        if sourceCategory == targetCategory then
+            Sorted:log("[Sorted] setCategoryMapping: cannot map category to itself (" .. sourceCategory .. "), ignoring", 2)
+            return false
+        end
+        local finalTarget = targetCategory
+        local visited = { [sourceCategory] = true }
+        local current = targetCategory
+        while Sorted.CategoryMappings[current] and Sorted.CategoryMappings[current] ~= "" do
+            if visited[current] then
+                Sorted:log("[Sorted] setCategoryMapping: circular reference detected (" .. sourceCategory .. " -> " .. targetCategory .. "), ignoring", 1)
+                return false
+            end
+            visited[current] = true
+            finalTarget = Sorted.CategoryMappings[current]
+            current = finalTarget
+        end
+        if finalTarget ~= targetCategory then
+            Sorted:log("[Sorted] setCategoryMapping: resolved chain " .. sourceCategory .. " -> " .. targetCategory .. " -> " .. finalTarget, 2)
+        end
+        Sorted.CategoryMappings[sourceCategory] = finalTarget
+        Sorted:log("[Sorted] Category mapped: " .. sourceCategory .. " -> " .. finalTarget, 2)
     else
         Sorted.CategoryMappings[sourceCategory] = nil
         Sorted:log("[Sorted] Category mapping removed for: " .. sourceCategory, 2)

@@ -6,11 +6,38 @@ Sorted.ModOptions = Sorted.ModOptions or {}
 Sorted.ModOptions.config = Sorted.ModOptions.config or {
     separatorStyle = nil,
     useAndInsteadOfAmpersand = nil,
-    showContainerPrefix = nil,
     clothingCategoryMode = nil,
     managerModifierKey = nil,
+    persistentCooking = nil,
+    persistentFuel = nil,
 }
 local config = Sorted.ModOptions.config
+
+-- Categories that persist on empty fluid containers instead of becoming "Fluid Container"
+Sorted.ModOptions.PersistentFluidCategories = Sorted.ModOptions.PersistentFluidCategories or {
+    ["Cooking"] = true,
+    ["Fuel"] = true,
+}
+
+function Sorted.ModOptions:isPersistentFluidCategory(category)
+    if not category then
+        return false
+    end
+
+    if config.persistentCooking and not config.persistentCooking:getValue() then
+        self.PersistentFluidCategories["Cooking"] = nil
+    else
+        self.PersistentFluidCategories["Cooking"] = true
+    end
+
+    if config.persistentFuel and not config.persistentFuel:getValue() then
+        self.PersistentFluidCategories["Fuel"] = nil
+    else
+        self.PersistentFluidCategories["Fuel"] = true
+    end
+
+    return self.PersistentFluidCategories[category] == true
+end
 
 -- Category grouping map - condenses long category names into shorter group names
 -- IMPORTANT: Keys MUST be dictionary keys (e.g., "ClothBody"), NOT translated values (e.g., "Clothing - Body")
@@ -225,51 +252,26 @@ function Sorted.ModOptions:buildContainerName(categories)
 
     local separator = self:getSeparator()
     local conjunction = self:getConjunction()
-    local showPrefix = true
-
-    if config.showContainerPrefix then
-        showPrefix = config.showContainerPrefix:getValue()
-    end
-
-    if not showPrefix then
-        -- Avoid category-only labels that look like item categories.
-        showPrefix = true
-    end
 
     local useBrackets = false
     if config.separatorStyle then
         useBrackets = config.separatorStyle:getValue() == 3
     end
 
-    local result = ""
-
-    -- Build the category part
     local categoryPart = ""
     if #categories == 1 then
         categoryPart = categories[1]
     elseif #categories == 2 then
         categoryPart = categories[1] .. conjunction .. categories[2]
     else
-        -- More than 2 categories - shouldn't happen with current logic
         categoryPart = categories[1]
     end
 
-    -- Combine with prefix/separator
-    if showPrefix then
-        if useBrackets then
-            result = "Container (" .. categoryPart .. ")"
-        else
-            result = "Cont " .. separator .. " " .. categoryPart
-        end
+    if useBrackets then
+        return "Container (" .. categoryPart .. ")"
     else
-        if useBrackets then
-            result = "(" .. categoryPart .. ")"
-        else
-            result = categoryPart
-        end
+        return "Container " .. separator .. " " .. categoryPart
     end
-
-    return result
 end
 
 -- Initialize B42 ModOptions
@@ -283,7 +285,7 @@ local function InitializeModOptions()
         return
     end
 
-    local options = PZAPI.ModOptions:create("Sorted", "Sorted - Container Display")
+    local options = PZAPI.ModOptions:create("Sorted", "Sorted")
 
     -- Container Naming Options section
     options:addTitle("Container Naming Options")
@@ -291,13 +293,11 @@ local function InitializeModOptions()
     options:addSeparator()
 
     config.separatorStyle = options:addComboBox("separatorStyle", "Separator Style", "Choose how to separate 'Container' from categories")
-    config.separatorStyle:addItem("w/ (Container w/ Food)", true)
+    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", true)
+    config.separatorStyle:addItem("w/ (Container w/ Food)", false)
     config.separatorStyle:addItem("with (Container with Food)", false)
-    config.separatorStyle:addItem("(...) - Parentheses (Container (Food))", false)
 
     config.useAndInsteadOfAmpersand = options:addTickBox("useAnd", "Use 'and' instead of '&'", false, "When container has 2 categories, use 'and' instead of '&'")
-
-    config.showContainerPrefix = options:addTickBox("showPrefix", "Show 'Container' prefix", true, "Show 'Container' or 'Cont' text before category names")
 
     -- Clothing Categorization section
     options:addTitle("Clothing Categorization")
@@ -307,6 +307,14 @@ local function InitializeModOptions()
     config.clothingCategoryMode = options:addComboBox("clothingCategoryMode", "Clothing category detail", "Basic or detailed clothing categories")
     config.clothingCategoryMode:addItem("Basic (ClothHead/ClothBody/ClothLegs)", false)
     config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)
+
+    -- Persistent Fluid Categories section
+    options:addTitle("Persistent Fluid Categories")
+    options:addDescription("Categories that persist when a fluid container is emptied, instead of becoming 'Fluid Container'")
+    options:addSeparator()
+
+    config.persistentCooking = options:addTickBox("persistentCooking", "Cooking", true, "Cooking items keep their category when emptied")
+    config.persistentFuel = options:addTickBox("persistentFuel", "Fuel", true, "Fuel items keep their category when emptied")
 
     -- Shortcuts section
     options:addTitle("Shortcuts")

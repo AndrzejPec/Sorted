@@ -1,16 +1,13 @@
-v0.3 - 27 Feb 2026
+Official beta release. We're like 2-3 updates away from the official relase right now. I'm aware of some of your suggestions not yet implemented.
+Nevertheless if you've got anything to add, please do on discord before it's too late :)
 
-- Major codebase refactor
-- Category Manager: rename entire categories in one click
-- Fixed "Reset All" button
-- New crafting sub-categories: Tailoring, Masonry, Knapping
-
-This update has been a while coming - took some time to get back
-But the latest version is getting us close to announcing this as beta version of the mod...
-since the AI said that the mod is "~88% production ready", with... 4500 lines of functional code!!1
-
-Still not perfect yet, but the core idea
-is that YOU have the tools to get everything... Sorted. Yourself.
-Have we nailed that? Let me know in the Discord - poll incoming.
-
-Happy dying!
+[ 6 III 2026 ]
+- (feat) Added ability to force some categories not to turn into "Fluid Container" when emptied i.e. Gas Can will always fallback to <Fuel> category
+- (feat) The above is configurable through Mod Options
+- (feat) ESC key now collapses both category change modal and the category manager window
+- (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
+- (fix) A lot of fixes to the codebase
+- (fix) Add circular reference prevention in category mappings
+- (fix) Fixed non-generic containers not returning to their category once emptied
+- (fix) Fixed some firearm containers not being categorised as such
+- (fix) Hide mapped source categories from category picker

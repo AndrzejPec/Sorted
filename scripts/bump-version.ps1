@@ -1,3 +1,14 @@
+# USAGE: Run this script AFTER you have added all commits for the new version.
+#
+#   .\scripts\bump-version.ps1 -Version "3.5"
+#
+# This script updates the version number in three places:
+#   - mod.info       (modversion field)
+#   - Sorted_LatestVersion.lua  (CURRENT_VERSION constant)
+#   - content.txt    (filled with the latest changelog section)
+#
+# After running, commit the changed files as the release commit.
+
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version

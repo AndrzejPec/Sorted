@@ -57,7 +57,8 @@ local function getAlcoholCategoryDetailed(fluidContainer)
       end
     end
   else
-    local totalAlcohol = fluidContainer.getProperties and fluidContainer:getProperties():getAlcohol() or 0
+    local properties = fluidContainer.getProperties and fluidContainer:getProperties()
+    local totalAlcohol = (properties and properties.getAlcohol) and properties:getAlcohol() or 0
     local totalAmount = fluidContainer.getAmount and fluidContainer:getAmount() or 0
 
     if totalAmount > 0 then
@@ -163,7 +164,15 @@ function Sorted.ApplyFluidCategory(item)
   local instanceCategory = dynamicCategory
 
   if not instanceCategory and amount <= 0 then
-    instanceCategory = "Fluid Container"
+    local fullType = item.getFullType and item:getFullType()
+    local entry = fullType and Sorted.ItemDictionary and Sorted.ItemDictionary[fullType]
+    local algorithmCategory = entry and entry.algorithm
+    if algorithmCategory and Sorted.ModOptions and Sorted.ModOptions.isPersistentFluidCategory
+        and Sorted.ModOptions:isPersistentFluidCategory(algorithmCategory) then
+      instanceCategory = algorithmCategory
+    else
+      instanceCategory = "Fluid Container"
+    end
   end
 
   if Sorted and Sorted.setItemAlgorithmCategory then
@@ -185,7 +194,6 @@ function Sorted.ApplyFluidCategory(item)
   --       Sorted.setAlgorithmCategory(fullType, instanceCategory)
   --   end
   -- end
-
 
   if not item.setDisplayCategory then
     return

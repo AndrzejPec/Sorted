@@ -71,7 +71,7 @@ function Sorted.container.analyzeContents(containerItem)
                 category = item:getDisplayCategory()
             end
 
-            category = category or "_Sorted.Uncategorize"
+            category = category or "_Sorted.Uncategorized"
 
             -- BULLETPROOF FIX: Ignore nested containers to avoid recursive/nonsensical naming
             -- We don't care that there's a bag inside a bag - we care what's IN the bags!
@@ -104,6 +104,13 @@ function Sorted.container:getDynamicCategory(container)
 
     -- Empty container
     if not analysis then
+        local fullType = container.getFullType and container:getFullType()
+        if fullType and Sorted.ItemDictionary[fullType] then
+            local alg = Sorted.ItemDictionary[fullType].algorithm
+            if alg and alg ~= "" and alg ~= "Container" and alg:find("^Container") then
+                return alg
+            end
+        end
         return "ContainerEmpty"
     end
 
@@ -173,18 +180,7 @@ function Sorted.container:getDynamicCategory(container)
 
     if percentage > 50 then
         local separator = Sorted.ModOptions:getSeparator()
-        local showPrefix = true
-        if Sorted.ModOptions and Sorted.ModOptions.config and Sorted.ModOptions.config.showContainerPrefix then
-            showPrefix = Sorted.ModOptions.config.showContainerPrefix:getValue()
-        end
-
-        local result
-        if showPrefix then
-            result = "Cont " .. separator .. " mostly " .. dominantCategory.name
-        else
-            result = "mostly " .. dominantCategory.name
-        end
-        return result
+        return "Container " .. separator .. " mostly " .. dominantCategory.name
     end
 
     -- Case 4: Mixed contents, no clear majority
@@ -195,7 +191,7 @@ end
 ---@param container InventoryItem
 function Sorted.container:applyDynamicCategory(container)
     local fullType = container.getFullType and container:getFullType()
-    
+
     if fullType and Sorted.ItemDictionary[fullType] then
         local entry = Sorted.ItemDictionary[fullType]
         if entry.user and entry.user ~= "" then

@@ -19,7 +19,7 @@ local function ensureFluidCategoryApplied(item)
   if not item then return end
   if Sorted.ApplyFluidCategory and item.getFluidContainerFromSelfOrWorldItem then
     local fluidContainer = item:getFluidContainerFromSelfOrWorldItem()
-    if fluidContainer and fluidContainer.getAmount and fluidContainer:getAmount() > 0 then
+    if fluidContainer then
       Sorted.ApplyFluidCategory(item)
     end
   end
@@ -361,7 +361,7 @@ local function onSortedInventoryRefresh()
   Sorted.forEachPlayerItem(function(item)
     if item and item.getFluidContainerFromSelfOrWorldItem then
       local fc = item:getFluidContainerFromSelfOrWorldItem()
-      if fc and fc.getAmount and fc:getAmount() > 0 then
+      if fc then
         Sorted.ApplyFluidCategory(item)
       end
     end

@@ -295,6 +295,7 @@ function Sorted.ManagerMC:new(x, y, width, height)
     o.uiScale = Sorted.ManagerMC.UIScaleFactor()
     o.resizable = false
     o.module = {}
+    o:setWantKeyEvents(true)
     return o
 end
 
@@ -312,7 +313,7 @@ function Sorted.ManagerMC:createChildren()
     local btnW = 130 * self.uiScale
     local btnGap = 6 * self.uiScale
 
-    local bottomHgt = (btnHgt * 3) + (pad * 4)
+    local bottomHgt = (btnHgt * 4) + (pad * 5)
     local listHeight = self.height - titleHeight - bottomHgt - pad
 
     self.advPanel = ISTabPanel:new(pad, titleHeight + pad, self.width - pad * 2, listHeight)
@@ -327,38 +328,47 @@ function Sorted.ManagerMC:createChildren()
     local resetX = rightX - btnW
     local applyX = resetX - btnGap - btnW
 
-    local catLabel = "Category:"
-    local catLabelW = getTextManager():MeasureStringX(UIFont.Small, catLabel)
-    self.categoryLabel = ISLabel:new(pad, row1Y + 4, FONT_HGT_SMALL, catLabel, 1, 1, 1, 1, UIFont.Small, true)
-    self:addChild(self.categoryLabel)
+    -- "Search:" label at the left, search input next to it, combo below on same row as buttons
+    local searchLabel = "Search:"
+    local searchLabelW = getTextManager():MeasureStringX(UIFont.Small, searchLabel)
+    self.categorySearchLabel = ISLabel:new(pad, row1Y + 4, FONT_HGT_SMALL, searchLabel, 1, 1, 0.4, 1, UIFont.Small, true)
+    self:addChild(self.categorySearchLabel)
 
-    local comboX = pad + catLabelW + 6
-    local comboW = math.max(120, applyX - btnGap - comboX)
-    self.categoryCombo = ISComboBox:new(comboX, row1Y, comboW, btnHgt)
+    local comboRightEdge = applyX - btnGap
+    local comboW = math.max(120, comboRightEdge - pad)
+    self.categorySearchInput = ISTextEntryBox:new("", pad + searchLabelW + 4, row1Y, comboRightEdge - (pad + searchLabelW + 4), btnHgt)
+    self.categorySearchInput:initialise()
+    self.categorySearchInput:instantiate()
+    self.categorySearchInput.onTextChange = Sorted.ManagerMC.onCategorySearchChange
+    self.categorySearchInput.target = self
+    self:addChild(self.categorySearchInput)
+
+    local row1bY = row1Y + btnHgt + pad
+    self.categoryCombo = ISComboBox:new(pad, row1bY, comboW, btnHgt)
     self.categoryCombo:initialise()
     self.categoryCombo:instantiate()
     self.categoryCombo.maxListHeight = 400
     self:addChild(self.categoryCombo)
 
-    self.applySelectedBtn = ISButton:new(applyX, row1Y, btnW, btnHgt, "Apply Selected", self, Sorted.ManagerMC.onApplySelected)
+    self.applySelectedBtn = ISButton:new(applyX, row1bY, btnW, btnHgt, "Apply Selected", self, Sorted.ManagerMC.onApplySelected)
     self.applySelectedBtn.borderColor = {r=0.2, g=0.8, b=0.2, a=1}
     self.applySelectedBtn.backgroundColor = {r=0.1, g=0.3, b=0.1, a=0.5}
     self.applySelectedBtn.backgroundColorMouseOver = {r=0.1, g=0.5, b=0.1, a=0.7}
     self:addChild(self.applySelectedBtn)
 
-    self.resetSelectedBtn = ISButton:new(resetX, row1Y, btnW, btnHgt, "Reset Selected", self, Sorted.ManagerMC.onResetSelected)
+    self.resetSelectedBtn = ISButton:new(resetX, row1bY, btnW, btnHgt, "Reset Selected", self, Sorted.ManagerMC.onResetSelected)
     self.resetSelectedBtn.borderColor = {r=0.3, g=0.3, b=0.8, a=1}
     self.resetSelectedBtn.backgroundColor = {r=0.15, g=0.15, b=0.4, a=0.5}
     self.resetSelectedBtn.backgroundColorMouseOver = {r=0.2, g=0.2, b=0.6, a=0.7}
     self:addChild(self.resetSelectedBtn)
 
-    local row2Y = row1Y + btnHgt + pad
+    local row2Y = row1Y + (btnHgt + pad) * 2
     local customLabel = "Custom:"
     local customLabelW = getTextManager():MeasureStringX(UIFont.Small, customLabel)
     self.customLabel = ISLabel:new(pad, row2Y + 4, FONT_HGT_SMALL, customLabel, 1, 1, 1, 1, UIFont.Small, true)
     self:addChild(self.customLabel)
 
-    self.customInput = ISTextEntryBox:new("", pad + customLabelW + 6, row2Y, comboW, btnHgt)
+    self.customInput = ISTextEntryBox:new("", pad + customLabelW + 6, row2Y, comboRightEdge - (pad + customLabelW + 6), btnHgt)
     self.customInput:initialise()
     self.customInput:instantiate()
     self:addChild(self.customInput)
@@ -396,7 +406,8 @@ function Sorted.ManagerMC:createChildren()
     self:addChild(self.mappingSourceCombo)
 
     local arrowX = renameStartX + halfW
-    self.mappingArrow = ISLabel:new(arrowX + 2, row3Y + 4, arrowW, "->", 1, 0.8, 0.2, 1, UIFont.Small, true)
+    local arrowTextW = getTextManager():MeasureStringX(UIFont.Small, "->")
+    self.mappingArrow = ISLabel:new(arrowX + math.floor((arrowW - arrowTextW) / 2), row3Y + 4, arrowTextW, "->", 1, 0.8, 0.2, 1, UIFont.Small, true)
     self:addChild(self.mappingArrow)
 
     local targetX = arrowX + arrowW
@@ -525,6 +536,8 @@ function Sorted.ManagerMC:populateCategoryCombo()
     end
 
     if Sorted.categories and #Sorted.categories > 0 then
+        -- Store full list so refreshCategoryCombo can filter it
+        self.allCategories = Sorted.categories
         for _, entry in ipairs(Sorted.categories) do
             self.categoryCombo:addOptionWithData(entry.label or entry.key, entry.key)
         end
@@ -533,6 +546,36 @@ function Sorted.ManagerMC:populateCategoryCombo()
     if self.categoryCombo.options and #self.categoryCombo.options > 0 then
         self.categoryCombo.selected = 1
     end
+end
+
+-- Refreshes categoryCombo showing only categories whose label starts with the search text
+function Sorted.ManagerMC:refreshCategoryCombo(filter)
+    self.categoryCombo.options = {}
+    self.categoryCombo.optionCount = 0
+    self.categoryCombo.selected = 1
+
+    local lowerFilter = string.lower(filter)
+    local count = 0
+
+    for _, entry in ipairs(self.allCategories or {}) do
+        local label = entry.label or entry.key
+        if lowerFilter == "" or string.sub(string.lower(label), 1, #lowerFilter) == lowerFilter then
+            self.categoryCombo:addOptionWithData(label, entry.key)
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        self.categoryCombo:addOptionWithData("(no match)", "")
+    end
+end
+
+-- Called by onTextChange of categorySearchInput
+function Sorted.ManagerMC.onCategorySearchChange(widget)
+    local self = widget.target
+    if not self then return end
+    local filter = widget:getInternalText() or ""
+    self:refreshCategoryCombo(filter)
 end
 
 function Sorted.ManagerMC:populateMappingSourceCombo()
@@ -792,6 +835,16 @@ function Sorted.ManagerMC:close()
     self:setVisible(false)
     self:removeFromUIManager()
     Sorted.ManagerMC.instance = nil
+end
+
+function Sorted.ManagerMC:isKeyConsumed(key)
+    return key == Keyboard.KEY_ESCAPE
+end
+
+function Sorted.ManagerMC:onKeyRelease(key)
+    if key == Keyboard.KEY_ESCAPE then
+        self:close()
+    end
 end
 
 function Sorted.ManagerMC.toggle()

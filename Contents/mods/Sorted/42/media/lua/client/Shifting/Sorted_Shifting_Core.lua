@@ -315,6 +315,13 @@ function Sorted.collectDisplayCategories()
         end
     end
 
+    -- Remove source keys that have an active mapping; the target key is already present
+    if Sorted.CategoryMappings then
+        for source, _ in pairs(Sorted.CategoryMappings) do
+            raw[source] = nil
+        end
+    end
+
     Sorted.categories = buildCategoryList(raw)
 end
 
@@ -368,6 +375,7 @@ function Sorted.Modal:new(x, y, width, height, item)
     o.backgroundColor = {r=0, g=0, b=0, a=0.8}
     o.borderColor     = {r=0.6, g=0.6, b=0.6, a=0.9}
     o.drawBorder = true
+    o:setWantKeyEvents(true)
     return o
 end
 
@@ -384,7 +392,7 @@ function Sorted.openModal(item)
     local rawSaved = Sorted.getSavedCategory(fullType)
     ensureCategories({ rawDefault, rawSaved })
 
-    local width, height = desiredWidth, 270
+    local width, height = desiredWidth, 290
 
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
@@ -443,13 +451,24 @@ function Sorted.Modal:initialise()
     self:addChild(labelChoose)
     yOffset = yOffset + 20
 
+    local labelSearch = ISLabel:new(10, yOffset, 20, "Search:", 1, 1, 0.4, 1, UIFont.Small, true)
+    self:addChild(labelSearch)
+
+    self.searchInput = ISTextEntryBox:new("", 50, yOffset, self.width - 60, 20)
+    self.searchInput:initialise()
+    self.searchInput:instantiate()
+    self:addChild(self.searchInput)
+    yOffset = yOffset + 25
+
     self.comboBox = ISComboBox:new(10, yOffset, self.width - 20, 25)
-    for _, entry in ipairs(Sorted.categories) do
-        self.comboBox:addOptionWithData(entry.label, entry.key)
-    end
     self.comboBox.maxListHeight = 400
     self:addChild(self.comboBox)
     yOffset = yOffset + 30
+
+    -- Save full list of categories for filtering
+    self.allCategories = Sorted.categories
+
+    self:refreshComboBox("")
 
     local labelCustom = ISLabel:new(10, yOffset, 20, getText("UI_Sorted_orTypeCustom"), 0.8, 0.8, 0.8, 1, UIFont.Small, true)
     self:addChild(labelCustom)
@@ -487,52 +506,37 @@ function Sorted.Modal:initialise()
     self:addChild(cancelButton)
 end
 
--- function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
---     if not skipNormalize then
---         category = normalizeCategoryKey(category)
---     end
---     local lines = {}
---     local found = false
+-- Refreshes combobox options, showing only those whose label starts with the filter text
+function Sorted.Modal:refreshComboBox(filter)
+    -- Clear all existing options
+    self.comboBox.options = {}
+    self.comboBox.optionCount = 0
+    self.comboBox.selected = 1
 
---     local reader = getFileReader(ASSIGNMENTS_FILE, false)
---     if reader then
---         while true do
---             local line = reader:readLine()
---             if not line then break end
---             local k = line:match("^(.-)=")
---             if k == fullType then
---                 table.insert(lines, fullType .. "=" .. category)
---                 found = true
---             else
---                 table.insert(lines, line)
---             end
---         end
---         reader:close()
---     end
+    local lowerFilter = string.lower(filter)
 
---     if not found then
---         table.insert(lines, fullType .. "=" .. category)
---     end
+    local count = 0
 
---     local writer = getFileWriter(ASSIGNMENTS_FILE, true, false)
---     if not writer then
---         return
---     end
---     for _, line in ipairs(lines) do
---         writer:write(line .. "\n")
---     end
---     writer:close()
+    for _, entry in ipairs(self.allCategories) do
+        if lowerFilter == "" or string.sub(string.lower(entry.label), 1, #lowerFilter) == lowerFilter then
+            self.comboBox:addOptionWithData(entry.label, entry.key)
+            count = count + 1
+        end
+    end
 
---     if Sorted.setUserCategory then
---         Sorted.setUserCategory(fullType, category)
---     end
---     if Sorted.Tracker and Sorted.Tracker.syncItemTypeInWorld then
---         Sorted.Tracker.syncItemTypeInWorld(fullType)
---     end
---     if Sorted.Tracker and Sorted.Tracker.invalidateCategoryCache then
---         Sorted.Tracker.invalidateCategoryCache()
---     end
--- end
+    if count == 0 then
+        self.comboBox:addOptionWithData("(no match)", "")
+    end
+end
+
+function Sorted.Modal:update()
+    ISPanel.update(self)
+    local currentSearch = self.searchInput and self.searchInput:getText() or ""
+    if currentSearch ~= (self.lastSearch or "") then
+        self.lastSearch = currentSearch
+        self:refreshComboBox(currentSearch)
+    end
+end
 
 function Sorted.writeCategoryToIni(fullType, category, skipNormalize)
     if not fullType or fullType == "" or not category or category == "" then
@@ -595,6 +599,16 @@ end
 function Sorted.Modal:onCancel()
     self:setVisible(false)
     self:removeFromUIManager()
+end
+
+function Sorted.Modal:isKeyConsumed(key)
+    return key == Keyboard.KEY_ESCAPE
+end
+
+function Sorted.Modal:onKeyRelease(key)
+    if key == Keyboard.KEY_ESCAPE then
+        self:onCancel()
+    end
 end
 
 function Sorted.Modal:onReset()
