@@ -9,8 +9,36 @@ Sorted.ModOptions.config = Sorted.ModOptions.config or {
     showContainerPrefix = nil,
     clothingCategoryMode = nil,
     managerModifierKey = nil,
+    persistentCooking = nil,
+    persistentFuel = nil,
 }
 local config = Sorted.ModOptions.config
+
+-- Categories that persist on empty fluid containers instead of becoming "Fluid Container"
+Sorted.ModOptions.PersistentFluidCategories = Sorted.ModOptions.PersistentFluidCategories or {
+    ["Cooking"] = true,
+    ["Fuel"] = true,
+}
+
+function Sorted.ModOptions:isPersistentFluidCategory(category)
+    if not category then
+        return false
+    end
+
+    if config.persistentCooking and not config.persistentCooking:getValue() then
+        self.PersistentFluidCategories["Cooking"] = nil
+    else
+        self.PersistentFluidCategories["Cooking"] = true
+    end
+
+    if config.persistentFuel and not config.persistentFuel:getValue() then
+        self.PersistentFluidCategories["Fuel"] = nil
+    else
+        self.PersistentFluidCategories["Fuel"] = true
+    end
+
+    return self.PersistentFluidCategories[category] == true
+end
 
 -- Category grouping map - condenses long category names into shorter group names
 -- IMPORTANT: Keys MUST be dictionary keys (e.g., "ClothBody"), NOT translated values (e.g., "Clothing - Body")
@@ -307,6 +335,14 @@ local function InitializeModOptions()
     config.clothingCategoryMode = options:addComboBox("clothingCategoryMode", "Clothing category detail", "Basic or detailed clothing categories")
     config.clothingCategoryMode:addItem("Basic (ClothHead/ClothBody/ClothLegs)", false)
     config.clothingCategoryMode:addItem("Detailed (ClothHeadHat, ClothBodyJacket, ...)", true)
+
+    -- Persistent Fluid Categories section
+    options:addTitle("Persistent Fluid Categories")
+    options:addDescription("Categories that persist when a fluid container is emptied, instead of becoming 'Fluid Container'")
+    options:addSeparator()
+
+    config.persistentCooking = options:addTickBox("persistentCooking", "Cooking", true, "Cooking items keep their category when emptied")
+    config.persistentFuel = options:addTickBox("persistentFuel", "Fuel", true, "Fuel items keep their category when emptied")
 
     -- Shortcuts section
     options:addTitle("Shortcuts")

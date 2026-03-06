@@ -164,7 +164,15 @@ function Sorted.ApplyFluidCategory(item)
   local instanceCategory = dynamicCategory
 
   if not instanceCategory and amount <= 0 then
-    instanceCategory = "Fluid Container"
+    local fullType = item.getFullType and item:getFullType()
+    local entry = fullType and Sorted.ItemDictionary and Sorted.ItemDictionary[fullType]
+    local algorithmCategory = entry and entry.algorithm
+    if algorithmCategory and Sorted.ModOptions and Sorted.ModOptions.isPersistentFluidCategory
+        and Sorted.ModOptions:isPersistentFluidCategory(algorithmCategory) then
+      instanceCategory = algorithmCategory
+    else
+      instanceCategory = "Fluid Container"
+    end
   end
 
   if Sorted and Sorted.setItemAlgorithmCategory then
