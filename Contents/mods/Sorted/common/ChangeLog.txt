@@ -46,3 +46,7 @@
 - (feat) ESC key now collapses both category change modal and the category manager windows
 - (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
 [ ------ ]
+
+[ 13 III 2026 ]
+- (fix) Introduced proper translation format for B42.15
+[ ------ ]

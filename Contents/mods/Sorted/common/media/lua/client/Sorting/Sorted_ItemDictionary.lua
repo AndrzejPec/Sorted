@@ -28,6 +28,7 @@ Sorted.DeprecatedCategories = {
         ["Communications"] = true,
         ["FishingWeapon"] = true,
         ["Teddy Bear"] = true,
+        ["WaterContainer"] = true,
     },
 }
 

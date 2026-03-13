@@ -1,13 +1,9 @@
-Official beta release. We're like 2-3 updates away from the official relase right now. I'm aware of some of your suggestions not yet implemented.
-Nevertheless if you've got anything to add, please do on discord before it's too late :)
-
 [ 6 III 2026 ]
-- (feat) Added ability to force some categories not to turn into "Fluid Container" when emptied i.e. Gas Can will always fallback to <Fuel> category
-- (feat) The above is configurable through Mod Options
-- (feat) ESC key now collapses both category change modal and the category manager window
-- (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
 - (fix) A lot of fixes to the codebase
 - (fix) Add circular reference prevention in category mappings
 - (fix) Fixed non-generic containers not returning to their category once emptied
 - (fix) Fixed some firearm containers not being categorised as such
 - (fix) Hide mapped source categories from category picker
+- (feat) Added ability to force some categories not to turn into <Fluid Container> when emptied i.e. Gas Can will always fallback to <Fuel> category
+- (feat) ESC key now collapses both category change modal and the category manager windows
+- (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
