@@ -15,9 +15,9 @@ param(
 )
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$changeLogPath  = Join-Path $repoRoot "Contents\mods\Sorted\common\ChangeLog.txt"
+$changeLogPath  = Join-Path $repoRoot "Contents\mods\Sorted\42\ChangeLog.txt"
 $contentPath    = Join-Path $repoRoot "Contents\mods\Sorted\common\content.txt"
-$luaVersionPath = Join-Path $repoRoot "Contents\mods\Sorted\common\media\lua\client\VersionModal\Sorted_LatestVersion.lua"
+$luaVersionPath = Join-Path $repoRoot "Contents\mods\Sorted\42\media\lua\client\VersionModal\Sorted_LatestVersion.lua"
 $modInfoPath    = Join-Path $repoRoot "Contents\mods\Sorted\common\mod.info"
 
 # 1. Update modversion in mod.info

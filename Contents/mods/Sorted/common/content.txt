@@ -1,9 +1,3 @@
-[ 6 III 2026 ]
-- (fix) A lot of fixes to the codebase
-- (fix) Add circular reference prevention in category mappings
-- (fix) Fixed non-generic containers not returning to their category once emptied
-- (fix) Fixed some firearm containers not being categorised as such
-- (fix) Hide mapped source categories from category picker
-- (feat) Added ability to force some categories not to turn into <Fluid Container> when emptied i.e. Gas Can will always fallback to <Fuel> category
-- (feat) ESC key now collapses both category change modal and the category manager windows
-- (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
+[ 13 III 2026 ]
+- (fix) Introduced proper translation format for B42.15
+[ ------ ]
