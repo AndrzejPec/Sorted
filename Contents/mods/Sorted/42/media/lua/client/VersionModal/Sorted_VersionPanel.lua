@@ -17,10 +17,11 @@ local function loadChangelogLines()
 
     local reader = nil
     if getModFileReader then
-        reader = getModFileReader("\\Sorted.", "content.txt", false)
-    end
+        reader = getModFileReader("Sorted.", "content.txt", false)
+    end    
+
     if not reader and Sorted and Sorted.log then
-        Sorted:log("Version modal: content.txt not found, using defaults.")
+        Sorted:log("Version modal: content.txt not found in common/ or root, using defaults.")
     end
     if not reader then
         return defaultLines
