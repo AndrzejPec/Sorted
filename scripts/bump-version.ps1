@@ -19,6 +19,7 @@ $changeLogPath  = Join-Path $repoRoot "Contents\mods\Sorted\42\ChangeLog.txt"
 $contentPath    = Join-Path $repoRoot "Contents\mods\Sorted\common\content.txt"
 $luaVersionPath = Join-Path $repoRoot "Contents\mods\Sorted\42\media\lua\client\VersionModal\Sorted_LatestVersion.lua"
 $modInfoPath    = Join-Path $repoRoot "Contents\mods\Sorted\common\mod.info"
+$debugPath      = Join-Path $repoRoot "Contents\mods\Sorted\42\media\lua\client\0_Sorted_Debug.lua"
 
 # 1. Update modversion in mod.info
 $modInfo = Get-Content $modInfoPath -Raw
@@ -63,6 +64,17 @@ for ($i = $lastStart; $i -lt $changelogLines.Length; $i++) {
 
 Set-Content $contentPath -Value $sectionLines
 Write-Host "Updated content.txt with $($sectionLines.Count) lines from last changelog section"
+
+# Ensure debug logging is disabled before release
+$debug = Get-Content $debugPath -Raw
+$newDebug = $debug -replace '(Sorted\.debug\s*=\s*\{[^}]*enabled\s*=\s*)true', '${1}false'
+if ($newDebug -eq $debug) {
+    Write-Host "Debug already disabled in 0_Sorted_Debug.lua"
+} else {
+    Set-Content $debugPath -Value $newDebug -NoNewline
+    Write-Host "Disabled debug logging in 0_Sorted_Debug.lua"
+}
+
 Write-Host ""
 Write-Host "Done. Version modal will show: $Version"
 Write-Host "Edit content.txt manually if you want a different message."
