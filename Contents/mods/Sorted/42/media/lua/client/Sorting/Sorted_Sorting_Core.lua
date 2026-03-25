@@ -209,6 +209,13 @@ local function getBeverageCategory(item)
   return nil
 end
 
+local function getFluidContainerCategory(item)
+  if item.FluidContainer then
+    return "Fluid Container"
+  end
+  return nil
+end
+
 local function getFrozenFoodCategory(item)
   if item:hasTag(ItemTag.GOOD_FROZEN) then
     return "FoodIceCream"
@@ -1099,6 +1106,7 @@ local CATEGORY_DETECTORS_DETAILED = {
   isCookwareLoot,
   getAlcoholCategory,
   getBeverageCategory,
+  getFluidContainerCategory,
   getFrozenFoodCategory,
   getFoodCategory,
   getLiteratureCategory,
@@ -1128,6 +1136,7 @@ local CATEGORY_DETECTORS_SIMPLE = {
   isCookwareLoot,
   getAlcoholCategory,
   getBeverageCategory,
+  getFluidContainerCategory,
   getFrozenFoodCategory,
   getFoodCategory,
   getLiteratureCategory,

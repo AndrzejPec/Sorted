@@ -13,6 +13,7 @@ Sorted.DeprecatedCategories = {
         ["First Aid"] = "FirstAid",
         ["Cartography"] = "LitCartography",
         ["Ammunition"] = "Ammo",
+        ["WaterContainer"] = "Fluid Container",
     },
     ORPHANED = {
         ["Frog"] = true,
@@ -27,7 +28,6 @@ Sorted.DeprecatedCategories = {
         ["Communications"] = true,
         ["FishingWeapon"] = true,
         ["Teddy Bear"] = true,
-        ["WaterContainer"] = true,
     },
 }
 
@@ -350,6 +350,29 @@ function Sorted.loadDictionary()
 end
 
 
+local function repairDeprecatedEntries()
+    local repaired = 0
+    for _, entry in pairs(Sorted.ItemDictionary) do
+        for field, _ in pairs({original = "original", mapped = "mapped", algorithm = "algorithm", user = "user"}) do
+            local value = entry[field]
+            if value and Sorted.DeprecatedCategories.RENAMED[value] then
+                local newValue = Sorted.DeprecatedCategories.RENAMED[value]
+                if field == "original" and not entry.mapped then
+                    entry.mapped = newValue
+                    repaired = repaired + 1
+                elseif field ~= "original" then
+                    entry[field] = newValue
+                    repaired = repaired + 1
+                end
+            end
+        end
+    end
+    if repaired > 0 then
+        Sorted:log("[Sorted] Repaired " .. repaired .. " deprecated category entries in dictionary", 2)
+        Sorted.saveDictionary()
+    end
+end
+
 function Sorted.findNewItems()
     local scripts = getScriptManager():getAllItems()
     local newItems = {}
@@ -480,6 +503,8 @@ function Sorted.initializeDictionary()
     local loaded = Sorted.loadDictionary()
 
     if loaded then
+        repairDeprecatedEntries()
+
         local newItems = Sorted.findNewItems()
 
         if #newItems > 0 then

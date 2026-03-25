@@ -355,7 +355,25 @@ function Sorted.addContextMenu(player, context, items)
 
     local managerOption = context:addOption(getText("UI_Sorted_openManager"), nil, function()
         if Sorted.ManagerMC and Sorted.ManagerMC.toggle then
-            Sorted.ManagerMC.toggle()
+            local fullTypeSet = {}
+            for _, entry in ipairs(items) do
+                if type(entry) == "table" and entry.items then
+                    for _, stackedItem in ipairs(entry.items) do
+                        if instanceof(stackedItem, "InventoryItem") then
+                            local ft = stackedItem:getFullType()
+                            if ft then fullTypeSet[ft] = true end
+                        end
+                    end
+                elseif instanceof(entry, "InventoryItem") then
+                    local ft = entry:getFullType()
+                    if ft then fullTypeSet[ft] = true end
+                end
+            end
+            local fullTypes = {}
+            for ft, _ in pairs(fullTypeSet) do
+                table.insert(fullTypes, ft)
+            end
+            Sorted.ManagerMC.toggle(fullTypes)
         end
     end)
     managerOption.iconTexture = iconTex

@@ -478,6 +478,41 @@ function Sorted.ManagerMC:getActiveList()
     return self.advPanel.activeView.view
 end
 
+function Sorted.ManagerMC:preSelectByFullTypes(fullTypes)
+    if not fullTypes or #fullTypes == 0 then
+        return
+    end
+
+    local fullTypeSet = {}
+    for _, ft in ipairs(fullTypes) do
+        fullTypeSet[ft] = true
+    end
+
+    local list = self:getActiveList()
+    if not list or not list.datas then
+        return
+    end
+
+    local datas = list.datas
+    datas:clearSelection()
+
+    local firstSelectedIndex = nil
+    for i, item in ipairs(datas.items) do
+        local scriptItem = item.item
+        local fullName = scriptItem and scriptItem.getFullName and scriptItem:getFullName()
+        if fullName and fullTypeSet[fullName] then
+            item.selected = true
+            if not firstSelectedIndex then
+                firstSelectedIndex = i
+            end
+        end
+    end
+
+    if firstSelectedIndex then
+        datas:ensureVisible(firstSelectedIndex)
+    end
+end
+
 function Sorted.ManagerMC:getSelectedFullTypes()
     local list = self:getActiveList()
     if not list or not list.datas then
@@ -847,10 +882,12 @@ function Sorted.ManagerMC:onKeyRelease(key)
     end
 end
 
-function Sorted.ManagerMC.toggle()
+function Sorted.ManagerMC.toggle(preSelectFullTypes)
     if Sorted.ManagerMC.instance then
         Sorted.ManagerMC.instance:close()
-        return
+        if not preSelectFullTypes or #preSelectFullTypes == 0 then
+            return
+        end
     end
 
     local scale = Sorted.ManagerMC.UIScaleFactor()
@@ -865,6 +902,10 @@ function Sorted.ManagerMC.toggle()
     manager:setVisible(true)
 
     Sorted.ManagerMC.instance = manager
+
+    if preSelectFullTypes and #preSelectFullTypes > 0 then
+        manager:preSelectByFullTypes(preSelectFullTypes)
+    end
 end
 
 function Sorted.openManagerMC()

@@ -47,6 +47,10 @@
 - (feat) Added a search bar allowing for narrowing down categories in the dropdown menu to have less to choose from
 [ ------ ]
 
-[ 13 III 2026 ]
+[ 25 III 2026 ]
 - (fix) Introduced proper translation format for B42.15
 [ ------ ]
+
+
+[ 25 Mar 2026 ]
+- add translation CSV export and Google Sheets import workflow
