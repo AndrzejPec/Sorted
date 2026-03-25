@@ -1,2 +1,2 @@
-[ 25 III 2026 ]
+[ 13 III 2026 ]
 - (fix) Introduced proper translation format for B42.15
