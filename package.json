@@ -4,7 +4,8 @@
   "private": true,
   "description": "Project Zomboid mod - Sorted inventory management system",
   "scripts": {
-    "update-version": "node scripts/update-version.js"
+    "update-version": "node scripts/update-version.js",
+    "export-translations-csv": "node scripts/export-translations-csv.js"
   },
   "author": "pimatstudio",
   "license": "UNLICENSED"
