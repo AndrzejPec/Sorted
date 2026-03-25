@@ -3,7 +3,6 @@ Sorted = Sorted or {}
 
 Sorted.ItemDictionary = {}
 Sorted.DICTIONARY_FILE = "Sorted_ItemDictionary.ini"
-Sorted.USER_BACKUP_PREFIX = "Sorted_UserAssignments_BACKUP_"
 
 Sorted.CategoryMappings = {}
 Sorted.MAPPINGS_FILE = "Sorted_CategoryMappings.ini"
@@ -350,31 +349,6 @@ function Sorted.loadDictionary()
     return true
 end
 
-function Sorted.backupUserAssignments()
-    local timestamp = os.date("%Y%m%d_%H%M%S")
-    local backupFile = Sorted.USER_BACKUP_PREFIX .. timestamp .. ".ini"
-
-    local writer = getFileWriter(backupFile, true, false)
-    if not writer then
-        Sorted:log("[Sorted] ERROR: Could not create backup file", 1)
-        return false
-    end
-
-    writer:write("# Sorted User Assignments Backup\n")
-    writer:write("# Created: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
-
-    local count = 0
-    for fullType, entry in pairs(Sorted.ItemDictionary) do
-        if entry.user and entry.user ~= "" then
-            writer:write(fullType .. "=" .. entry.user .. "\n")
-            count = count + 1
-        end
-    end
-
-    writer:close()
-    Sorted:log("[Sorted] Backed up " .. count .. " user assignments to " .. backupFile, 2)
-    return true
-end
 
 function Sorted.findNewItems()
     local scripts = getScriptManager():getAllItems()
@@ -506,7 +480,6 @@ function Sorted.initializeDictionary()
     local loaded = Sorted.loadDictionary()
 
     if loaded then
-        Sorted.backupUserAssignments()
         local newItems = Sorted.findNewItems()
 
         if #newItems > 0 then
