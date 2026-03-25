@@ -14,7 +14,7 @@ param(
 )
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$changeLogPath = Join-Path $repoRoot "Contents\mods\Sorted\common\ChangeLog.txt"
+$changeLogPath = Join-Path $repoRoot "Contents\mods\Sorted\42\ChangeLog.txt"
 
 if (-not (Test-Path -Path $CommitMsgPath)) {
     exit 0
