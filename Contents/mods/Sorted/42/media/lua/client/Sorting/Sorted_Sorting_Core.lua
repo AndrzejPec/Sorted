@@ -344,6 +344,10 @@ local function getLiteratureCategory(item)
     return "LitCartography"
   end
 
+  if item and item.hasTag and (item:hasTag(ItemTag.WRITE) or item:hasTag(ItemTag.ERASER)) then
+    return "LitWriting"
+  end
+
   if not item or not item.getItemType or item:getItemType() ~= ItemType.LITERATURE then
     return nil
   end
@@ -369,10 +373,6 @@ local function getLiteratureCategory(item)
   local unhappyChange = item.getUnhappyChange and item:getUnhappyChange() or 0
   if stressChange ~= 0 or boredomChange ~= 0 or unhappyChange ~= 0 then
     return "LitEntertainment"
-  end
-
-  if item and item.canBeWrite then
-    return "LitWriting"
   end
 
   local staticModel = item.getStaticModel and item:getWorldStaticModel()

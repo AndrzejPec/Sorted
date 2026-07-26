@@ -57,7 +57,7 @@ function logAll()
 end
 
 function doDebug()
-    Sorted:setLogging(selectedDebugScenario == true, 0)
+    Sorted:setLogging(Sorted.debug.enabled, 0)
 end
 
 function Sorted:doDebug(level)
