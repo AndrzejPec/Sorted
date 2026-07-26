@@ -14,7 +14,6 @@ if Sorted.OnGameBoot and Events and Events.OnGameBoot and Events.OnGameBoot.Remo
   Events.OnGameBoot.Remove(Sorted.OnGameBoot)
 end
 
-
 local function isPerishable(item)
   if item and item.getDaysTotallyRotten then
     local days = item:getDaysTotallyRotten()
@@ -1151,6 +1150,8 @@ local CATEGORY_DETECTORS_SIMPLE = {
   getClothingCategorySimple,
   Sorted.getZomboxCategory,
 }
+
+-- 8,7,9,15,23 kto tam kurwa dzwoni?!
 
 function Sorted.CategorizeItem(item)
   local fullName = item:getFullName()

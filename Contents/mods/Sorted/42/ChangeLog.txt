@@ -51,6 +51,6 @@
 - (fix) Introduced proper translation format for B42.15
 [ ------ ]
 
-
-[ 25 Mar 2026 ]
+[ 26 VII 2026 ]
 - add translation CSV export and Google Sheets import workflow
+- improve category manager preselection and fluid container migration
